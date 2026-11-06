@@ -47,11 +47,17 @@ export function conformance(scores) {
  * `format` lets the terminal use terse rule ids and the report use prose, from one count.
  */
 export function pillarSummary(ir, pillar, { format = 'terse', limit = DISPLAY.summaryRules } = {}) {
-  const { decided, undecided } = findingsFor(ir, pillar);
+  const { decided, suppressed, undecided } = findingsFor(ir, pillar);
   const parts = [];
 
   if (decided.length === 0) {
-    parts.push(ir.findings.length === 0 ? copy('state.noFindings') : copy('state.noDecidedFindings'));
+    parts.push(
+      ir.findings.length === 0
+        ? copy('state.noFindings')
+        : suppressed.length
+          ? copy('state.allSuppressed', suppressed.length)
+          : copy('state.noDecidedFindings')
+    );
   } else {
     const counts = new Map();
     for (const finding of decided) counts.set(finding.ruleId, (counts.get(finding.ruleId) ?? 0) + 1);
@@ -65,6 +71,13 @@ export function pillarSummary(ir, pillar, { format = 'terse', limit = DISPLAY.su
     );
   }
 
+  // Suppression is counted on the same line as the rules, because "why is this pillar 100 when the
+  // page has an unlabelled input" must be answerable without scrolling.
+  // Only when there are also live findings: when every finding was suppressed the opening clause
+  // already says how many, and repeating it read as "…all 1 findings were suppressed · 1 suppressed".
+  if (suppressed.length > 0 && decided.length > 0) {
+    parts.push(copy('state.suppressedCount', suppressed.length));
+  }
   if (undecided.length > 0) parts.push(copy('state.undecidedCount', undecided.length));
   return parts.join(' · ');
 }
@@ -77,7 +90,7 @@ export function pillarRows(ir, scores) {
   return PILLARS.map((pillar) => {
     const score = scores[pillar] ?? null;
     const info = bandOf(score);
-    const { decided, undecided } = findingsFor(ir, pillar);
+    const { decided, suppressed, undecided } = findingsFor(ir, pillar);
     // A pillar that was never collected has no findings because it never ran - not because the
     // page passed it. Saying "no decided findings" there is a false all-clear, and it was the
     // first thing a real report showed: four pillars reading "not measured - no decided
@@ -93,6 +106,7 @@ export function pillarRows(ir, scores) {
       band: info.label,
       tone: info.tone,
       decidedCount: decided.length,
+      suppressedCount: suppressed.length,
       undecidedCount: undecided.length,
       summary,
       summaryProse,
@@ -106,10 +120,12 @@ export function pillarRows(ir, scores) {
  * confidence.
  */
 export function findingGroups(ir) {
-  const allDecided = sortByImpact(ir.findings.filter(isDecided));
+  const allDecided = sortByImpact(ir.findings.filter((finding) => isDecided(finding) && !finding.suppressed));
+  const allSuppressed = sortByImpact(ir.findings.filter((finding) => finding.suppressed === true));
   const allUndecided = ir.findings.filter((finding) => !isDecided(finding));
   return {
     decided: allDecided,
+    suppressed: allSuppressed,
     undecided: allUndecided,
     /** Kept for the terminal's "N more finding(s)" line. */
     total: ir.findings.length,
@@ -132,6 +148,7 @@ export function buildView(ir, scores) {
     overallTone: bandOf(summary.score).tone,
     overallUpperBound: isUpperBound(summary, ir),
     undecidedCount: ir.findings.filter((finding) => finding.coverage === 'incomplete').length,
+    suppressedCount: ir.findings.filter((finding) => finding.suppressed === true).length,
     rows,
     findings,
     coverage: {

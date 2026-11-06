@@ -123,6 +123,14 @@ export function addFinding(ir, finding) {
     coverage: finding.coverage ?? COVERAGE.automated,
     /** Why a check could not be decided. Null when it was decided. */
     coverageReason: finding.coverageReason ?? null,
+    /**
+     * True when a project config suppressed this finding. Suppressed findings stay in the IR -
+     * deleting them would make the report lie about what the page contains - but they never
+     * count toward the score, and every surface counts them out loud.
+     */
+    suppressed: finding.suppressed === true,
+    /** Why somebody decided this is deliberate. Required by the config schema. */
+    suppressionReason: finding.suppressionReason ?? null,
     locations: finding.locations ?? [],
   };
   normalized.id = `${normalized.ruleId}:${normalized.selector ?? ''}`;

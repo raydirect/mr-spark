@@ -29,6 +29,16 @@ export function isDecided(finding) {
   return finding?.coverage !== COVERAGE.incomplete;
 }
 
+/**
+ * Whether a finding should move the score: decided, and not deliberately suppressed.
+ *
+ * Suppression is a separate axis from decidedness on purpose. "We could not tell" and "we were
+ * told this is deliberate" are different facts, and a reader deserves to see which is which.
+ */
+export function countsTowardScore(finding) {
+  return isDecided(finding) && finding?.suppressed !== true;
+}
+
 /** Split findings into decided and undecided, preserving order. */
 export function partitionByCoverage(findings) {
   const decided = [];
@@ -46,7 +56,19 @@ export function sortByImpact(findings) {
   );
 }
 
-/** Findings for one pillar, partitioned. */
+/**
+ * Findings for one pillar, partitioned three ways.
+ *
+ * `suppressed` is its own bucket, never folded into `decided`. A reader looking at a pillar that
+ * reads "clean" has to be able to see that two critical findings are there and were deliberately
+ * waived; burying them inside `decided` would make the pillar line contradict its own score.
+ */
 export function findingsFor(ir, pillar) {
-  return partitionByCoverage(ir.findings.filter((finding) => finding.pillar === pillar));
+  const scoped = pillar ? ir.findings.filter((finding) => finding.pillar === pillar) : ir.findings;
+  const { decided, undecided } = partitionByCoverage(scoped);
+  return {
+    decided: decided.filter((finding) => finding.suppressed !== true),
+    suppressed: decided.filter((finding) => finding.suppressed === true),
+    undecided,
+  };
 }

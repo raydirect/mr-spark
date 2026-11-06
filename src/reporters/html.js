@@ -79,7 +79,8 @@ function meter(score, tone) {
 
 function findingItem(finding) {
   const decided = finding.coverage !== 'incomplete';
-  return `      <li class="${escapeHtml(finding.impact)}${decided ? '' : ' undecided'}">
+  const suppressed = finding.suppressed === true;
+  return `      <li class="${escapeHtml(finding.impact)}${decided ? '' : ' undecided'}${suppressed ? ' suppressed' : ''}">
         <div class="rule">${decided ? '' : '<span class="question" aria-hidden="true">?</span> '}${escapeHtml(ruleLabel(finding.ruleId))}</div>
         <p class="small muted">
           <span class="tag">${escapeHtml(finding.impact)}</span>
@@ -87,6 +88,10 @@ function findingItem(finding) {
             decided
               ? ''
               : `<span class="tag undecided-tag">${escapeHtml(copy('labels.undecided'))}</span> `
+          }${
+            suppressed
+              ? `<span class="tag suppressed-tag">${escapeHtml(copy('labels.suppressed'))}</span> `
+              : ''
           }${escapeHtml(copy('labels.rule'))} <code>${escapeHtml(finding.ruleId)}</code>${
             finding.selector ? ` · <code>${escapeHtml(finding.selector)}</code>` : ''
           }
@@ -94,6 +99,11 @@ function findingItem(finding) {
         ${
           finding.coverageReason
             ? `<p class="small muted">${escapeHtml(finding.coverageReason)}</p>`
+            : ''
+        }
+        ${
+          suppressed && finding.suppressionReason
+            ? `<p class="small muted">${escapeHtml(copy('labels.suppressedBecause', finding.suppressionReason))}</p>`
             : ''
         }
         ${finding.snippet ? `<pre>${escapeHtml(finding.snippet)}</pre>` : ''}
@@ -136,6 +146,15 @@ export function renderReport({ ir, scores, hash }, { reproduceCommand, generated
   const undecidedNote = undecided.length
     ? `    <p class="small muted">
       ${escapeHtml(copy('state.undecidedExplanation'))}
+    </p>`
+    : '';
+
+  // A count and an explanation, not a separate list: the waived findings are still in the list
+  // above, marked, with their reason inline. Hiding them in a section would let a reader skim the
+  // violations and never learn that two criticals were waived.
+  const suppressedNote = view.findings.suppressed.length
+    ? `    <p class="small muted">
+      ${escapeHtml(copy('state.suppressedExplanation'))}
     </p>`
     : '';
 
@@ -193,7 +212,11 @@ ${
     <h2>${escapeHtml(copy('headings.scores'))}</h2>
 ${pillarRows}
 
-    <h2>${escapeHtml(copy('state.findingsHeading', decided.length, undecided.length))}</h2>
+    <h2>${escapeHtml(copy('state.findingsHeading', decided.length, undecided.length))}</h2>${
+      view.findings.suppressed.length
+        ? `\n    <p class="small muted">${escapeHtml(copy('state.suppressedHeading', view.findings.suppressed.length))}</p>`
+        : ''
+    }
 ${
   allFindings.length
     ? `    <ul class="findings" role="list">\n${findingItems}\n    </ul>`
@@ -201,6 +224,7 @@ ${
 }
 
 ${undecidedNote}
+${suppressedNote}
 
     <h2>${escapeHtml(copy('headings.interpretation'))}</h2>
     <p class="small">

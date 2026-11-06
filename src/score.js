@@ -10,7 +10,7 @@
  */
 
 import { PILLARS, COLLECTABLE } from './ir.js';
-import { isDecided, IMPACTS as IMPACT_ORDER } from './vocabulary.js';
+import { countsTowardScore, IMPACTS as IMPACT_ORDER } from './vocabulary.js';
 import { SCORING } from './config/constants.js';
 import { band } from './config/thresholds.js';
 
@@ -74,7 +74,7 @@ export function scorePillar(ir, pillar) {
   if (!COLLECTABLE.has(pillar)) return null;
   // Undecided checks are excluded: "we could not tell" is not damage, and counting it would
   // make the score depend on the runner's capabilities rather than the page's quality.
-  const findings = ir.findings.filter((f) => f.pillar === pillar && isDecided(f));
+  const findings = ir.findings.filter((f) => f.pillar === pillar && countsTowardScore(f));
   if (findings.length === 0) return 100;
   return Math.round((100 * DAMAGE_SCALE) / (damageOf(findings) + DAMAGE_SCALE));
 }

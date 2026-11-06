@@ -14,7 +14,7 @@ import { DISPLAY, ENV } from '../config/constants.js';
 import { copy } from '../config/copy.js';
 import { band, tone } from '../config/thresholds.js';
 import { buildView, pillarSummary } from '../view-model.js';
-import { sortByImpact, isDecided } from '../vocabulary.js';
+import { sortByImpact, isDecided, countsTowardScore } from '../vocabulary.js';
 
 const RESET = '\u001b[0m';
 const DIM = '\u001b[2m';
@@ -76,7 +76,9 @@ export function renderTerminal(
   // Quiet mode is a machine contract for scripts: one tab-separated line per decided finding,
   // no pillar table, no prose, no trailing caveat. Stable field order, ids included.
   if (quiet) {
-    for (const finding of sortByImpact(ir.findings.filter(isDecided))) {
+    // Suppressed findings are excluded: quiet mode is a machine contract consumed by gates, and a
+    // waived finding listed here would fail a build the config said should pass.
+    for (const finding of sortByImpact(ir.findings.filter(countsTowardScore))) {
       lines.push(
         [finding.ruleId, finding.impact, finding.selector ?? '', finding.id].join('\t')
       );
@@ -120,13 +122,15 @@ export function renderTerminal(
     lines.push('');
     for (const finding of shown) {
       const decided = isDecided(finding);
-      const mark = decided ? c(RED, '✗') : c(YELLOW, '?');
+      // A suppressed finding stays in the list — the page still contains it — but it wears the
+      // mark of something a person decided about, not the mark of an open violation.
+      const mark = finding.suppressed ? c(GRAY, '–') : decided ? c(RED, '✗') : c(YELLOW, '?');
       // Rule ids exceed the column width often (aria-valid-attr-value is 21 characters), and
       // padEnd does not truncate, so a long id ran straight into the impact column. Truncate
       // with an ellipsis and keep the gutter, rather than let two columns collide.
       const rule = fit(finding.ruleId, DISPLAY.terminalRuleWidth);
       lines.push(
-        `    ${mark} ${c(decided ? RESET : DIM, rule)}` +
+        `    ${mark} ${c(decided && !finding.suppressed ? RESET : DIM, rule)}` +
           `${c(DIM, finding.impact.padEnd(DISPLAY.terminalImpactWidth))} ` +
           c(GRAY, (finding.selector ?? '').slice(0, DISPLAY.terminalSelectorWidth))
       );
@@ -153,6 +157,24 @@ export function renderTerminal(
   const undecidedCount = ir.findings.filter((finding) => !isDecided(finding)).length;
   if (undecidedCount > 0) {
     lines.push(`    ${c(GRAY, copy('state.undecidedFooter', undecidedCount))}`);
+  }
+
+  // Suppressions are printed in full, not summarised. A waiver that only exists as a count is
+  // indistinguishable from a rule that was switched off, and the whole point of the config is
+  // that the reason travels with the waiver.
+  if (view.findings.suppressed.length) {
+    lines.push('');
+    lines.push(
+      `  ${c(BOLD, copy('state.suppressedTitle'))}${c(GRAY, `  ${copy('state.suppressedFooter', view.findings.suppressed.length)}`)}`
+    );
+    for (const finding of view.findings.suppressed) {
+      lines.push(
+        `    ${c(GRAY, '–')} ${c(DIM, fit(finding.ruleId, DISPLAY.terminalRuleWidth))}` +
+          `${c(DIM, finding.impact.padEnd(DISPLAY.terminalImpactWidth))} ` +
+          c(GRAY, (finding.selector ?? '').slice(0, DISPLAY.terminalSelectorWidth))
+      );
+      lines.push(`      ${c(GRAY, finding.suppressionReason ?? '')}`);
+    }
   }
 
   const issues = ir.environment?.issues ?? [];

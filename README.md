@@ -96,7 +96,7 @@ Read [docs/REVOLUTION.md](docs/REVOLUTION.md) for the whole thing. The shape:
 
 | Phase | What it delivers | Status |
 |---|---|---|
-| 0 | **Ground truth** — a verifier worth trusting: per-root-cause scoring, suppression with printed reasons, a corpus of real pages | 🔨 in progress |
+| 0 | **Ground truth** — a verifier worth trusting: per-root-cause scoring ✅, suppression with printed reasons ✅, a corpus of real pages 🔨 | 🔨 in progress |
 | 1 | **Spine** — frozen `scene` / `motion` / `settings` document schemas, `lower`, `emit`, byte-identical output | ⏳ |
 | 2 | **Gate** — `baseline`, regression-only `--ci`, SARIF, action, finding identity that survives generated ids | ⏳ |
 | 3 | **Studio** — a browser canvas where you author a page, with the verifier live on the canvas | ⏳ |

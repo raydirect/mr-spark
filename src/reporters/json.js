@@ -38,10 +38,20 @@ export function buildJsonReport({ ir, scores, hash }) {
     summary: {
       total: ir.findings.length,
       decided: view.findings.decided.length,
+      suppressed: view.findings.suppressed.length,
       undecided: view.findings.undecided.length,
       byImpact: countBy(ir.findings, (f) => f.impact),
       byRule: countBy(ir.findings, (f) => f.ruleId),
     },
+    // Suppressions are a first-class part of the contract: a consumer that only reads `summary`
+    // still learns that findings exist which the score does not price, and why.
+    suppressions: view.findings.suppressed.map((finding) => ({
+      id: finding.id,
+      ruleId: finding.ruleId,
+      impact: finding.impact,
+      selector: finding.selector ?? null,
+      reason: finding.suppressionReason ?? null,
+    })),
   };
 }
 
