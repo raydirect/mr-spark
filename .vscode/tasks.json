@@ -1,0 +1,30 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "test",
+      "type": "shell",
+      "command": "npm test",
+      "group": { "kind": "build", "isDefault": true },
+      "problemMatcher": []
+    },
+    {
+      "label": "audit the open file",
+      "type": "shell",
+      "command": "node bin/spark.js check \"${file}\"",
+      "problemMatcher": []
+    },
+    {
+      "label": "audit the known-bad fixture",
+      "type": "shell",
+      "command": "node bin/spark.js check fixtures/bad.html",
+      "problemMatcher": []
+    },
+    {
+      "label": "build and open the report",
+      "type": "shell",
+      "command": "node bin/spark.js report fixtures/bad.html --out spark-report.html",
+      "problemMatcher": []
+    }
+  ]
+}

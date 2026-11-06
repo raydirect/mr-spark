@@ -1,0 +1,17 @@
+# Normalise line endings in the repository. A Windows checkout with autocrlf=true, a Linux CI
+# runner and a macOS laptop must all produce the same bytes for the same commit.
+* text=auto eol=lf
+
+# Never convert these.
+*.png binary
+*.jpg binary
+*.woff binary
+*.woff2 binary
+
+# Explicit, so a diff of the lockfile is legible and a checkout cannot drift.
+package-lock.json text eol=lf
+*.json text eol=lf
+*.js text eol=lf
+*.md text eol=lf
+*.yml text eol=lf
+*.html text eol=lf

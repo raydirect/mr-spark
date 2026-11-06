@@ -73,6 +73,10 @@ test('our own report passes our own tool', async () => {
 test('the report server serves the report and nothing else', async () => {
   const html = '<!doctype html><html lang="en"><head><title>t</title></head><body><main><h1>x</h1></main></body></html>';
   const { url, port, close } = await serveReport({ html, port: 0 });
+  // The URL we print must be the one that answers. `localhost` can resolve to ::1, which we do
+  // not listen on, so it is refused on some systems while the server is healthy.
+  assert.match(url, /^http:\/\/127\.0\.0\.1:\d+\/$/);
+  assert.equal(url, `http://127.0.0.1:${port}/`);
   const base = `http://127.0.0.1:${port}`;
   let response = await fetch(base + '/');
   assert.equal(response.status, 200);
