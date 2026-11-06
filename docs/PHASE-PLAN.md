@@ -4,7 +4,7 @@ This is the operational plan. The other documents explain *why*; this one says *
 built, in what order, and how we know it is done.** If a document and this file disagree about
 scope, this file wins for scheduling and the others win for rationale.
 
-Last updated: Phase 1b merged (report page + `--serve` + self-audit). Phase 1c next.
+Last updated: score calibration (spec 2.0.0) merged. Phase 1c next.
 
 ---
 
@@ -14,6 +14,7 @@ Last updated: Phase 1b merged (report page + `--serve` + self-audit). Phase 1c n
 |---|---|---|
 | **1a** | engine · IR v0 · score · terminal + JSON reporters · `check` · fixtures · 13 tests · self-gating CI | ✅ merged |
 | **1b** | deterministic server-rendered **report page** · `report` command · `--serve` · dogfooding (our report passes our tool) | ✅ merged |
+| **1b.5** | **score calibration** — spec 2.0.0: hyperbolic curve, undecided excluded (bug fix), published calibration table | ✅ merged |
 | **1c** | `baseline` + `--ci` regression-only gating · SARIF · GitHub Action with PR comment | ⏳ next |
 | **1d** | `.spark-tools.lock` · `spark mcp serve` · `MCP*` rules · self-conformance | ⏳ |
 | **2** | three machine faces · MCP conformance as a product · extension lens | ⏳ |
@@ -233,7 +234,7 @@ demo of them today would be a mock, and mocks are how projects lie.
 
 | Gap | Why it matters | Owner decision |
 |---|---|---|
-| **Score weights are uncalibrated** (10/5/2/1, saturating at 100 damage) | The number will be shown for real sites | Calibrate against the fixture set + practitioner review |
+| **Score calibration needs field review** | The curve is now published and frozen as tests (spec 2.0.0), but no external practitioner has signed off | Practitioner review before any badge or ranking; every wrongly-scored real page becomes a fixture |
 | **Contrast is undecided without a canvas** in the browserless path | Our most common real finding is unavailable in the default runner | Keep honest; add the browser runner in Phase 1c/2 |
 | **First-run install** — `npx` pulls the optional engines, `--omit=optional` does not | A failed first command is a lost user | Verify from a packed tarball in CI; make the error message actionable |
 | **Report page is not yet a URL service** | Rung 1 is a link | Local `--serve` now; hosting is a Phase 2 decision, never a gate |
