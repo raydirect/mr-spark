@@ -113,6 +113,8 @@ export function addFinding(ir, finding) {
     snippet: finding.snippet ?? null,
     help: finding.help ?? null,
     coverage: finding.coverage ?? COVERAGE.automated,
+    /** Why a check could not be decided. Null when it was decided. */
+    coverageReason: finding.coverageReason ?? null,
     locations: finding.locations ?? [],
   };
   normalized.id = `${normalized.ruleId}:${normalized.selector ?? ''}`;

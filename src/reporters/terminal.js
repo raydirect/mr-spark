@@ -54,6 +54,11 @@ function scoreCell(score, c) {
   return c(colour, cell.padStart(DISPLAY.scoreCellWidth, ' '));
 }
 
+/** Rule ids are ASCII padded; this keeps alignment explicit rather than incidental. */
+function decidingWidth(ruleId) {
+  return ruleId;
+}
+
 function iconCell(score, c) {
   const t = tone(score);
   return c(TONE_COLOUR[t] ?? GRAY, TONE_ICON[t] ?? '·');
@@ -94,24 +99,27 @@ export function renderTerminal(
     );
   }
 
-  // Count what is actually hidden. The first version subtracted the number LISTED from ALL
-  // findings, which mixed decided findings with undecided ones: a page with 3 decided findings
-  // and 3 undecided reported "… 3 more finding(s)" while every decided finding was already on
-  // screen. That is not a rounding error - it invents problems, and the count is the one thing
-  // a reader uses to decide whether to look further.
-  const decidedFindings = sortByImpact(ir.findings.filter(isDecided));
-  const worst = decidedFindings.slice(0, DISPLAY.terminalFindings);
-  if (worst.length) {
+  // ONE list, worst first, decided and undecided together. Splitting undecided checks into a
+  // footnote below the violations was the most misleading thing the first report did: a CRITICAL
+  // undecided check (contrast) sorted below three decided serious ones and effectively vanished.
+  //
+  // Symbols rather than colour alone, because colour is unavailable in half the terminals this
+  // will run in: an undecided check is genuinely NOT a violation, so it must not wear the same
+  // mark as one. It gets a question mark, not a cross.
+  const shown = sortByImpact(ir.findings).slice(0, DISPLAY.terminalFindings);
+  if (shown.length) {
     lines.push('');
-    for (const finding of worst) {
+    for (const finding of shown) {
+      const decided = isDecided(finding);
+      const mark = decided ? c(RED, '✗') : c(YELLOW, '?');
+      const rule = decidingWidth(finding.ruleId).padEnd(DISPLAY.terminalRuleWidth);
       lines.push(
-        `    ${c(RED, '✗')} ` +
-          `${finding.ruleId.padEnd(DISPLAY.terminalRuleWidth)} ` +
+        `    ${mark} ${c(decided ? RESET : DIM, rule)}` +
           `${c(DIM, finding.impact.padEnd(DISPLAY.terminalImpactWidth))} ` +
           c(GRAY, (finding.selector ?? '').slice(0, DISPLAY.terminalSelectorWidth))
       );
     }
-    const remaining = decidedFindings.length - worst.length;
+    const remaining = ir.findings.length - shown.length;
     if (remaining > 0) {
       lines.push(`    ${c(GRAY, copy('state.moreFindings', remaining))}`);
     }
@@ -126,15 +134,9 @@ export function renderTerminal(
         : '')
   );
 
-  const undecided = ir.findings.filter((finding) => !isDecided(finding));
-  if (undecided.length) {
-    const byRule = new Map();
-    for (const finding of undecided) byRule.set(finding.ruleId, (byRule.get(finding.ruleId) ?? 0) + 1);
-    const named = [...byRule.entries()]
-      .sort((a, b) => b[1] - a[1] || (a[0] < b[0] ? -1 : 1))
-      .map(([rule, n]) => `${rule} ×${n}`)
-      .join(' · ');
-    lines.push(`    ${c(GRAY, copy('state.undecidedDetail', named))}`);
+  const undecidedCount = ir.findings.filter((finding) => !isDecided(finding)).length;
+  if (undecidedCount > 0) {
+    lines.push(`    ${c(GRAY, copy('state.undecidedFooter', undecidedCount))}`);
   }
 
   const issues = ir.environment?.issues ?? [];
