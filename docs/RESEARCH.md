@@ -116,9 +116,10 @@ between *measuring* and *being unable to merge a regression*.
   (`@postman/tunnel-agent`) was present in **27%** of cloud/code environments scanned.
 - Why it spreads so well: npm's install-time execution model plus grotesque transitive
   fan-out. **[measured]** In this sandbox, a package-lock for a *single package* resolves
-  to: `next` → 54 packages, `vite + react + react-dom` → 43, `@sveltejs/kit` → 71,
-  `astro` → 282. A realistic small app (React, router, axios, zod, tailwind, vitest,
-  testing-library, TS, Vite) → **133 packages, 132 MB of `node_modules`** for a todo-scale
+  to: a meta-framework's runtime → 54 packages, a component-based UI stack → 43, a
+  full-stack SSR kit → 71, a content-site generator → 282. A realistic small app (UI
+  library, router, HTTP client, schema validator, CSS engine, unit tests, a component test
+  harness, types, dev server) → **133 packages, 132 MB of `node_modules`** for a todo-scale
   application.
 
 **Root cause.** `npm install` is arbitrary code execution from strangers, and the only
@@ -178,7 +179,7 @@ remarkably stable, and remarkably mediocre. The free-text pain point ranking:
 | 9 | Fragmentation | 134 |
 | 10 | Dependencies | 133 |
 
-Note what's at the top: not "React is bad" — *cognitive overload* and *ecosystem issues*.
+Note what's at the top: not "the dominant UI library is bad" — *cognitive overload* and *ecosystem issues*.
 The average respondent has used **2.6 front-end frameworks over their whole career**, which
 kills the "devs are hype-chasers" story and supports the real one: **developers want
 stability and are exhausted by the cost of just staying current.** Building a serious
@@ -258,7 +259,7 @@ Being explicit about anti-goals is how the plan stays credible.
 
 | Tempting idea | Why not |
 |---|---|
-| **Another framework / meta-framework** | The pain point ranking (#1 cognitive overload, #2 ecosystem issues) is an argument *against* adding a new mental model. Also: the graveyard is full — Blitz pivoted away from its Next.js fork and went quiet, Redwood is maintenance mode, Remix merged into React Router. A framework must win the framework war. |
+| **Another framework / meta-framework** | The pain point ranking (#1 cognitive overload, #2 ecosystem issues) is an argument *against* adding a new mental model. Also: the graveyard is full — the Rails-inspired full-stack kit of 2020 pivoted away from its meta-framework fork and went quiet, a GraphQL-first full-stack kit is in maintenance mode, and the leading edge-router framework was absorbed into a plain routing library. A framework must win the framework war. |
 | **Another bundler** | Rolldown and Rspack are consolidating this space with VC-scale engineering teams. Zero chance of winning, and it's not where the pain is. |
 | **Another component library** | Infinite competition, no moat, no structural pain. |
 | **Another dependency scanner** | Socket/Snyk/Dependabot own it. Consume them. |
@@ -301,4 +302,4 @@ page, and a way to prove it in CI in under a second.**
 - JetBrains developer survey on AI tooling failure modes (600+ developers, 2026)
 - W3C Web Machine Learning CG, *WebMCP* draft; Chrome origin trial 149–156; `navigator.modelContext` API reference (2026)
 - llms.txt adoption scans (Rankability top-1,000: 8.7%; ~10% of 300k domains) and Google AI-optimization guidance (May 2026)
-- **[measured]** Sandbox measurements, 2026-11-06: npm dependency graphs (`next` 54, `vite+react` 43, `@sveltejs/kit` 71, `astro` 282, realistic app 133 packages / 132 MB); jsdom + axe-core audit of a 6-error fixture in 331 ms with no browser, catching 4 of the 6 top WebAIM error types (contrast returned as `incomplete` without canvas).
+- **[measured]** Sandbox measurements, 2026-11-06: npm dependency graphs (meta-framework runtime 54, UI stack 43, SSR kit 71, site generator 282, realistic app 133 packages / 132 MB); jsdom + axe-core audit of a 6-error fixture in 331 ms with no browser, catching 4 of the 6 top WebAIM error types (contrast returned as `incomplete` without canvas).

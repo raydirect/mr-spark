@@ -31,7 +31,7 @@ So: **don't beat the ecosystem. Grade it, and gate on the grade.**
 
 ### What "revolutionize the web" has to mean, honestly
 
-Not "a new framework that replaces React." Revolutions in dev tooling happen when a
+Not "a new framework that replaces the incumbent UI library." Revolutions in dev tooling happen when a
 *standard artifact* becomes universal — lockfiles, `package.json`, SARIF, `robots.txt`.
 The realistic version of the ambition is:
 
@@ -104,7 +104,7 @@ Then the PR gets one comment with the delta:
 ```
 web-spark  72 → 78 (+6)   ✓ passed
   +2  accessibility   fixed 4 contrast issues
-  -3  performance     entry bundle +38 KB (react-chartjs-2)
+  -3  performance     entry bundle +38 KB (charting library)
 ```
 
 That second screenshot is the whole product. **Everybody already has dashboards. Nobody
@@ -261,7 +261,7 @@ something other than our own opinion.
 ### Phase 3 — Standard (ongoing)
 - Publish `spec/score-v1.md` (weights, semantics, versioning) as an independent, stable
   document with a public changelog, so third parties can *implement* the score.
-- Adapters: Vitest/Jest matcher, pre-commit hook, Vercel/Netlify build plugin, GitLab CI.
+- Adapters: unit-test matcher (generic), pre-commit hook, build-plugin API for CDNs, GitLab CI.
 - A public score badge with an honesty disclaimer baked into the SVG.
 - **Exit:** one third-party project implements or consumes the score spec without our help.
 
@@ -298,7 +298,7 @@ Leading indicators, in order of what actually matters:
 | **Engine dependency** (axe-core license/behavior change) | We're a wrapper; our value can be pulled out from under us | Adapter interface from day one; a second engine can be added; contribute upstream rather than fork |
 | **Score gaming / badge abuse** | Inevitable the moment it's popular | Public weights, wrong-answer fixtures, no badge without findings + disclaimer |
 | **Maintainer burnout** (the OSS reality) | Sonatype-adjacent workloads, 1–3 people | Narrow scope, ruthless non-goals, automated triage, and a funding plan from day one (see §8) |
-| **AI inverts the traffic model** | Vibe coding already cut Tailwind's docs traffic ~40%; agents install deps without visiting sites | This is a tailwind (pun intended): make the tool *agent-native* — the report is designed to be consumed by agents, which is where usage is heading |
+| **AI inverts the traffic model** | Vibe coding already cut one major CSS framework's docs traffic ~40%; agents install deps without visiting sites | This is upside-down: make the tool *agent-native* — the report is designed to be consumed by agents, which is where usage is heading |
 
 ---
 
