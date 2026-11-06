@@ -10,6 +10,12 @@ Status: proposal, not yet built. This document is the thing to argue with.
 
 ## 1. The bet
 
+> **Superseded in part by [VISION.md](VISION.md).** The audit CLI described here is pillar 1
+> ("Verify") of a larger architecture: a conformance compiler with a shared intermediate
+> representation and five pillars. The reasoning below still holds and is kept because it is
+> the justification for starting exactly where VISION.md says to start.
+
+
 The research in [RESEARCH.md](RESEARCH.md) lands on one gap:
 
 > Every stage of web development has a world-class tool. The **outcome** has no owner,
@@ -31,7 +37,7 @@ So: **don't beat the ecosystem. Grade it, and gate on the grade.**
 
 ### What "revolutionize the web" has to mean, honestly
 
-Not "a new framework that replaces React." Revolutions in dev tooling happen when a
+Not "a new framework that replaces the incumbent UI library." Revolutions in dev tooling happen when a
 *standard artifact* becomes universal — lockfiles, `package.json`, SARIF, `robots.txt`.
 The realistic version of the ambition is:
 
@@ -58,11 +64,11 @@ the report** — the layer that is missing.
 │  Collectors (adapters over trusted engines)                   │
 │   • a11y      → axe-core                                     │
 │   • perf      → Lighthouse / PSI / CrUX, bundle analysis      │
-│   • security  → lockfile + npm audit + OSV + policy rules     │
+│   • security  → lockfile + advisory feeds + OSV + policies    │
 │   • agent     → accessibility-tree readability, WebMCP tools, │
 │                 llms.txt, structured data                     │
 ├──────────────────────────────────────────────────────────────┤
-│  Runners: jsdom (no browser, ~300ms) │ Playwright │ Lighthouse │
+│  Runners: jsdom (no browser, ~300ms) │ browser │ page-audit  │
 ├──────────────────────────────────────────────────────────────┤
 │  Score  +  baseline diff  +  budgets                          │
 ├──────────────────────────────────────────────────────────────┤
@@ -104,7 +110,7 @@ Then the PR gets one comment with the delta:
 ```
 web-spark  72 → 78 (+6)   ✓ passed
   +2  accessibility   fixed 4 contrast issues
-  -3  performance     entry bundle +38 KB (react-chartjs-2)
+  -3  performance     entry bundle +38 KB (charting library)
 ```
 
 That second screenshot is the whole product. **Everybody already has dashboards. Nobody
@@ -119,7 +125,7 @@ These are the choices I'd fight for, with the reasoning, so you can disagree pre
 ### 3.1 Reuse, never reinvent (credibility + speed)
 
 axe-core ships inside Chrome DevTools and Lighthouse and has a zero-false-positive
-commitment. Lighthouse owns perf scoring. OSV/npm audit own advisories. We wrap and
+commitment. Lighthouse owns perf scoring. OSV and the package registries own advisories. We wrap and
 normalize. A from-scratch a11y engine would take a year and be worse — and the community
 would (rightly) ignore us.
 
@@ -206,7 +212,7 @@ punchline:
 | `spark report --format sarif\|json\|md` | CI-native output | M1 |
 | `webspark/check-action@v1` | PR comment + check run + delta | M1 |
 | `spark budget --max-js/--max-lcp/--min-score` | hard ceilings | M2 |
-| `spark check --url` | Playwright runner (rendered DOM, contrast, WebMCP) | M2 |
+| `spark check --url` | browser runner (rendered DOM, contrast, agent tools) | M2 |
 | `spark agent` | a11y-tree report + WebMCP tool inventory | M2 |
 | `spark fix <rule>` | guided fix with codemod where safe | M3 |
 | `spark init` | detect stack, write config, generate the Action | M1 (thin) |
@@ -252,7 +258,7 @@ something other than our own opinion.
   real accessibility regression.
 
 ### Phase 2 — Depth (4–6 weeks)
-- Playwright runner (`--url`): rendered DOM, real contrast, console/network errors,
+- Browser runner (`--url`): rendered DOM, real contrast, console/network errors,
   **WebMCP tool inventory**, agent readiness sub-score.
 - Budgets tied to *changed files* so a PR only fails for the bytes it added.
 - **Exit:** `spark agent` output successfully used by a coding agent to fix a real
@@ -261,7 +267,7 @@ something other than our own opinion.
 ### Phase 3 — Standard (ongoing)
 - Publish `spec/score-v1.md` (weights, semantics, versioning) as an independent, stable
   document with a public changelog, so third parties can *implement* the score.
-- Adapters: Vitest/Jest matcher, pre-commit hook, Vercel/Netlify build plugin, GitLab CI.
+- Adapters: unit-test matcher (generic), pre-commit hook, build-plugin API for CDNs, GitLab CI.
 - A public score badge with an honesty disclaimer baked into the SVG.
 - **Exit:** one third-party project implements or consumes the score spec without our help.
 
@@ -298,7 +304,7 @@ Leading indicators, in order of what actually matters:
 | **Engine dependency** (axe-core license/behavior change) | We're a wrapper; our value can be pulled out from under us | Adapter interface from day one; a second engine can be added; contribute upstream rather than fork |
 | **Score gaming / badge abuse** | Inevitable the moment it's popular | Public weights, wrong-answer fixtures, no badge without findings + disclaimer |
 | **Maintainer burnout** (the OSS reality) | Sonatype-adjacent workloads, 1–3 people | Narrow scope, ruthless non-goals, automated triage, and a funding plan from day one (see §8) |
-| **AI inverts the traffic model** | Vibe coding already cut Tailwind's docs traffic ~40%; agents install deps without visiting sites | This is a tailwind (pun intended): make the tool *agent-native* — the report is designed to be consumed by agents, which is where usage is heading |
+| **AI inverts the traffic model** | Vibe coding already cut one major CSS framework's docs traffic ~40%; agents install deps without visiting sites | This is upside-down: make the tool *agent-native* — the report is designed to be consumed by agents, which is where usage is heading |
 
 ---
 
@@ -318,7 +324,7 @@ Leading indicators, in order of what actually matters:
 ## 9. Decisions I need from you
 
 1. **Scope of v1** — my recommendation: Phase 0 + 1 only (audit + baseline + Action), ship in
-   ~4 weeks, and let real users pull Phase 2 out of us. Alternative: build the Playwright
+   ~4 weeks, and let real users pull Phase 2 out of us. Alternative: build the browser
    runner and WebMCP layer first for a flashier demo, at the cost of a month and a much
    heavier first install.
 2. **Wedge audience** — (a) agency/freelancer devs who must satisfy EAA now and feel the pain
@@ -326,7 +332,7 @@ Leading indicators, in order of what actually matters:
    (money, but slower to reach). I'd start with (a) for urgency and (b) for distribution.
 3. **The name.** `web-spark` is fine and now the repo, but the CLI/package name matters for
    discovery. Candidates: `spark`, `webspark`, `conformance`, `sightline`, `proof`. I'd avoid
-   `spark` alone (collisions, and it's a Kubernetes project); `webspark` reads clearly as
+   `spark` alone (collisions — it is already a well-known name in another ecosystem); `webspark` reads clearly as
    "the web's conformance tool."
 4. **How hard we lean on the agent angle.** It's the best narrative and the newest capability,
    and it's also the easiest thing to over-promise. My instinct: ship it as a *reporting*
