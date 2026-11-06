@@ -1,0 +1,41 @@
+<!doctype html>
+<html>
+  <head>
+    <title>Checkout — bad fixture</title>
+    <style>
+      body { font-family: system-ui; background: #ffffff; margin: 2rem; }
+      .muted { color: #bbbbbb; background: #ffffff; }
+    </style>
+  </head>
+  <body>
+    <div id="root">
+      <div class="header">
+        <div class="logo"><a href="/"><svg width="24" height="24"></svg></a></div>
+        <div class="nav">
+          <span onclick="go()">Products</span>
+          <span onclick="go()">Pricing</span>
+        </div>
+      </div>
+
+      <div class="main">
+        <div class="title">Complete your order</div>
+
+        <img src="/hero.png" width="320" height="180">
+
+        <p class="muted">By continuing you agree to our terms and privacy policy.</p>
+
+        <div class="field">
+          <input type="text" placeholder="Email address">
+        </div>
+        <div class="field">
+          <input type="password" placeholder="Password">
+        </div>
+
+        <div class="row">
+          <button onclick="submit()"><svg width="16" height="16"></svg></button>
+          <a href="/help"></a>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>

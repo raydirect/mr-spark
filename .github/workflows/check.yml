@@ -1,0 +1,29 @@
+name: check
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  self-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm install --no-audit --no-fund
+      - name: unit tests
+        run: npm test
+      # We gate our own repository on our own tool. If this fails, nothing else matters.
+      - name: audit the known-bad fixture (expected to fail the threshold)
+        run: |
+          set +e
+          node bin/spark.js check fixtures/bad.html --no-color --fail-under 90
+          code=$?
+          if [ "$code" -ne 1 ]; then
+            echo "expected exit 1 from a bad fixture, got $code"
+            exit 1
+          fi
+      - name: audit the known-good fixture (expected to pass)
+        run: node bin/spark.js check fixtures/good.html --no-color --fail-under 90

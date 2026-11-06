@@ -7,7 +7,8 @@ shipped bundle — each should carry its own proof that it is accessible, fast, 
 machines, and resilient. Today none of them do. web-spark is the missing layer that makes that
 proof a property of the pipeline instead of an audit after the fact.
 
-> ⚠️ **Status: design proposal.** No code yet, on purpose. Four documents carry the thinking:
+> ⚠️ **Status: Phase 1a (early code).** The engine, the `check` command, the score, the
+> reporters and the CI gate exist. Four documents carry the thinking:
 > - [docs/VISION.md](docs/VISION.md) — the unified plan: one intermediate representation, five pillars
 > - [docs/SURFACES.md](docs/SURFACES.md) — why the product is the engine, and where it runs
 > - [docs/SHELL.md](docs/SHELL.md) — what hosts the authoring UI, and why it is not a native app
@@ -17,6 +18,36 @@ proof a property of the pipeline instead of an audit after the fact.
 > - [docs/INSPIRATIONS.md](docs/INSPIRATIONS.md) — 100 influences as *borrow this / avoid that*, brand-free
 
 ---
+
+## Try it
+
+```bash
+git clone <this repo> && cd web-spark
+npm install
+node bin/spark.js check fixtures/bad.html
+```
+
+```
+  web-spark  file:///…/fixtures/bad.html
+
+  ACCESSIBLE   63  ✗  link-name ×2 · button-name ×1 · bypass ×1
+  FAST            —  ·  not measured in this build
+  SAFE            —  ·  not measured in this build
+  LEGIBLE         —  ·  not measured in this build
+  RESILIENT       —  ·  not measured in this build
+
+  ✗ button-name      critical  button
+  ✗ image-alt        critical  img
+  ✗ html-has-lang    serious   html
+  ✗ link-name        serious   a[href$="help"]
+
+  CONFORMANCE  63  poor  (1/5 pillars measured)
+  ir aa5183ae7e26  ·  Automated checks cover a minority of WCAG criteria. Absence of
+  findings does not mean a page is accessible.
+```
+
+`npm test` runs 13 tests. `--format json` gives the machine face. `--fail-under 90` makes it a
+gate. The unbuilt pillars say `—` on purpose: an unmeasured pillar is a gap, never a pass.
 
 ## The one-sentence thesis
 
