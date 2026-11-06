@@ -5,7 +5,7 @@ import { checkInstall, installMessage, REQUIRED } from '../src/require.js';
 import { parseArgs } from '../src/cli.js';
 
 test('an empty install is reported by name, not by stack trace', () => {
-  const result = checkInstall({ resolve: () => { throw new Error('MODULE_NOT_FOUND'); }, cwd: 'D:\\Ray\\web-spark' });
+  const result = checkInstall({ resolve: () => { throw new Error('MODULE_NOT_FOUND'); }, root: 'D:\\Ray\\web-spark' });
   assert.equal(result.ok, false);
   assert.deepEqual(result.missing, REQUIRED);
   const message = installMessage(result);
@@ -20,16 +20,25 @@ test('a partial install names only what is actually missing', () => {
       if (name === 'axe-core') throw new Error('MODULE_NOT_FOUND');
       return '/somewhere/node_modules/jsdom/index.js';
     },
-    cwd: '/repo',
+    root: '/repo',
   });
   assert.equal(result.ok, false);
   assert.deepEqual(result.missing, ['axe-core']);
 });
 
 test('a complete install passes', () => {
-  const result = checkInstall({ resolve: () => '/ok', cwd: '/repo' });
+  const result = checkInstall({ resolve: () => '/ok', root: '/repo' });
   assert.equal(result.ok, true);
   assert.deepEqual(result.missing, []);
+});
+
+test('dependencies resolve from the package, not from the working directory', () => {
+  // A user may audit a page anywhere on disk from any directory. Resolution must match Node's
+  // own: relative to the package. An earlier version used process.cwd(), so running the tool
+  // from another folder reported a broken install that was not broken.
+  const real = checkInstall();
+  assert.match(real.root, /web-spark/, 'the probe must target the package root, not cwd');
+  assert.equal(real.ok, true, 'this repository has its dependencies installed');
 });
 
 test('injected probes mean the test never touches a real node_modules', () => {
