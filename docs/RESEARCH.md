@@ -47,7 +47,7 @@ February 2026 using the WAVE engine against the rendered DOM:
 
 Read that last bullet again. The web's dominant failure mode is *six repeated, mechanically
 detectable mistakes*, on almost every site, for seven years, while the tooling to catch all
-six has existed since 2017 and is free (axe-core is embedded in Chrome DevTools and
+six has existed since 2017 and is free (axe-core is embedded in the major browser's DevTools and
 Lighthouse).
 
 Meanwhile the legal pressure is no longer theoretical. The European Accessibility Act
@@ -234,12 +234,12 @@ A fast-emerging pain point with no incumbent:
 
 - Only **~8.7% of the top 1,000 websites** publish an `llms.txt` (other scans put the whole
   web at ~5–15%), and the largest search vendor's May 2026 AI-optimization guide explicitly lists it among
-  tactics to ignore for AI search. Chrome's Lighthouse added an experimental *agentic
+  tactics to ignore for AI search. one major browser's Lighthouse added an experimental *agentic
   browsing* audit in 13.3.0 that checks for it anyway.
 - **WebMCP** (W3C Web Machine Learning CG draft, authored by browser vendors) is the capability
   layer: `navigator.modelContext.registerTool({name, description, inputSchema, execute})`
   lets a site expose real actions to browser agents instead of making them guess at divs.
-  It is in a Chrome origin trial (149–156), with native support in Edge 147; the spec churned
+  It is in a browser origin trial, with native support in a second browser engine; the spec churned
   as recently as March 2026 (the `provideContext`/`clearContext` API was removed in favor of
   `registerTool`/`unregisterTool`).
 - The underlying requirement is unglamorous and mostly ignored: **a clean accessibility
@@ -300,7 +300,7 @@ Being explicit about anti-goals is how the plan stays credible.
 
 | Tempting idea | Why not |
 |---|---|
-| **Another framework / meta-framework** | The pain point ranking (#1 cognitive overload, #2 ecosystem issues) is an argument *against* adding a new mental model. Also: the graveyard is full — the Rails-inspired full-stack kit of 2020 pivoted away from its meta-framework fork and went quiet, a GraphQL-first full-stack kit is in maintenance mode, and the leading edge-router framework was absorbed into a plain routing library. A framework must win the framework war. |
+| **Another framework / meta-framework** | The pain point ranking (#1 cognitive overload, #2 ecosystem issues) is an argument *against* adding a new mental model. Also: the graveyard is full — the Rails-inspired full-stack kit of 2020 pivoted away from its meta-framework fork and went quiet, a GraphQL-first full-stack kit is in maintenance mode, and the leading router-first framework was absorbed into a plain routing library. A framework must win the framework war. |
 | **Another bundler** | Rolldown and Rspack are consolidating this space with VC-scale engineering teams. Zero chance of winning, and it's not where the pain is. |
 | **Another component library** | Infinite competition, no moat, no structural pain. |
 | **Another dependency scanner** | Commercial supply-chain vendors and update bots own it. Consume them. |
@@ -344,7 +344,7 @@ page, and a way to prove it in CI in under a second.**
 - InfoQ, *Survey finds AI-generated code increases debugging and failure rates* (Coleman Parkes / Undo, 300 leaders) — Oct 2026
 - Moderne, *Context engineering: why AI coding agents spend most of their tokens reading* (webinar poll, 2026)
 - JetBrains developer survey on AI tooling failure modes (600+ developers, 2026)
-- W3C Web Machine Learning CG, *WebMCP* draft; Chrome origin trial 149–156; `navigator.modelContext` API reference (2026)
+- W3C Web Machine Learning CG, *WebMCP* draft; browser origin trial; `navigator.modelContext` API reference (2026)
 - MCP specification revision **2026-07-28** and its changelog (stateless core, `server/discover`, header routing, cacheable lists, `subscriptions/listen`, deprecations) — modelcontextprotocol.io/specification/2026-07-28/
 - MCP security research, 2026: tool-poisoning prevalence (7.2% general / 5.5% MCP-specific vectors in surveyed servers), rug-pull and shadowing analyses, the STDIO command-injection disclosure, and the CVE trail (including CVSS 9.6); Cloud Security Alliance research note; OWASP agentic risk mapping (ASI01)
 - MCP context-overload measurement (agent accuracy 87% → 54% as tool definitions fill context)

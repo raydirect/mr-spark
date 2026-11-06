@@ -124,7 +124,7 @@ These are the choices I'd fight for, with the reasoning, so you can disagree pre
 
 ### 3.1 Reuse, never reinvent (credibility + speed)
 
-axe-core ships inside Chrome DevTools and Lighthouse and has a zero-false-positive
+axe-core ships inside the major browser's DevTools and in Lighthouse, and has a zero-false-positive
 commitment. Lighthouse owns perf scoring. OSV and the package registries own advisories. We wrap and
 normalize. A from-scratch a11y engine would take a year and be worse — and the community
 would (rightly) ignore us.
@@ -180,7 +180,7 @@ Two capabilities nobody else has packaged well:
 1. **Agent readiness**: semantic/a11y-tree quality (the same tree screen readers and browser
    agents consume), `llms.txt` validity, structured data, and — most interesting — a report
    of *what tools your site exposes to agents*. WebMCP (`navigator.modelContext.registerTool`)
-   is in a Chrome origin trial with Edge support; we can polyfill-detect the current API
+   is in a browser origin trial with a second engine already shipping it; we can polyfill-detect the current API
    surface in the browser runner and report "your site declares 0 callable actions," with a
    scaffold to add them.
 2. **Agent-consumable output**: `spark check --format json --for-agents` returns a compact,

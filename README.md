@@ -9,6 +9,7 @@ proof a property of the pipeline instead of an audit after the fact.
 
 > ⚠️ **Status: design proposal.** No code yet, on purpose. Four documents carry the thinking:
 > - [docs/VISION.md](docs/VISION.md) — the unified plan: one intermediate representation, five pillars
+> - [docs/SURFACES.md](docs/SURFACES.md) — why the product is the engine, and where it runs
 > - [docs/MCP.md](docs/MCP.md) — how the Model Context Protocol is threaded through every layer
 > - [docs/RESEARCH.md](docs/RESEARCH.md) — the evidence base, for why this and not something else
 > - [docs/INSPIRATIONS.md](docs/INSPIRATIONS.md) — 100 influences as *borrow this / avoid that*, brand-free
@@ -75,6 +76,14 @@ web-spark  72 → 78 (+6)   ✓ passed
   +2 accessible   fixed 4 contrast issues
   -3 fast         entry bundle +38 KB
 ```
+
+## Where it runs
+
+One engine, four surfaces — **CLI → CI gate → MCP server → browser extension**, in that order.
+The extension is the best *lens* (logged-in pages, real interactions, one-second demo) and the
+worst *authority* (non-deterministic, requires someone watching, users run stale builds). So it
+ships second, not first, and it computes nothing: it captures, and the engine judges.
+Reasoning in [SURFACES.md](docs/SURFACES.md).
 
 ## The five pillars, in build order
 
