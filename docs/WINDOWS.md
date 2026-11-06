@@ -12,33 +12,54 @@ npm ci
 node bin/spark.js check fixtures/bad.html
 ```
 
+If you already created a folder with that name, `git clone` will refuse to write into it. Either
+clone beside it under a new name and move your files in, or — if the folder holds nothing but
+your own pages — delete it and clone fresh:
+
+```powershell
+cd D:\Ray
+Rename-Item web-spark web-spark-mine     # keep your files, out of the way
+git clone https://github.com/raydirect/web-spark.git
+Move-Item .\web-spark-mine\html-bak .\web-spark\html-bak
+```
+
+Nothing is published to a registry yet, so there is no package to install. Git and Node are the
+only prerequisites.
+
 You should see `ACCESSIBLE 53 ✗`, then `CONFORMANCE 53 poor (1/5 pillars measured)`.
 
 ## 1. Prerequisites
 
 | Need | Check | Notes |
 |---|---|---|
+| Git | `git --version` | Required: there is no published package, so a clone is the only way to get the code. |
 | Node 20 or newer | `node -v` | `package.json` sets `"engines": { "node": ">=20" }`. A Node 16 install from an old project will fail on the first `import`. |
 | npm (bundled with Node) | `npm -v` | Nothing else is required. No build step, no compiler, no Rust, no browser. |
 
 ### If `npm ci` fails
 
-**`EUSAGE: can only install with an existing package-lock.json`** means npm is not looking at this
-repository. Two causes, both common:
+**`EUSAGE: can only install with an existing package-lock.json`** means npm is not inside a
+checkout of this repository. Check, in this order:
 
-1. **You are in the wrong directory.** Check `Get-Location` and `Test-Path .\package-lock.json`.
-   It must print `True` from `D:\Ray\web-spark`. Run `npm ci` in the folder that contains
-   `package.json` — it takes no directory argument, so `npm ci somewhere\else` does not mean what
-   it looks like.
-2. **Your clone predates the lockfile.** It was not committed in the first few commits, so an old
-   clone genuinely has none. Fix: `git pull`, then `npm ci`.
+```powershell
+Get-Location                       # should be your clone, e.g. D:\Ray\web-spark
+Test-Path .\package-lock.json      # must print True
+git rev-parse --show-toplevel      # must print a path, not "fatal: not a git repository"
+```
 
-If `git pull` says you are up to date but there is still no `package-lock.json`, you are likely in
-a different checkout than you think — `git rev-parse --show-toplevel` prints the repository root
-that the current folder belongs to.
+If `git rev-parse` prints **`fatal: not a git repository`**, the folder is not a clone at all —
+it is just a folder. That is the most common cause, and it is easy to miss because the path
+*looks* right. You may have created `D:\Ray\web-spark` yourself and put files in it. Clone into
+it properly (see step 1 above), or clone elsewhere and copy your files into `html-bak\`.
+
+If it *is* a clone but `Test-Path` still prints `False`, the clone predates the lockfile, which
+was added in an early commit: `git pull`.
+
+`npm ci` also takes **no directory argument**. `npm ci somewhere\else` does not install into that
+folder; it treats the extra word as something else entirely. Change directory first.
 
 `npm install` also works and will generate a lockfile, but prefer `npm ci`: it installs exactly
-what CI installs, which is the whole point of testing locally.
+what CI installs, which is the point of testing locally.
 
 ## 2. Run it
 
