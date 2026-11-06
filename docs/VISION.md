@@ -145,6 +145,32 @@ The design response, baked into this plan:
 
 ---
 
+## 3b. Where it runs: one engine, four surfaces
+
+The product is the **engine**. It has no DOM and no browser dependency, and every surface is a
+thin adapter over it. Full reasoning in [SURFACES.md](SURFACES.md); the short version:
+
+| Surface | Role | Ships |
+|---|---|---|
+| **CLI** | the wedge — zero config, seconds to a score | Phase 1 |
+| **CI action** | the gate — the only place a regression is actually stopped | Phase 1 |
+| **MCP server** | the agents — the audit as a callable tool | Phase 1 |
+| **Browser extension** | the **lens** — authenticated pages, interaction capture, `capture → baseline` export | Phase 2 |
+
+Two rules that make this work, and that must be enforced from the first commit:
+
+1. **The engine never imports a surface.** IR in, findings out.
+2. **The extension computes nothing.** It collects (rendered DOM, computed styles, a11y tree,
+   timings, interactions) and hands that to the same engine. Anything it can compute, CI can
+   compute from the same capture — which is what makes the score comparable across surfaces.
+
+The extension is *not* optional and *not* the main app: it is the only surface that can reach
+authenticated, in-session pages, and its `capture → baseline` export is how a page you can only
+see while logged in becomes a test in CI. But it cannot be the authority: results vary per
+machine, someone must be watching, users run stale builds, and CI is where a gate has to live.
+
+---
+
 ## 4. Roadmap (with exit criteria, not dates)
 
 Each phase is one visible command. Scope discipline is the whole game.
@@ -160,7 +186,9 @@ regression and then fixed.
 ### Phase 2 — Manifest (the 2026 story)
 MCP conformance as a product: `verify_tools`, the `MCP001`–`MCP010` rule family with published
 rationale, `.spark-tools.lock` + drift detection, and `emit_faces` producing all three machine
-faces from one declaration.
+faces from one declaration. Plus the **browser extension as the lens**: authenticated-page
+audits, interaction capture, and `capture → baseline` export into CI (single browser engine first,
+active-tab-only permissions, no analysis inside the extension).
 **Exit:** a real repository whose tools are locked, drift-checked in CI, and whose three faces
 are proven identical — plus one third-party MCP server fixed by our findings.
 
@@ -183,7 +211,8 @@ find-in-page, autofill, and browser agents all work over pixels.
 
 ### Deliberately not built
 A framework to replace the incumbent. A bundler. A component library. A dependency scanner we
-did not originate. An AI page generator. A hosted design tool.
+did not originate. An AI page generator. A hosted design tool. An MCP gateway or proxy. A hosted
+dashboard as the main app — and *not* an extension that computes its own verdicts.
 
 ---
 
@@ -200,6 +229,7 @@ did not originate. An AI page generator. A hosted design tool.
 | **MCP spec churn** (quarterly revisions; 2026-07-28 removed sessions, sampling, roots, logging and the GET endpoint) | High: a server written to one revision ages fast | Revision-aware adapters behind one internal interface; conformance rules keyed to a declared revision ([MCP.md §5](MCP.md#5-risks-specific-to-being-mcp-first)) |
 | **Our own MCP server becomes an attack surface** | We would be shipping exactly what we audit | Deterministic, read-only by default, no write tools without opt-in, allowlisted egress, self-conformance in CI |
 | **Agent-authored code outruns verification** | This is the wind at our back, but it also means our reports must be consumable by agents, or we become a human-only bottleneck. | Agent-consumable report format from Phase 1, not later. |
+| **Surface sprawl** (engine + 4 surfaces invites drift) | Real: each surface is a place for behaviour to fork | The engine is the only place truth is computed; surfaces are tested against a fake surface, and the extension is forbidden from analysing |
 | **Maintainer burnout** | The standard OSS failure. | Narrow surface, automated triage, funding from day one, governance that lets the spec outlive the repo. |
 
 ---
