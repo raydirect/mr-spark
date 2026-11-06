@@ -12,11 +12,13 @@ import { resolve, basename } from 'node:path';
 import { pathToFileURL } from 'node:url';
 
 import { analyze } from './engine.js';
+import { scoreAll } from './score.js';
 import { renderTerminal, shouldColour } from './reporters/terminal.js';
 import { buildJsonReport, renderJson } from './reporters/json.js';
 import { renderReport } from './reporters/html.js';
 import { serveReport } from './reporters/serve.js';
 import { checkInstall, installMessage } from './require.js';
+import { applySuppressions, configPathFor, loadConfig, ConfigError } from './suppress.js';
 import { DEFAULTS, ENV, EXIT } from './config/constants.js';
 import { NAME, VERSION, BIN } from './config/brand.js';
 import { copy } from './config/copy.js';
@@ -38,6 +40,7 @@ const OPTIONS = [
   { flag: '--serve', key: 'serve', takesValue: false, value: true, helpKey: 'serve' },
   { flag: '--port', key: 'port', takesValue: true, coerce: Number, validate: isPort, helpKey: 'port' },
   { flag: '--quiet', key: 'quiet', takesValue: false, value: true, helpKey: 'quiet' },
+  { flag: '--config', key: 'config', takesValue: true, helpKey: 'config' },
   { flag: '--help', key: 'help', takesValue: false, value: true, alias: '-h', helpKey: 'help' },
   { flag: '--version', key: 'version', takesValue: false, value: true, alias: '-v', helpKey: 'version' },
 ];
@@ -215,7 +218,17 @@ export async function main(argv, { stdout = process.stdout, stderr = process.std
   try {
     const target = await loadTarget(opts.target);
     result = await analyze(target);
+    // The config is looked up beside the project being audited, which is where a maintainer will
+    // put it; falling back to the working directory covers `spark check <url>` from a repo root.
+    const config = await loadConfig(opts.config ?? configPathFor());
+    const suppression = applySuppressions(result.ir, config.suppressions);
+    result.suppression = suppression;
+    if (config.suppressions.length) result.scores = scoreAll(result.ir);
   } catch (error) {
+    if (error instanceof ConfigError) {
+      stderr.write(`${copy('errorPrefix', error.message)}\n`);
+      return EXIT.couldNotRun;
+    }
     stderr.write(`${copy('errorPrefix', error.message)}\n`);
     return EXIT.couldNotRun;
   }

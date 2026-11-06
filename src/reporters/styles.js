@@ -228,6 +228,10 @@ pre {
 .findings li.undecided { border-style: dashed; border-inline-start-color: var(--impact-minor); }
 .question { color: var(--muted); font-weight: var(--weight-bold); }
 .undecided-tag { color: var(--muted); text-transform: none; letter-spacing: var(--tracking-normal); }
+.suppressed-tag { color: var(--muted); text-transform: none; letter-spacing: var(--tracking-normal); }
+/* A suppressed finding stays legible and stays in place; it is dimmed, never hidden. Striking it
+   through would imply it was fixed, which is exactly the confusion this feature exists to avoid. */
+.findings li.suppressed .rule { color: var(--muted); }
 .tag {
   display: inline-block;
   font-size: var(--text-xs);

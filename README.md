@@ -44,7 +44,7 @@ package-lock.json"*, you are not inside the clone: `Test-Path .\package-lock.jso
 ```
   web-spark  file:///…/fixtures/bad.html
 
-  ACCESSIBLE   46  ✗  region ×6 · link-name ×2 · button-name ×1 · 4 undecided
+  ACCESSIBLE   50  ✗  region ×6 · link-name ×2 · button-name ×1 · 4 undecided
   FAST            —  ·  not measured in this build
   SAFE            —  ·  not measured in this build
   LEGIBLE         —  ·  not measured in this build
@@ -58,7 +58,7 @@ package-lock.json"*, you are not inside the clone: `Test-Path .\package-lock.jso
     ✗ link-name               serious   a[href$="help"]
     … 9 more finding(s)
 
-  CONFORMANCE  46  poor  (1/5 pillars measured)
+  CONFORMANCE  50  poor  (1/5 pillars measured)
     ? = could not be decided in this environment (4). Excluded from the score; not violations.
 ```
 
@@ -96,7 +96,7 @@ Read [docs/REVOLUTION.md](docs/REVOLUTION.md) for the whole thing. The shape:
 
 | Phase | What it delivers | Status |
 |---|---|---|
-| 0 | **Ground truth** — a verifier worth trusting: per-root-cause scoring, suppression with printed reasons, a corpus of real pages | 🔨 in progress |
+| 0 | **Ground truth** — a verifier worth trusting: per-root-cause scoring ✅, suppression with printed reasons ✅, a corpus of real pages 🔨 | 🔨 in progress |
 | 1 | **Spine** — frozen `scene` / `motion` / `settings` document schemas, `lower`, `emit`, byte-identical output | ⏳ |
 | 2 | **Gate** — `baseline`, regression-only `--ci`, SARIF, action, finding identity that survives generated ids | ⏳ |
 | 3 | **Studio** — a browser canvas where you author a page, with the verifier live on the canvas | ⏳ |

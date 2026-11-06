@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 
-import { scorePillar, scoreAll, band, SCORE_SPEC_VERSION } from '../src/score.js';
+import { scorePillar, scoreAll, band, damageOf, repeatCharge, SCORE_SPEC_VERSION } from '../src/score.js';
 import { createIR, addFinding } from '../src/ir.js';
 
 const irWith = (findings) => {
@@ -87,4 +87,61 @@ test('bands are blunt on purpose', () => {
   assert.equal(band(70), 'needs work');
   assert.equal(band(41), 'poor');
   assert.equal(band(0), 'failing');
+});
+
+// ------------------------------------------------ duplicate-finding pricing (spec 3.0.0)
+
+test('eight-eight instances of one rule do not read as catastrophe', () => {
+  // The real defect: one missing landmark, reported once per element, produced 88 findings and a
+  // score of 19. That number says "catastrophic" when the page has one structural problem.
+  const findings = Array.from({ length: 88 }, (_, i) => ({
+    ruleId: 'region',
+    impact: 'moderate',
+    selector: `#el-${i}`,
+  }));
+  const score = scorePillar(irWith(findings), 'accessible');
+  assert.ok(score > 65, `expected a floor-level verdict, got ${score}`);
+  assert.ok(score < 90, 'still a real problem, not a pass');
+});
+
+test('six distinct critical rules still bottom out at the published anchor', () => {
+  // Repetition is discounted; VARIETY is not. Six different critical failures is the calibration
+  // table's worst case and must keep its number.
+  assert.equal(scorePillar(irWith(critical(6)), 'accessible'), 40);
+});
+
+test('the second instance of a rule costs less than the first, and never zero', () => {
+  const one = scorePillar(irWith([{ ruleId: 'r', impact: 'critical', selector: 'a' }]), 'accessible');
+  const two = scorePillar(
+    irWith([
+      { ruleId: 'r', impact: 'critical', selector: 'a' },
+      { ruleId: 'r', impact: 'critical', selector: 'b' },
+    ]),
+    'accessible'
+  );
+  assert.ok(two < one, 'a second occurrence must still cost something');
+  // The second instance moves the score less than the first moved it, because the curve itself
+  // flattens. Compare against the drop the first instance produced from a clean page.
+  const clean = scorePillar(irWith([]), 'accessible');
+  assert.ok(clean - one > one - two, 'the first instance must dominate');
+  // decay is monotonic and asymptotically positive, never negative
+  let previous = Infinity;
+  for (let n = 1; n <= 50; n += 1) {
+    const charge = repeatCharge(n);
+    assert.ok(charge > 0, 'no instance is ever free');
+    assert.ok(charge < previous, 'each repeat costs strictly less');
+    previous = charge;
+  }
+  assert.equal(repeatCharge(1), 1, 'the first instance carries the full weight');
+});
+
+test('a rule is priced at the worst impact it reported', () => {
+  const mixed = [
+    { ruleId: 'r', impact: 'minor', selector: 'a' },
+    { ruleId: 'r', impact: 'critical', selector: 'b' },
+  ];
+  const asCritical = damageOf([{ ruleId: 'r', impact: 'critical', selector: 'a' }]);
+  // Both instances are priced at the worst impact the rule reported, not at their own impact:
+  // the fix for a partially-critical rule is the critical fix.
+  assert.equal(damageOf(mixed), asCritical + asCritical * repeatCharge(2));
 });

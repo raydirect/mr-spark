@@ -1,0 +1,10 @@
+{
+  "version": 1,
+  "suppress": [
+    {
+      "ruleId": "label",
+      "selector": "#website",
+      "reason": "Deliberate honeypot field: hidden from people and screen readers, filled only by bots. It must stay unlabelled."
+    }
+  ]
+}

@@ -464,7 +464,7 @@ Inherits `VISION.md §5` unchanged. Two additions:
 In order, each as its own pull request:
 
 1. Score the same defect once per root cause; stop charging 88 findings for one missing landmark.
-2. Suppression with printed reasons (`spark.config.json`).
+2. ~~Suppression with printed reasons (`spark.config.json`)~~ — done. See `docs/SUPPRESSION.md`.
 3. Commit the real-page corpus and re-audit published numbers.
 4. Freeze `schema/scene-0.1.json` + TypeScript types; write `docs/SCENE.md`.
 5. `spark lower` + `spark emit` for a static scene → byte-identical HTML/CSS.
