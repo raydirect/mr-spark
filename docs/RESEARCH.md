@@ -142,10 +142,11 @@ that became nullable; a number that became a string; an enum gaining a value; a 
 array wrapped in an object. Each one type-checks fine on both sides, and blows up at
 runtime in the UI.
 
-The tooling answer has existed for years — tRPC for a TypeScript monorepo, generated
-clients from OpenAPI when the backend is another language, shared Zod schemas, generated
-Supabase types — and every one of them requires **someone to choose an architecture and
-keep a codegen step honest**. tRPC (~2M weekly downloads) solved it *for one shape of
+The tooling answer has existed for years — end-to-end inferred types inside a TypeScript
+monorepo, generated clients from an OpenAPI document when the backend is another language,
+shared schema validation, generated types straight from the database — and every one of them
+requires **someone to choose an architecture and
+keep a codegen step honest**. one such library (~2M weekly downloads) solved it *for one shape of
 team*, and explicitly does not work for non-TS clients, public APIs, or independent deploy
 cadences.
 
