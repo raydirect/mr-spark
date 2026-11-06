@@ -51,6 +51,9 @@ export const COPY = Object.freeze({
   // ---------------------------------------------------------------- states
   state: {
     notMeasured: 'not measured in this build',
+    fragmentNotice:
+      'this input is a fragment, not a whole page — checks about the document (title, language,' +
+      ' skip link) are undecided here, because they describe the page it was taken from',
     noFindings: 'no findings',
     noDecidedFindings: 'no decided findings',
     noFindingsBody: 'No decided findings.',

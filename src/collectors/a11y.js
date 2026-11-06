@@ -125,9 +125,30 @@ function runInWindow(window, axe) {
   return window.__sparkAxe;
 }
 
+/**
+ * Rules that describe a DOCUMENT rather than a fragment. On an excerpt these produce findings
+ * about the absence of markup the author never pasted, which is not evidence about their page.
+ */
+export const DOCUMENT_LEVEL_RULES = Object.freeze(['document-title', 'html-has-lang', 'bypass']);
+
+/**
+ * Whether the input looks like a whole document.
+ *
+ * Heuristic on purpose, and conservative: an input is a document only if it declares one
+ * (`<!doctype>` or an `<html>` element). Everything else - a pasted component, a template
+ * include, a server partial - is a fragment, and the findings that describe a document are
+ * labelled as unverifiable rather than reported as failures.
+ */
+export function detectKind(html) {
+  return /<!doctype\s+html|<html[\s>]/i.test(String(html ?? '').slice(0, 4096))
+    ? 'document'
+    : 'fragment';
+}
+
 /** Build a complete accessibility IR from an HTML string. */
 export async function collect({ html, uri, source = 'file', axe, JSDOM, VirtualConsole }) {
-  const ir = createIR({ source, uri });
+  const kind = detectKind(html);
+  const ir = createIR({ source, uri, kind });
   const environmentIssues = [];
   const { document, window } = collectDocumentFacts({
     html,
@@ -147,7 +168,19 @@ export async function collect({ html, uri, source = 'file', axe, JSDOM, VirtualC
   };
 
   const findings = await collectAccessibility({ document, window, axe });
-  for (const finding of findings) addFinding(ir, finding);
+  for (const finding of findings) {
+    // On a fragment, a document-level rule cannot be decided from what was given. Reclassify
+    // rather than delete: the check still ran, the answer is simply not about this input.
+    if (kind === 'fragment' && DOCUMENT_LEVEL_RULES.includes(finding.ruleId)) {
+      addFinding(ir, {
+        ...finding,
+        coverage: 'incomplete',
+        coverageReason: 'input is a fragment — this check describes the surrounding page, not this excerpt',
+      });
+      continue;
+    }
+    addFinding(ir, finding);
+  }
 
   // Recorded on the IR so a report can state what this environment could not evaluate.
   ir.environment = { issues: environmentIssues };

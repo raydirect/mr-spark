@@ -118,7 +118,7 @@ export function renderReport({ ir, scores, hash }, { reproduceCommand, generated
         <span class="num ${escapeHtml(row.tone)}">${escapeHtml(row.value)}</span>
         <span class="small ${row.tone === 'none' ? 'muted' : escapeHtml(row.tone)}">${escapeHtml(
           row.score === null ? copy('state.notMeasured') : row.band
-        )} — ${escapeHtml(row.summaryProse)}</span>
+        )}${row.summaryProse ? ` — ${escapeHtml(row.summaryProse)}` : ''}</span>
       </div>`
     )
     .join('\n');
@@ -160,6 +160,11 @@ export function renderReport({ ir, scores, hash }, { reproduceCommand, generated
   <header class="header">
     <h1>${escapeHtml(copy('headings.conformance'))}</h1>
     <p class="small muted"><code>${escapeHtml(target)}</code></p>
+${
+  view.kind === 'fragment'
+    ? `    <p class="small fragment-notice">${escapeHtml(copy('state.fragmentNotice'))}</p>`
+    : ''
+}
   </header>
 
   <main id="main">

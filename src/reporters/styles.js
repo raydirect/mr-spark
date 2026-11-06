@@ -156,6 +156,11 @@ pre {
 }
 
 .muted { color: var(--muted); }
+.fragment-notice {
+  border-inline-start: var(--layout-impactBorderWidth) solid var(--warn);
+  padding-inline-start: var(--space-sm);
+  margin-block: var(--space-sm) 0;
+}
 .small { font-size: var(--text-sm); }
 
 .header {

@@ -81,7 +81,7 @@ function collectedAt() {
   return new Date().toISOString();
 }
 
-export function createIR({ source, uri }) {
+export function createIR({ source, uri, kind = 'document' }) {
   return {
     ir: IR_VERSION,
     provenance: {
@@ -89,6 +89,14 @@ export function createIR({ source, uri }) {
       uri,
       collectedAt: collectedAt(),
       collector: 'spark-cli',
+      /**
+       * 'document' - a complete page: document-level checks are meaningful.
+       * 'fragment' - an excerpt or component: checks that describe a DOCUMENT (a title, a
+       * language) are not evidence about the page that contains it, and saying so is the whole
+       * point of the field. A developer who pastes one component should not be told their page
+       * has no title.
+       */
+      kind,
     },
     document: null,
     tokens: null,

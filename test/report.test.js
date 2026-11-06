@@ -126,3 +126,29 @@ test('an unmeasured pillar never claims it found nothing', async () => {
   }
   assert.match(term, /FAST\s+—\s+·\s+not measured in this build/);
 });
+
+test('a fragment is not a page, and does not claim to be', async () => {
+  // A user pasted one component and was told their page had no title and no language. Those
+  // findings are about the surrounding document, which was never in the input.
+  const html = await readFile(new URL('../fixtures/fragment.html', import.meta.url), 'utf8');
+  const { ir, scores, hash } = await analyze({ html, uri: 'file:///fragment.html', engines });
+  assert.equal(ir.provenance.kind, 'fragment');
+  const documentLevel = ir.findings.filter((f) =>
+    ['document-title', 'html-has-lang'].includes(f.ruleId)
+  );
+  assert.ok(documentLevel.length > 0, 'the checks still run');
+  for (const finding of documentLevel) {
+    assert.equal(finding.coverage, 'incomplete', 'but their answer is not about this input');
+    assert.match(finding.coverageReason, /fragment/);
+  }
+  const { renderTerminal } = await import('../src/reporters/terminal.js');
+  const out = renderTerminal({ ir, scores, hash }, { color: false });
+  assert.match(out, /this input is a fragment, not a whole page/);
+});
+
+test('a whole document is still checked as a document', async () => {
+  const { ir } = await build('bad.html');
+  assert.equal(ir.provenance.kind, 'document');
+  const lang = ir.findings.find((f) => f.ruleId === 'html-has-lang');
+  assert.equal(lang.coverage, 'automated', 'a real page without a language is a real finding');
+});
