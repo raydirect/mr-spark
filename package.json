@@ -1,6 +1,6 @@
 {
   "name": "webspark",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Every artifact proves itself. A conformance compiler for the web: one IR in, honest findings out.",
   "type": "module",
   "license": "Apache-2.0",
@@ -13,7 +13,10 @@
   "exports": {
     ".": "./src/engine.js",
     "./ir": "./src/ir.js",
-    "./score": "./src/score.js"
+    "./score": "./src/score.js",
+    "./view-model": "./src/view-model.js",
+    "./tokens": "./src/config/tokens.js",
+    "./tokens.json": "./src/config/tokens.json"
   },
   "files": [
     "bin",
@@ -24,7 +27,8 @@
   ],
   "scripts": {
     "test": "node --test test/*.test.js",
-    "check:self": "node bin/spark.js check fixtures/bad.html"
+    "check:self": "node bin/spark.js check fixtures/bad.html",
+    "tokens": "node -e \"import('./src/reporters/styles.js').then(m=>process.stdout.write(m.renderStyles()))\""
   },
   "dependencies": {
     "axe-core": "^4.10.2",

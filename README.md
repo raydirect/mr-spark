@@ -30,7 +30,7 @@ node bin/spark.js check fixtures/bad.html
 ```
   web-spark  file:///…/fixtures/bad.html
 
-  ACCESSIBLE   63  ✗  link-name ×2 · button-name ×1 · bypass ×1
+  ACCESSIBLE   53  ✗  link-name ×2 · button-name ×1 · html-has-lang ×1 · 2 undecided
   FAST            —  ·  not measured in this build
   SAFE            —  ·  not measured in this build
   LEGIBLE         —  ·  not measured in this build
@@ -41,13 +41,15 @@ node bin/spark.js check fixtures/bad.html
   ✗ html-has-lang    serious   html
   ✗ link-name        serious   a[href$="help"]
 
-  CONFORMANCE  63  poor  (1/5 pillars measured)
+  CONFORMANCE  53  poor  (1/5 pillars measured)
   ir aa5183ae7e26  ·  Automated checks cover a minority of WCAG criteria. Absence of
   findings does not mean a page is accessible.
 ```
 
-`npm test` runs 21 tests. `--format json` gives the machine face. `--fail-under 90` makes it a
-gate. The unbuilt pillars say `—` on purpose: an unmeasured pillar is a gap, never a pass.
+`npm test` runs 48 tests. `--format json` gives the machine face, `--quiet` gives one
+tab-separated line per finding for scripts, and `--fail-under 90` makes it a gate. Colour
+honours `NO_COLOR` and `FORCE_COLOR`. The unbuilt pillars say `—` on purpose: an unmeasured
+pillar is a gap, never a pass.
 
 **The shareable report** (rung 1 of [EASE.md](docs/EASE.md)) — a complete document with no
 client JS, readable with scripting disabled, and byte-identical across runs when the clock is
@@ -62,7 +64,14 @@ diff a.html b.html    # identical
 ```
 
 It follows the same rule as everything else: the report is *auditable by our own tool*, and that
-is a test, not a promise.
+is a test, not a promise. It says so in both colour themes, which are drawn from one token file
+and verified at 4.5:1 by the test suite — a report that preaches contrast should not fail it.
+
+**Every visual value lives in one place.** `src/config/tokens.json` holds the palette, spacing,
+type scale, radii and durations; `src/reporters/styles.js` is a pure function of it, so the
+stylesheet contains no visual literal of its own. Score bands, defaults, limits and every
+user-facing string are in `src/config/` too. Change a token, and the report, the terminal and
+the tests move together.
 
 ## The one-sentence thesis
 

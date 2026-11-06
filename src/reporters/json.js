@@ -4,32 +4,41 @@
  * Stable ordering, no ANSI, and the score spec version included, so a consumer (CI, an
  * agent, a saved baseline) can reason about whether the number it read is comparable to
  * the number it is about to write.
+ *
+ * This is a contract, not a debug dump: field names and shapes are stable, and the same
+ * numbers appear here as on screen because both come from src/view-model.js.
  */
 
-import { SCORE_SPEC_VERSION, AUTOMATION_COVERAGE, band } from '../score.js';
+import { SCORE_SPEC_VERSION, AUTOMATION_COVERAGE } from '../score.js';
 import { IR_VERSION, PILLARS } from '../ir.js';
+import { VERSION } from '../config/brand.js';
+import { band } from '../config/thresholds.js';
+import { buildView } from '../view-model.js';
 
 export function buildJsonReport({ ir, scores, hash }) {
-  const measured = PILLARS.filter((p) => scores[p] !== null);
-  const overall =
-    measured.length === 0
-      ? null
-      : Math.round(measured.reduce((sum, p) => sum + scores[p], 0) / measured.length);
-
+  const view = buildView(ir, scores);
   return {
+    engine: { name: 'spark', version: VERSION },
     irVersion: IR_VERSION,
     scoreSpec: SCORE_SPEC_VERSION,
     ir: hash,
     provenance: ir.provenance,
     document: ir.document,
     scores: Object.fromEntries(
-      PILLARS.map((p) => [p, { score: scores[p], band: band(scores[p]) }])
+      PILLARS.map((p) => [p, { score: scores[p] ?? null, band: band(scores[p] ?? null) }])
     ),
-    conformance: { score: overall, band: band(overall), pillarsMeasured: measured.length },
+    conformance: {
+      score: view.overall.score,
+      band: view.overall.band,
+      pillarsMeasured: view.coverage.measured,
+      pillarsTotal: view.coverage.total,
+    },
     coverage: AUTOMATION_COVERAGE,
     findings: ir.findings,
     summary: {
       total: ir.findings.length,
+      decided: view.findings.decided.length,
+      undecided: view.findings.undecided.length,
       byImpact: countBy(ir.findings, (f) => f.impact),
       byRule: countBy(ir.findings, (f) => f.ruleId),
     },

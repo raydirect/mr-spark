@@ -10,6 +10,8 @@
  */
 
 import { PILLARS, COLLECTABLE } from './ir.js';
+import { isDecided } from './vocabulary.js';
+import { band } from './config/thresholds.js';
 
 export const SCORE_SPEC_VERSION = '2.0.0';
 
@@ -49,9 +51,7 @@ export function scorePillar(ir, pillar) {
   if (!COLLECTABLE.has(pillar)) return null;
   // Undecided checks are excluded: "we could not tell" is not damage, and counting it would
   // make the score depend on the runner's capabilities rather than the page's quality.
-  const findings = ir.findings.filter(
-    (f) => f.pillar === pillar && f.coverage !== 'incomplete'
-  );
+  const findings = ir.findings.filter((f) => f.pillar === pillar && isDecided(f));
   if (findings.length === 0) return 100;
   const damage = findings.reduce((sum, f) => sum + (IMPACT_WEIGHT[f.impact] ?? 2), 0);
   return Math.round((100 * DAMAGE_SCALE) / (damage + DAMAGE_SCALE));
@@ -74,11 +74,11 @@ export const AUTOMATION_COVERAGE = {
   note: 'Automated checks cover a minority of WCAG criteria. Absence of findings does not mean a page is accessible.',
 };
 
-/** Human-facing label for a score. Deliberately blunt; no "excellent" for a 70. */
-export function band(score) {
-  if (score === null) return 'unmeasured';
-  if (score >= 90) return 'good';
-  if (score >= 70) return 'needs work';
-  if (score >= 40) return 'poor';
-  return 'failing';
-}
+/**
+ * Human-facing label for a score. Deliberately blunt; no "excellent" for a 70.
+ *
+ * Re-exported from the threshold config, which is now the only definition. The thresholds used
+ * to be retyped here and in two reporters, which meant a page could show "good" in a colour
+ * that said "needs work".
+ */
+export { band };

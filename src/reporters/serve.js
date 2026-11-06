@@ -9,9 +9,11 @@
 
 import { createServer } from 'node:http';
 
-export const HOST = '0.0.0.0';
+import { DEFAULTS } from '../config/constants.js';
 
-export function serveReport({ html, port = 4321, target = '' }) {
+export const HOST = DEFAULTS.host;
+
+export function serveReport({ html, port = DEFAULTS.port, host = HOST, target = '' }) {
   return new Promise((resolve, reject) => {
     const server = createServer((req, res) => {
       if (req.url === '/' || req.url?.startsWith('/r')) {
@@ -36,7 +38,7 @@ export function serveReport({ html, port = 4321, target = '' }) {
     });
 
     server.on('error', reject);
-    server.listen(port, HOST, () => {
+    server.listen(port, host, () => {
       resolve({
         port: server.address()?.port ?? port,
         url: `http://localhost:${server.address()?.port ?? port}/`,

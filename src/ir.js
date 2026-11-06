@@ -10,7 +10,21 @@
  * A collector (CLI, snippet, extension, CI) builds facts. The engine only ever reads facts.
  */
 
+import { ENV } from './config/constants.js';
+
 export const IR_VERSION = '0.1';
+
+/**
+ * Coverage values a finding may carry. Defined here because the IR owns its own enum: the
+ * artifact must be valid without importing a scoring module. `src/vocabulary.js` re-exports
+ * these so consumers have one import for the shared vocabulary.
+ */
+export const COVERAGE = Object.freeze({
+  /** The check ran and reached a verdict. Counts as damage. */
+  automated: 'automated',
+  /** The check could not be decided in this environment. Never damage, never a violation. */
+  incomplete: 'incomplete',
+});
 
 /** Pillars, in the order they are reported. */
 export const PILLARS = ['accessible', 'fast', 'safe', 'legible', 'resilient'];
@@ -62,7 +76,7 @@ export async function hashIR(ir) {
  * reports" test can be honest.
  */
 function collectedAt() {
-  const epoch = process.env.SOURCE_DATE_EPOCH;
+  const epoch = process.env[ENV.sourceDateEpoch];
   if (epoch && /^\d+$/.test(epoch)) return new Date(Number(epoch) * 1000).toISOString();
   return new Date().toISOString();
 }
@@ -98,7 +112,7 @@ export function addFinding(ir, finding) {
     selector: finding.selector ?? null,
     snippet: finding.snippet ?? null,
     help: finding.help ?? null,
-    coverage: finding.coverage ?? 'automated',
+    coverage: finding.coverage ?? COVERAGE.automated,
     locations: finding.locations ?? [],
   };
   normalized.id = `${normalized.ruleId}:${normalized.selector ?? ''}`;
