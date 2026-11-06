@@ -1,0 +1,32 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "audit the open file",
+      "type": "node",
+      "request": "launch",
+      "program": "${workspaceFolder}/bin/spark.js",
+      "args": ["check", "${file}"],
+      "console": "integratedTerminal",
+      "skipFiles": ["<node_internals>/**"]
+    },
+    {
+      "name": "report the open file",
+      "type": "node",
+      "request": "launch",
+      "program": "${workspaceFolder}/bin/spark.js",
+      "args": ["report", "${file}", "--out", "spark-report.html"],
+      "console": "integratedTerminal",
+      "skipFiles": ["<node_internals>/**"]
+    },
+    {
+      "name": "debug the test suite",
+      "type": "node",
+      "request": "launch",
+      "program": "${workspaceFolder}/bin/spark.js",
+      "args": ["check", "fixtures/bad.html"],
+      "console": "integratedTerminal",
+      "skipFiles": ["<node_internals>/**"]
+    }
+  ]
+}

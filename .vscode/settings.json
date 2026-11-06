@@ -1,0 +1,17 @@
+{
+  "files.eol": "\n",
+  "files.trimTrailingWhitespace": true,
+  "files.insertFinalNewline": true,
+  "editor.formatOnSave": false,
+  "editor.rulers": [100],
+  "search.exclude": {
+    "**/node_modules": true,
+    "**/package-lock.json": true
+  },
+  "files.associations": {
+    "*.json": "json"
+  },
+  "javascript.preferences.importModuleSpecifierEnding": "js",
+  "terminal.integrated.defaultProfile.windows": "PowerShell",
+  "task.autoDetect": "on"
+}

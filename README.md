@@ -21,9 +21,12 @@ proof a property of the pipeline instead of an audit after the fact.
 
 ## Try it
 
+On Windows 11 with PowerShell, see [docs/WINDOWS.md](docs/WINDOWS.md) for the version that
+accounts for `localhost`/IPv6, `$LASTEXITCODE` and the editor setup.
+
 ```bash
 git clone <this repo> && cd web-spark
-npm install
+npm ci
 node bin/spark.js check fixtures/bad.html
 ```
 

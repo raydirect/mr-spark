@@ -13,6 +13,16 @@ import { DEFAULTS } from '../config/constants.js';
 
 export const HOST = DEFAULTS.host;
 
+/**
+ * The address we PRINT must be the address that actually answers.
+ *
+ * We listen on 0.0.0.0 (IPv4) so a container or sandbox can reach the report. But `localhost`
+ * resolves to ::1 first on many systems — Windows 11 among them — and ::1 is an IPv6 address
+ * nothing is listening on, so `http://localhost:<port>` is refused while the server is
+ * perfectly healthy. Naming the IPv4 loopback explicitly removes the guess.
+ */
+export const LOCALHOST = '127.0.0.1';
+
 export function serveReport({ html, port = DEFAULTS.port, host = HOST, target = '' }) {
   return new Promise((resolve, reject) => {
     const server = createServer((req, res) => {
@@ -41,7 +51,7 @@ export function serveReport({ html, port = DEFAULTS.port, host = HOST, target = 
     server.listen(port, host, () => {
       resolve({
         port: server.address()?.port ?? port,
-        url: `http://localhost:${server.address()?.port ?? port}/`,
+        url: `http://${LOCALHOST}:${server.address()?.port ?? port}/`,
         // Close hard: a lingering keep-alive socket should not keep a CLI process alive.
         close: () =>
           new Promise((done) => {
