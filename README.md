@@ -39,25 +39,28 @@ package-lock.json"*, you are not inside the clone: `Test-Path .\package-lock.jso
 ```
   web-spark  file:///…/fixtures/bad.html
 
-  ACCESSIBLE   53  ✗  link-name ×2 · button-name ×1 · html-has-lang ×1 · 2 undecided
+  ACCESSIBLE   46  ✗  region ×6 · link-name ×2 · button-name ×1 · 4 undecided
   FAST            —  ·  not measured in this build
   SAFE            —  ·  not measured in this build
   LEGIBLE         —  ·  not measured in this build
   RESILIENT       —  ·  not measured in this build
 
-  ✗ button-name      critical  button
-  ✗ image-alt        critical  img
-  ✗ html-has-lang    serious   html
-  ✗ link-name        serious   a[href$="help"]
+    ✗ button-name             critical  button
+    ✗ image-alt               critical  img
+    ? bypass                  serious   html
+    ? color-contrast          serious   span:nth-child(1)
+    ✗ html-has-lang           serious   html
+    ✗ link-name               serious   a[href$="help"]
+    … 9 more finding(s)
 
-  CONFORMANCE  53  poor  (1/5 pillars measured)
-  ir aa5183ae7e26  ·  Automated checks cover a minority of WCAG criteria. Absence of
-  findings does not mean a page is accessible.
+  CONFORMANCE  46  poor  (1/5 pillars measured)
+    ? = could not be decided in this environment (4). Excluded from the score; not violations.
 ```
 
-`npm test` runs 48 tests. `--format json` gives the machine face, `--quiet` gives one
+`npm test` runs 60 tests. `--format json` gives the machine face, `--quiet` gives one
 tab-separated line per finding for scripts, and `--fail-under 90` makes it a gate. Colour
-honours `NO_COLOR` and `FORCE_COLOR`. The unbuilt pillars say `—` on purpose: an unmeasured
+honours `NO_COLOR` and `FORCE_COLOR`. What a run can and cannot see is stated in
+[COVERAGE.md](docs/COVERAGE.md). The unbuilt pillars say `—` on purpose: an unmeasured
 pillar is a gap, never a pass.
 
 **The shareable report** (rung 1 of [EASE.md](docs/EASE.md)) — a complete document with no

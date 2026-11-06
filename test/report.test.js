@@ -152,3 +152,44 @@ test('a whole document is still checked as a document', async () => {
   const lang = ir.findings.find((f) => f.ruleId === 'html-has-lang');
   assert.equal(lang.coverage, 'automated', 'a real page without a language is a real finding');
 });
+
+test('best-practice rules run, so a page cannot pass by skipping landmarks', async () => {
+  // Only WCAG-tagged rules were being run, which excluded 30 rules including region,
+  // heading-order, landmark-one-main and page-has-heading-one. A page with content outside any
+  // landmark scored as if nothing were wrong. This asserts the rule set, not a number.
+  const html = `<!doctype html><html lang="en"><head><title>t</title></head>
+<body><h1>a</h1><h3>skipped</h3><p>outside any landmark</p></body></html>`;
+  const { ir } = await analyze({ html, uri: 'file:///bp.html', engines });
+  const rules = new Set(ir.findings.map((f) => f.ruleId));
+  assert.ok(rules.has('region'), 'content outside a landmark must be found');
+  assert.ok(rules.has('heading-order'), 'a skipped heading level must be found');
+});
+
+test('a score with undecided checks is labelled an upper bound', async () => {
+  // Two real pages printed a bare "100" with contrast undecided. The score excludes undecided
+  // findings, so it can only ever be too HIGH: printing 100 claims a verification that did not
+  // happen. The glyph is the difference between "we checked and it is perfect" and "we could
+  // not check everything".
+  const { ir, scores, hash } = await build('good.html');
+  const { buildView } = await import('../src/view-model.js');
+  const { renderTerminal } = await import('../src/reporters/terminal.js');
+  const view = buildView(ir, scores);
+  assert.ok(view.undecidedCount > 0);
+  assert.equal(view.overallUpperBound, true);
+  const out = renderTerminal({ ir, scores, hash }, { color: false });
+  assert.match(out, /CONFORMANCE ≤/);
+  assert.match(out, /upper bound, not a measurement/);
+});
+
+test('a page with nothing undecided is a plain measurement, not a bound', async () => {
+  // Constructed directly so the assertion is about the rule, not about the environment.
+  const { buildView } = await import('../src/view-model.js');
+  const ir = {
+    provenance: { uri: 'file:///x.html', kind: 'document' },
+    findings: [{ ruleId: 'image-alt', impact: 'critical', pillar: 'accessible', coverage: 'automated', id: 'image-alt:img' }],
+    environment: { issues: [] },
+  };
+  const view = buildView(ir, { accessible: 80, fast: null, safe: null, legible: null, resilient: null });
+  assert.equal(view.overallUpperBound, false);
+  assert.equal(view.overall.score, 80);
+});

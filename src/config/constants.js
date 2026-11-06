@@ -24,6 +24,8 @@ export const DISPLAY = Object.freeze({
   snippetLength: 160,
   /** Width of a score cell: three digits plus the em dash used for "not measured". */
   scoreCellWidth: 4,
+  /** Column reserved for the "≤" upper-bound marker, present or blank, so rows align. */
+  boundWidth: 2,
   /** Distinct rules named in a one-line pillar summary before the rest are implied. */
   summaryRules: 3,
   /** Findings listed in the terminal before it stops enumerating. */

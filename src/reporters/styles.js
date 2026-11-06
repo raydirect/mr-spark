@@ -186,6 +186,9 @@ pre {
   overflow: hidden;
 }
 .meter-fill { display: block; block-size: 100%; border-radius: var(--radius-pill); background: currentColor; }
+.bound { font-size: 0.5em; vertical-align: 0.65em; margin-inline-end: 0.05em; opacity: 0.8; }
+.num .bound { font-size: 0.65em; vertical-align: 0.5em; }
+.bound-note { margin-block-start: var(--space-xs); }
 .meter-legend { display: flex; justify-content: space-between; gap: var(--space-md); font-size: var(--text-xs); color: var(--muted); }
 
 .score-row {

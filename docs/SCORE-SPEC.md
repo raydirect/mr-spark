@@ -73,7 +73,7 @@ Bands: `≥90 good` · `≥70 needs work` · `≥40 poor` · `<40 failing` · `n
 ### Worked reference: the repository's known-bad fixture
 
 The fixture is built from the failure classes that dominate the real web (missing alternative
-text, unlabeled controls, an undecidable contrast pair, no declared language, no landmark):
+text, unlabeled controls, an undecidable contrast pair, no declared language, no landmarks):
 
 | Rule | Impact | Weight |
 |---|---|---|
@@ -81,8 +81,17 @@ text, unlabeled controls, an undecidable contrast pair, no declared language, no
 | `image-alt` | critical | 10 |
 | `html-has-lang` | serious | 5 |
 | `link-name` ×2 | serious | 5 + 5 |
+| `region` ×6 | moderate | 2 × 6 = 12 |
 
-damage = 35 → `100 · 40 / 75` = **53**. Measured output: **53**. The known-good fixture: **100**.
+damage = 47 → `100 · 40 / 87` = **46**. Measured output: **46**. The known-good fixture: **100**.
+
+**Why this number moved, and what it says about the spec.** The score was 53 until the
+best-practice rules were enabled; `region` (content outside a landmark) found six more problems
+in the same page. The curve did not change and the fixture did not change - the *tool saw more*.
+That is the correct behaviour of a measurement, and it is also a warning worth stating plainly:
+**a score is only comparable to another score taken with the same rule set.** Every report
+prints the engine version and the score spec version for exactly this reason, and a baseline
+that outlives a rule-set change must record both or its delta is meaningless.
 
 ---
 
