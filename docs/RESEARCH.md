@@ -106,7 +106,8 @@ between *measuring* and *being unable to merge a regression*.
 - Sonatype's 2026 State of the Software Supply Chain report counted **454,600+ new
   malicious open-source packages in 2025**, a ~75% year-over-year jump, with cumulative
   blocked packages past 1.2 million.
-- **Shai-Hulud** (September 2025) was npm's first genuinely self-propagating worm:
+- **Shai-Hulud** (September 2025) was the registry's first genuinely self-propagating
+  worm:
   ~187 packages at first detection, expanded to 400–500+ within days, spread by stealing
   maintainer tokens and republishing. Payload executed via `postinstall`.
 - **Shai-Hulud 2.0** (November 2025) hit ~796 packages and 1,092 versions in 72 hours,
@@ -114,7 +115,7 @@ between *measuring* and *being unable to merge a regression*.
   were created to exfiltrate stolen secrets; GitGuardian found 2,349 distinct secrets and
   ~90% of exposed GitHub tokens were still valid days later. A single package
   (`@postman/tunnel-agent`) was present in **27%** of cloud/code environments scanned.
-- Why it spreads so well: npm's install-time execution model plus grotesque transitive
+- Why it spreads so well: the ecosystem's install-time execution model plus grotesque transitive
   fan-out. **[measured]** In this sandbox, a package-lock for a *single package* resolves
   to: a meta-framework's runtime → 54 packages, a component-based UI stack → 43, a
   full-stack SSR kit → 71, a content-site generator → 282. A realistic small app (UI
@@ -122,14 +123,14 @@ between *measuring* and *being unable to merge a regression*.
   harness, types, dev server) → **133 packages, 132 MB of `node_modules`** for a todo-scale
   application.
 
-**Root cause.** `npm install` is arbitrary code execution from strangers, and the only
+**Root cause.** Installing dependencies runs arbitrary code from strangers, and the only
 defenses offered are advisory ("audit", "use a cooldown", "commit the lockfile"). None of
 them are default, none are enforceable, and all of them require the developer to become a
 supply-chain analyst.
 
-**Verdict: structural, worsening fast, but crowded.** Socket, Snyk, Dependabot, npm
-provenance and lockfile-based scanners all live here, and the well-funded ones have the
-registry data advantage. A new OSS project should *consume* these signals, not compete
+**Verdict: structural, worsening fast, but crowded.** Commercial supply-chain security
+vendors, automated dependency-update bots, package provenance and lockfile-based scanners all
+live here, and the well-funded ones have the registry data advantage. A new OSS project should *consume* these signals, not compete
 with them. **This is a feature, not the wedge.**
 
 ---
@@ -232,10 +233,10 @@ prove it's accessible, fast, and safe.
 A fast-emerging pain point with no incumbent:
 
 - Only **~8.7% of the top 1,000 websites** publish an `llms.txt` (other scans put the whole
-  web at ~5–15%), and Google's May 2026 AI-optimization guide explicitly lists it among
+  web at ~5–15%), and the largest search vendor's May 2026 AI-optimization guide explicitly lists it among
   tactics to ignore for AI search. Chrome's Lighthouse added an experimental *agentic
   browsing* audit in 13.3.0 that checks for it anyway.
-- **WebMCP** (W3C Web Machine Learning CG draft, Google + Microsoft) is the capability
+- **WebMCP** (W3C Web Machine Learning CG draft, authored by browser vendors) is the capability
   layer: `navigator.modelContext.registerTool({name, description, inputSchema, execute})`
   lets a site expose real actions to browser agents instead of making them guess at divs.
   It is in a Chrome origin trial (149–156), with native support in Edge 147; the spec churned
@@ -263,7 +264,7 @@ Being explicit about anti-goals is how the plan stays credible.
 | **Another framework / meta-framework** | The pain point ranking (#1 cognitive overload, #2 ecosystem issues) is an argument *against* adding a new mental model. Also: the graveyard is full — the Rails-inspired full-stack kit of 2020 pivoted away from its meta-framework fork and went quiet, a GraphQL-first full-stack kit is in maintenance mode, and the leading edge-router framework was absorbed into a plain routing library. A framework must win the framework war. |
 | **Another bundler** | Rolldown and Rspack are consolidating this space with VC-scale engineering teams. Zero chance of winning, and it's not where the pain is. |
 | **Another component library** | Infinite competition, no moat, no structural pain. |
-| **Another dependency scanner** | Socket/Snyk/Dependabot own it. Consume them. |
+| **Another dependency scanner** | Commercial supply-chain vendors and update bots own it. Consume them. |
 | **A hosted platform / CMS** | Not open source, and adds the thing developers fear most: lock-in (it appears in the pain-point list explicitly). |
 | **An AI site builder** | Saturated, value accrues to the model vendors, and it *increases* the verification problem we're solving. |
 
@@ -302,5 +303,5 @@ page, and a way to prove it in CI in under a second.**
 - Moderne, *Context engineering: why AI coding agents spend most of their tokens reading* (webinar poll, 2026)
 - JetBrains developer survey on AI tooling failure modes (600+ developers, 2026)
 - W3C Web Machine Learning CG, *WebMCP* draft; Chrome origin trial 149–156; `navigator.modelContext` API reference (2026)
-- llms.txt adoption scans (Rankability top-1,000: 8.7%; ~10% of 300k domains) and Google AI-optimization guidance (May 2026)
-- **[measured]** Sandbox measurements, 2026-11-06: npm dependency graphs (meta-framework runtime 54, UI stack 43, SSR kit 71, site generator 282, realistic app 133 packages / 132 MB); jsdom + axe-core audit of a 6-error fixture in 331 ms with no browser, catching 4 of the 6 top WebAIM error types (contrast returned as `incomplete` without canvas).
+- llms.txt adoption scans (Rankability top-1,000: 8.7%; ~10% of 300k domains) and the largest search vendor's AI-optimization guidance (May 2026)
+- **[measured]** Sandbox measurements, 2026-11-06: dependency graphs from package-lock analysis (meta-framework runtime 54, UI stack 43, SSR kit 71, site generator 282, realistic app 133 packages / 132 MB); jsdom + axe-core audit of a 6-error fixture in 331 ms with no browser, catching 4 of the 6 top WebAIM error types (contrast returned as `incomplete` without canvas).

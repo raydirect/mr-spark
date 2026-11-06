@@ -10,6 +10,12 @@ Status: proposal, not yet built. This document is the thing to argue with.
 
 ## 1. The bet
 
+> **Superseded in part by [VISION.md](VISION.md).** The audit CLI described here is pillar 1
+> ("Verify") of a larger architecture: a conformance compiler with a shared intermediate
+> representation and five pillars. The reasoning below still holds and is kept because it is
+> the justification for starting exactly where VISION.md says to start.
+
+
 The research in [RESEARCH.md](RESEARCH.md) lands on one gap:
 
 > Every stage of web development has a world-class tool. The **outcome** has no owner,
@@ -58,11 +64,11 @@ the report** — the layer that is missing.
 │  Collectors (adapters over trusted engines)                   │
 │   • a11y      → axe-core                                     │
 │   • perf      → Lighthouse / PSI / CrUX, bundle analysis      │
-│   • security  → lockfile + npm audit + OSV + policy rules     │
+│   • security  → lockfile + advisory feeds + OSV + policies    │
 │   • agent     → accessibility-tree readability, WebMCP tools, │
 │                 llms.txt, structured data                     │
 ├──────────────────────────────────────────────────────────────┤
-│  Runners: jsdom (no browser, ~300ms) │ Playwright │ Lighthouse │
+│  Runners: jsdom (no browser, ~300ms) │ browser │ page-audit  │
 ├──────────────────────────────────────────────────────────────┤
 │  Score  +  baseline diff  +  budgets                          │
 ├──────────────────────────────────────────────────────────────┤
@@ -119,7 +125,7 @@ These are the choices I'd fight for, with the reasoning, so you can disagree pre
 ### 3.1 Reuse, never reinvent (credibility + speed)
 
 axe-core ships inside Chrome DevTools and Lighthouse and has a zero-false-positive
-commitment. Lighthouse owns perf scoring. OSV/npm audit own advisories. We wrap and
+commitment. Lighthouse owns perf scoring. OSV and the package registries own advisories. We wrap and
 normalize. A from-scratch a11y engine would take a year and be worse — and the community
 would (rightly) ignore us.
 
@@ -206,7 +212,7 @@ punchline:
 | `spark report --format sarif\|json\|md` | CI-native output | M1 |
 | `webspark/check-action@v1` | PR comment + check run + delta | M1 |
 | `spark budget --max-js/--max-lcp/--min-score` | hard ceilings | M2 |
-| `spark check --url` | Playwright runner (rendered DOM, contrast, WebMCP) | M2 |
+| `spark check --url` | browser runner (rendered DOM, contrast, agent tools) | M2 |
 | `spark agent` | a11y-tree report + WebMCP tool inventory | M2 |
 | `spark fix <rule>` | guided fix with codemod where safe | M3 |
 | `spark init` | detect stack, write config, generate the Action | M1 (thin) |
@@ -252,7 +258,7 @@ something other than our own opinion.
   real accessibility regression.
 
 ### Phase 2 — Depth (4–6 weeks)
-- Playwright runner (`--url`): rendered DOM, real contrast, console/network errors,
+- Browser runner (`--url`): rendered DOM, real contrast, console/network errors,
   **WebMCP tool inventory**, agent readiness sub-score.
 - Budgets tied to *changed files* so a PR only fails for the bytes it added.
 - **Exit:** `spark agent` output successfully used by a coding agent to fix a real
@@ -318,7 +324,7 @@ Leading indicators, in order of what actually matters:
 ## 9. Decisions I need from you
 
 1. **Scope of v1** — my recommendation: Phase 0 + 1 only (audit + baseline + Action), ship in
-   ~4 weeks, and let real users pull Phase 2 out of us. Alternative: build the Playwright
+   ~4 weeks, and let real users pull Phase 2 out of us. Alternative: build the browser
    runner and WebMCP layer first for a flashier demo, at the cost of a month and a much
    heavier first install.
 2. **Wedge audience** — (a) agency/freelancer devs who must satisfy EAA now and feel the pain
@@ -326,7 +332,7 @@ Leading indicators, in order of what actually matters:
    (money, but slower to reach). I'd start with (a) for urgency and (b) for distribution.
 3. **The name.** `web-spark` is fine and now the repo, but the CLI/package name matters for
    discovery. Candidates: `spark`, `webspark`, `conformance`, `sightline`, `proof`. I'd avoid
-   `spark` alone (collisions, and it's a Kubernetes project); `webspark` reads clearly as
+   `spark` alone (collisions — it is already a well-known name in another ecosystem); `webspark` reads clearly as
    "the web's conformance tool."
 4. **How hard we lean on the agent angle.** It's the best narrative and the newest capability,
    and it's also the easiest thing to over-promise. My instinct: ship it as a *reporting*

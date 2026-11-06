@@ -1,25 +1,35 @@
 # web-spark
 
-**A conformance score for the web — and a CI gate that stops you merging a regression.**
+**Every artifact proves itself.**
 
-> ⚠️ **Status: design proposal.** There is no code yet. This repo currently contains the
-> research and the plan, deliberately written to be argued with before anything is built.
-> Read [docs/RESEARCH.md](docs/RESEARCH.md), then [docs/PLAN.md](docs/PLAN.md).
+A design document, a motion timeline, a settings file, a component tree, a rendered scene, a
+shipped bundle — each should carry its own proof that it is accessible, fast, safe, legible to
+machines, and resilient. Today none of them do. web-spark is the missing layer that makes that
+proof a property of the pipeline instead of an audit after the fact.
+
+> ⚠️ **Status: design proposal.** No code yet, on purpose. Three documents carry the thinking:
+> - [docs/VISION.md](docs/VISION.md) — the unified plan: one intermediate representation, five pillars
+> - [docs/RESEARCH.md](docs/RESEARCH.md) — the evidence base, for why this and not something else
+> - [docs/INSPIRATIONS.md](docs/INSPIRATIONS.md) — 100 influences as *borrow this / avoid that*, brand-free
 
 ---
 
-## The problem, in one paragraph
+## The one-sentence thesis
 
-Every stage of web development has a world-class tool. But the **outcome** — *"this site is
-accessible, fast, safe, and usable by humans and by AI agents"* — has no owner, no single
-number, and no CI gate anyone can install in five minutes. So: 95.9% of the top million home
-pages fail automated WCAG checks and it's getting *worse*; the median mobile page ships 632 KB
-of JavaScript and only 48% of mobile sites pass Core Web Vitals; and agents now generate code
-faster than anyone can verify it (35% of AI-written code ships before the team understands it).
+> **web-spark is a conformance compiler for the web.** Many front-ends lower into one typed
+> intermediate representation. It is analyzed against a published rule set, scored publicly,
+> and emitted back out as diagnostics, safe fixes, machine-facing manifests, and renderable
+> scenes.
 
-## The idea
+That single sentence is what makes this one product instead of six. Single-artifact tools can
+never tell you this:
 
-One command. Zero config. A number you can gate on.
+> *"This button is 2.9:1 from the design token, animates a property that triggers vestibular
+> symptoms, has no accessible name in the shipped DOM, and declares no machine-callable action."*
+
+An IR can. So can we.
+
+## Where it starts
 
 ```bash
 npx webspark check https://example.com
@@ -28,56 +38,54 @@ npx webspark check https://example.com
 ```
   web-spark  https://example.com
 
-  ACCESSIBILITY   38/100   ✗  14 errors
-    ✗ image-alt       3 elements
-    ✗ color-contrast  9 elements    .muted (2.1:1, needs 4.5:1)
-    ✗ label           2 elements
-  PERFORMANCE     55/100   ~  LCP 3.8s · 612 KB JS
-  SECURITY        88/100   ✓  1 advisory (moderate)
-  AGENT READINESS 41/100   ✗  no main landmark · 12 unlabeled controls · no llms.txt
+  ACCESSIBLE  38/100  ✗ 14 errors   image-alt ×3 · color-contrast ×9 (2.1:1) · label ×2
+  FAST        55/100  ~ LCP 3.8s · 612 KB JS
+  SAFE        88/100  ✓ 1 advisory (moderate)
+  LEGIBLE     41/100  ✗ no main landmark · 12 unlabeled controls · 0 declared actions
 
-  CONFORMANCE 52/100  ✗  FAIL (budget: 70)
+  CONFORMANCE 52/100  ✗ FAIL (budget 70)
+  automated checks only — roughly 30% of WCAG criteria can be machine-tested
 ```
 
-And in CI — no browser, ~300 ms, fails only on *new* problems:
-
-```yaml
-- uses: webspark/check-action@v1
-```
+Then in CI, gating only on *new* problems:
 
 ```
 web-spark  72 → 78 (+6)   ✓ passed
-  +2  accessibility   fixed 4 contrast issues
-  -3  performance     entry bundle +38 KB
+  +2 accessible   fixed 4 contrast issues
+  -3 fast         entry bundle +38 KB
 ```
 
-Not a framework. Not a linter clone. **The missing verification layer**, built on the engines
-the ecosystem already trusts (axe-core, Lighthouse, OSV) — plus the thing nobody has packaged
-yet: a report designed to be read by **AI agents**, about whether your site is legible to them.
+## The five pillars, in build order
 
-## Why this and not another framework
+| | Pillar | What it does |
+|---|---|---|
+| 1 | **Verify** | audit any URL or source tree, score it honestly, gate the PR |
+| 2 | **Manifest** | emit machine-facing declarations and content maps *from the IR* |
+| 3 | **Author** | declarative design/settings documents that compile to conformant pages |
+| 4 | **Animate** | an open motion format where reduced-motion safety is a checked property |
+| 5 | **Render** | drawn scenes with a real projected semantic DOM — accessible pixels |
 
-Because the #1 and #2 free-text pain points in State of JavaScript 2025 are *cognitive
-overload* and *ecosystem issues*. Another mental model loses. One `npx` command that
-tells the truth wins. Full reasoning, including the anti-goals, is in
-[docs/RESEARCH.md](docs/RESEARCH.md#what-this-research-says-not-to-build).
+Order is not taste. Verification is the only pillar that needs nobody's adoption to be useful,
+and it is the trust credential for the four that follow. The full argument, including the
+cautionary tale of a dead animation ecosystem, is in
+[VISION.md §3](docs/VISION.md#3-the-architecture).
 
 ## Honest limits
 
-- Automated checks cover roughly **30% of WCAG success criteria**. web-spark will never claim
-  a site is compliant, and the report says so in the output itself.
-- The score is only as good as its published weights. They're public and versioned, by
-  design — a gamed score is a dead project.
-- We are a wrapper around great engines. That's the point: it's why we can be trustworthy on
-  day one.
+- Automated checks cover roughly **30% of WCAG success criteria**. web-spark will never claim a
+  site is compliant, and the report says so in its own output.
+- Scores get gamed. Ours uses public, versioned weights, four subscores that are never merged,
+  and always ships the raw findings alongside.
+- Phase 1 is a CLI and a CI gate. Design, motion and rendering are a published roadmap, not a
+  shipped claim.
 
 ## Contribute to the thinking
 
-The most useful thing you can do right now is disagree well — open an issue with the section
-of the plan you think is wrong, or add a pain point we missed. See
-[docs/PLAN.md §9](docs/PLAN.md#9-decisions-i-need-from-you) for the open decisions.
+Right now the most useful contribution is disagreement — open an issue against the part of the
+plan you think is wrong. The open decisions are listed at the end of
+[VISION.md](docs/VISION.md#7-decisions-needed-before-any-code).
 
 ## License
 
-Apache-2.0 — see [LICENSE](LICENSE). Patent grant included on purpose: this is meant to be a
-standard, not a product.
+Apache-2.0. The patent grant is deliberate: the intent is that the format and the score outlive
+this repository.
