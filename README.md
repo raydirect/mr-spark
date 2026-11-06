@@ -10,6 +10,7 @@ proof a property of the pipeline instead of an audit after the fact.
 > ⚠️ **Status: design proposal.** No code yet, on purpose. Four documents carry the thinking:
 > - [docs/VISION.md](docs/VISION.md) — the unified plan: one intermediate representation, five pillars
 > - [docs/SURFACES.md](docs/SURFACES.md) — why the product is the engine, and where it runs
+> - [docs/SHELL.md](docs/SHELL.md) — what hosts the authoring UI, and why it is not a native app
 > - [docs/MCP.md](docs/MCP.md) — how the Model Context Protocol is threaded through every layer
 > - [docs/RESEARCH.md](docs/RESEARCH.md) — the evidence base, for why this and not something else
 > - [docs/INSPIRATIONS.md](docs/INSPIRATIONS.md) — 100 influences as *borrow this / avoid that*, brand-free
@@ -83,7 +84,11 @@ One engine, four surfaces — **CLI → CI gate → MCP server → browser exten
 The extension is the best *lens* (logged-in pages, real interactions, one-second demo) and the
 worst *authority* (non-deterministic, requires someone watching, users run stale builds). So it
 ships second, not first, and it computes nothing: it captures, and the engine judges.
-Reasoning in [SURFACES.md](docs/SURFACES.md).
+Reasoning in [SURFACES.md](docs/SURFACES.md). The authoring UI follows the same logic: it is a
+**browser-based web app driven by the local engine**, because the design surface must *be* the
+runtime — a native host would mean reimplementing CSS or verifying a second engine. A thin
+desktop shell arrives later for filesystem and offline only; Rust stays a WASM accelerator, never
+the host. See [SHELL.md](docs/SHELL.md).
 
 ## The five pillars, in build order
 
