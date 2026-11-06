@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Book a repair slot — Bike Room</title>
+    <meta name="description" content="Book a repair slot at the Bike Room workshop. Three slots a day, ten pounds, no account needed.">
+  </head>
+  <body>
+    <div id="app">
+      <div class="topbar">
+        <a href="/" class="logo">Bike Room</a>
+        <a href="/account" class="signin" role="button" aria-hidden="true">Sign in</a>
+      </div>
+
+      <div class="hero">
+        <h1>Book a repair slot</h1>
+        <p>Three slots a day, one mechanic, ten pounds. Bring the bike and the problem.</p>
+      </div>
+
+      <div class="form">
+        <form action="/book" method="post">
+          <div class="field">
+            <label for="name">Your name</label>
+            <input id="name" name="name" type="text" required>
+          </div>
+          <div class="field">
+            <label for="email">Email</label>
+            <input id="email" name="email" type="email" required>
+          </div>
+          <div class="field">
+            <label for="date">Day</label>
+            <select id="date" name="date">
+              <option>Thursday</option>
+              <option>Friday</option>
+              <option>Saturday</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="problem">What is wrong with it</label>
+            <textarea id="problem" name="problem" rows="4"></textarea>
+          </div>
+          <input type="text" name="url" id="url" class="trap" tabindex="-1" autocomplete="off">
+
+          <button type="submit">Request the slot</button>
+        </form>
+
+        <p class="fine-print">
+          A request is not a booking until we reply. We answer within a day, and we will say no
+          if the job needs the bench for longer than the slot.
+        </p>
+      </div>
+
+      <div class="reviews">
+        <h2>Recent repairs</h2>
+        <div class="review">
+          <span class="stars">★★★★★</span>
+          <p>Rebuilt the rear hub in an hour and refused to sell me a new wheel.</p>
+          <span class="who">— Priya, commuter</span>
+        </div>
+        <div class="review">
+          <span class="stars">★★★★☆</span>
+          <p>Straightened the hanger, trued the wheel, charged for one of them.</p>
+          <span class="who">— Tom, weekend rider</span>
+        </div>
+      </div>
+
+      <div class="footer">
+        <p>Bike Room · 8 Ash Street · closed Mondays</p>
+        <a href="/privacy">Privacy</a>
+        <a href="/terms">Terms</a>
+      </div>
+    </div>
+  </body>
+</html>
