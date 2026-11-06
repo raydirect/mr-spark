@@ -11,6 +11,7 @@ proof a property of the pipeline instead of an audit after the fact.
 > - [docs/VISION.md](docs/VISION.md) — the unified plan: one intermediate representation, five pillars
 > - [docs/SURFACES.md](docs/SURFACES.md) — why the product is the engine, and where it runs
 > - [docs/SHELL.md](docs/SHELL.md) — what hosts the authoring UI, and why it is not a native app
+> - [docs/EASE.md](docs/EASE.md) — how anyone, anywhere, gets a true answer in seconds
 > - [docs/MCP.md](docs/MCP.md) — how the Model Context Protocol is threaded through every layer
 > - [docs/RESEARCH.md](docs/RESEARCH.md) — the evidence base, for why this and not something else
 > - [docs/INSPIRATIONS.md](docs/INSPIRATIONS.md) — 100 influences as *borrow this / avoid that*, brand-free
@@ -89,6 +90,27 @@ Reasoning in [SURFACES.md](docs/SURFACES.md). The authoring UI follows the same 
 runtime — a native host would mean reimplementing CSS or verifying a second engine. A thin
 desktop shell arrives later for filesystem and offline only; Rust stays a WASM accelerator, never
 the host. See [SHELL.md](docs/SHELL.md).
+
+## Easy for anyone, anywhere
+
+A ladder of nine rungs, cheapest first — **none requiring an account, an install, or a
+toolchain** ([EASE.md](docs/EASE.md)):
+
+| Rung | Path | Ships |
+|---|---|---|
+| 1 | **a shared link** — a URL, no session, server-rendered, deterministic | P1b |
+| 2 | a continuously updated public statement of the state of the web | P1 |
+| 3 | `npx` — one command, zero config | P1a |
+| 4 | paste-one-snippet capture for logged-in pages | P2 |
+| 5 | **a gate on the merge** — the moat | P1c |
+| 6 | the audit as an agent tool | P1d |
+| 7 | docs where every rule page embeds its own failing example | P2 |
+| 8 | an embedded scorecard that degrades to plain HTML | P2 |
+| 9 | localized first-run, in the user's language and script | P2 |
+
+Rung 1 is how the world hears about it; rung 5 is how it stays. And because every rung reports
+the same findings from the same IR, a link pasted in one country means the same thing in another
+— which is the most globalizing feature there is.
 
 ## The five pillars, in build order
 
