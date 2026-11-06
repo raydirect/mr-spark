@@ -30,8 +30,8 @@ export const DISPLAY = Object.freeze({
   terminalFindings: 6,
   /** Selector characters in the terminal finding list. */
   terminalSelectorWidth: 48,
-  /** Rule id column width in the terminal finding list. */
-  terminalRuleWidth: 16,
+  /** Rule id column width in the terminal finding list. Rule ids reach 21 characters. */
+  terminalRuleWidth: 24,
   /** Impact column width in the terminal finding list. */
   terminalImpactWidth: 9,
   /** Pillar name column width in the terminal score table. */

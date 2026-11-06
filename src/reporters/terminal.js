@@ -54,9 +54,10 @@ function scoreCell(score, c) {
   return c(colour, cell.padStart(DISPLAY.scoreCellWidth, ' '));
 }
 
-/** Rule ids are ASCII padded; this keeps alignment explicit rather than incidental. */
-function decidingWidth(ruleId) {
-  return ruleId;
+/** Fit a value into a column: pad short values, truncate long ones with an ellipsis. */
+function fit(value, width) {
+  const text = String(value);
+  return (text.length > width ? `${text.slice(0, width - 1)}…` : text).padEnd(width);
 }
 
 function iconCell(score, c) {
@@ -85,6 +86,9 @@ export function renderTerminal(
 
   lines.push('');
   lines.push(`  ${c(BOLD, 'web-spark')}  ${c(DIM, ir.provenance.uri ?? '')}`);
+  if (view.kind === 'fragment') {
+    lines.push(`  ${c(YELLOW, copy('state.fragmentNotice'))}`);
+  }
   lines.push('');
 
   for (const pillar of PILLARS) {
@@ -112,7 +116,10 @@ export function renderTerminal(
     for (const finding of shown) {
       const decided = isDecided(finding);
       const mark = decided ? c(RED, '✗') : c(YELLOW, '?');
-      const rule = decidingWidth(finding.ruleId).padEnd(DISPLAY.terminalRuleWidth);
+      // Rule ids exceed the column width often (aria-valid-attr-value is 21 characters), and
+      // padEnd does not truncate, so a long id ran straight into the impact column. Truncate
+      // with an ellipsis and keep the gutter, rather than let two columns collide.
+      const rule = fit(finding.ruleId, DISPLAY.terminalRuleWidth);
       lines.push(
         `    ${mark} ${c(decided ? RESET : DIM, rule)}` +
           `${c(DIM, finding.impact.padEnd(DISPLAY.terminalImpactWidth))} ` +

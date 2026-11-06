@@ -70,8 +70,10 @@ export function pillarRows(ir, scores) {
     // page passed it. Saying "no decided findings" there is a false all-clear, and it was the
     // first thing a real report showed: four pillars reading "not measured - no decided
     // findings", which sounds like four passes.
-    const summary = score === null ? copy('state.notMeasured') : pillarSummary(ir, pillar);
-    const summaryProse = score === null ? copy('state.notMeasured') : pillarSummary(ir, pillar, { format: 'prose' });
+    // Empty when unmeasured: the surface already renders "not measured in this build" as the
+    // band, and repeating it produced "not measured in this build — not measured in this build".
+    const summary = score === null ? '' : pillarSummary(ir, pillar);
+    const summaryProse = score === null ? '' : pillarSummary(ir, pillar, { format: 'prose' });
     return Object.freeze({
       pillar,
       score,
@@ -110,6 +112,8 @@ export function buildView(ir, scores) {
   const findings = findingGroups(ir);
   return {
     target: ir.provenance?.uri ?? 'unknown target',
+    /** 'document' | 'fragment'. A fragment is not a page and its score must not be read as one. */
+    kind: ir.provenance?.kind ?? 'document',
     overall: summary,
     /** Band word for the conformance score, e.g. "poor". */
     overallBand: summary.band,
