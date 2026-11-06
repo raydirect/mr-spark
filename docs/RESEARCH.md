@@ -255,6 +255,45 @@ agents.* That's the sentence that gets a project shared.
 
 ---
 
+## 8. Agent-to-tool plumbing is the newest artifact class, and it has zero verification
+
+The protocol that connects agents to tools has moved from novelty to infrastructure in under
+two years, and its consensus revision is now **2026-07-28**: a stateless core (no handshake, no
+sessions), `server/discover`, header-based routing (`Mcp-Method`/`Mcp-Name`), cacheable list
+results, and a single `subscriptions/listen` stream. Roots, Sampling and Logging are deprecated;
+tasks moved to an extension. Revisions land roughly quarterly.
+
+What the research says about its trust model is the important part:
+
+- **Tool poisoning** — instructions hidden in tool descriptions, which the model reads and the
+  user never sees. Public research puts MCP-specific attack vectors in roughly **5.5% of
+  surveyed servers**, with a further **7.2%** carrying general security vulnerabilities.
+- **Rug pulls** — approve a benign definition, receive a malicious one later. The specification
+  provides **no re-approval trigger, no version pinning and no content hash for tool
+  definitions**; `notifications/tools/list_changed` exists, but nothing obliges a client to
+  re-review.
+- **Cross-server tool shadowing** — one malicious server redefines the meaning of a trusted
+  one's tools.
+- The general rule from security research: **no field a server controls is safe** — names,
+  descriptions, schemas, results, error strings are all injection channels.
+- A full CVE trail in a single year, including a CVSS 9.6 remote code execution in a
+  widely-used client bridge.
+
+**Root cause.** MCP artifacts are the newest class of web artifact with *no proof attached*.
+There is a lockfile format for code dependencies and nothing equivalent for the definitions an
+agent is told to trust. Definitions are approved once and then drift silently, and a
+defensive-minded team has nowhere to record "this is the definition I reviewed."
+
+There is also a measurable cost to sprawl: published research shows agent accuracy dropping
+from **87% to 54%** as context fills with tool definitions.
+
+**Verdict: structural, brand-new, and unserved — the strongest addition since the original
+research.** It is the same defect as everything else in this document, on a surface that did
+not exist three years ago, with no incumbent. This is why MCP is treated as load-bearing in
+[VISION.md](VISION.md) and specified in [MCP.md](MCP.md).
+
+---
+
 ## What this research says NOT to build
 
 Being explicit about anti-goals is how the plan stays credible.
@@ -265,6 +304,7 @@ Being explicit about anti-goals is how the plan stays credible.
 | **Another bundler** | Rolldown and Rspack are consolidating this space with VC-scale engineering teams. Zero chance of winning, and it's not where the pain is. |
 | **Another component library** | Infinite competition, no moat, no structural pain. |
 | **Another dependency scanner** | Commercial supply-chain vendors and update bots own it. Consume them. |
+| **Another MCP gateway/proxy** | Crowded and commoditized. We do not route traffic; we *verify definitions* — the gap the spec itself leaves open. |
 | **A hosted platform / CMS** | Not open source, and adds the thing developers fear most: lock-in (it appears in the pain-point list explicitly). |
 | **An AI site builder** | Saturated, value accrues to the model vendors, and it *increases* the verification problem we're solving. |
 
@@ -278,6 +318,8 @@ The pattern in every rejection: they all require the developer to **replace** so
 > Every stage of web development has a world-class tool.
 > The **outcome** — "this site is accessible, fast, safe, and usable by humans and agents" —
 > has no owner, no single number, and no CI gate that anyone can install in five minutes.
+> And the newest surface of all, the tool definitions an agent is told to trust, has no
+> lockfile, no hash, and no drift detection anywhere in the ecosystem.
 
 We measure after the fact, in separate tools, in separate tabs, with separate configs, and
 we act on it only during audits. Meanwhile pages get heavier, accessibility gets worse, and
@@ -303,5 +345,8 @@ page, and a way to prove it in CI in under a second.**
 - Moderne, *Context engineering: why AI coding agents spend most of their tokens reading* (webinar poll, 2026)
 - JetBrains developer survey on AI tooling failure modes (600+ developers, 2026)
 - W3C Web Machine Learning CG, *WebMCP* draft; Chrome origin trial 149–156; `navigator.modelContext` API reference (2026)
+- MCP specification revision **2026-07-28** and its changelog (stateless core, `server/discover`, header routing, cacheable lists, `subscriptions/listen`, deprecations) — modelcontextprotocol.io/specification/2026-07-28/
+- MCP security research, 2026: tool-poisoning prevalence (7.2% general / 5.5% MCP-specific vectors in surveyed servers), rug-pull and shadowing analyses, the STDIO command-injection disclosure, and the CVE trail (including CVSS 9.6); Cloud Security Alliance research note; OWASP agentic risk mapping (ASI01)
+- MCP context-overload measurement (agent accuracy 87% → 54% as tool definitions fill context)
 - llms.txt adoption scans (Rankability top-1,000: 8.7%; ~10% of 300k domains) and the largest search vendor's AI-optimization guidance (May 2026)
 - **[measured]** Sandbox measurements, 2026-11-06: dependency graphs from package-lock analysis (meta-framework runtime 54, UI stack 43, SSR kit 71, site generator 282, realistic app 133 packages / 132 MB); jsdom + axe-core audit of a 6-error fixture in 331 ms with no browser, catching 4 of the 6 top WebAIM error types (contrast returned as `incomplete` without canvas).

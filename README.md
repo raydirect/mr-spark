@@ -7,8 +7,9 @@ shipped bundle — each should carry its own proof that it is accessible, fast, 
 machines, and resilient. Today none of them do. web-spark is the missing layer that makes that
 proof a property of the pipeline instead of an audit after the fact.
 
-> ⚠️ **Status: design proposal.** No code yet, on purpose. Three documents carry the thinking:
+> ⚠️ **Status: design proposal.** No code yet, on purpose. Four documents carry the thinking:
 > - [docs/VISION.md](docs/VISION.md) — the unified plan: one intermediate representation, five pillars
+> - [docs/MCP.md](docs/MCP.md) — how the Model Context Protocol is threaded through every layer
 > - [docs/RESEARCH.md](docs/RESEARCH.md) — the evidence base, for why this and not something else
 > - [docs/INSPIRATIONS.md](docs/INSPIRATIONS.md) — 100 influences as *borrow this / avoid that*, brand-free
 
@@ -28,6 +29,26 @@ never tell you this:
 > symptoms, has no accessible name in the shipped DOM, and declares no machine-callable action."*
 
 An IR can. So can we.
+
+## MCP is a load-bearing wall, not an integration
+
+The Model Context Protocol runs through the architecture in **four directions**, specified in
+[MCP.md](docs/MCP.md):
+
+1. **Spark is an MCP server.** `audit`, `explain`, `fix`, `verify_tools`, `emit_faces`,
+   `baseline` — the whole product is machine-callable, stateless, with the IR content hash as
+   the handle.
+2. **MCP servers are a verified surface.** The protocol ships no content hashing, no version
+   pinning and no re-approval for tool definitions — which is why *tool poisoning* and *rug
+   pulls* are its signature attacks. We fix that with a rule family (`MCP001`–`MCP010`) and a
+   small, boring artifact: `.spark-tools.lock`.
+3. **One declaration → three machine faces.** An app declares its capabilities once; we emit
+   browser-side tools, an MCP server, and a content index — then **fail the build if they
+   disagree**.
+4. **MCP is the federation layer.** The five pillars are one tool family, so an agent can drive
+   verify → manifest → author → animate → render.
+
+And one cultural rule: **Spark passes its own MCP conformance rules in CI, permanently.**
 
 ## Where it starts
 
@@ -60,7 +81,7 @@ web-spark  72 → 78 (+6)   ✓ passed
 | | Pillar | What it does |
 |---|---|---|
 | 1 | **Verify** | audit any URL or source tree, score it honestly, gate the PR |
-| 2 | **Manifest** | emit machine-facing declarations and content maps *from the IR* |
+| 2 | **Manifest** | one declaration → three machine faces, plus MCP conformance and `.spark-tools.lock` |
 | 3 | **Author** | declarative design/settings documents that compile to conformant pages |
 | 4 | **Animate** | an open motion format where reduced-motion safety is a checked property |
 | 5 | **Render** | drawn scenes with a real projected semantic DOM — accessible pixels |
@@ -76,8 +97,10 @@ cautionary tale of a dead animation ecosystem, is in
   site is compliant, and the report says so in its own output.
 - Scores get gamed. Ours uses public, versioned weights, four subscores that are never merged,
   and always ships the raw findings alongside.
-- Phase 1 is a CLI and a CI gate. Design, motion and rendering are a published roadmap, not a
-  shipped claim.
+- Phase 1 is a CLI, a CI gate, and an MCP server. Design, motion and rendering are a published
+  roadmap, not a shipped claim.
+- We audit MCP servers but cannot certify them. A clean `MCP*` report means the definition layer
+  is honest and drift-free — not that a server is trustworthy in every respect.
 
 ## Contribute to the thinking
 

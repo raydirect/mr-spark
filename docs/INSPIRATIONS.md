@@ -198,7 +198,26 @@ budget.
 
 ---
 
-## The eight constraints this list generates
+## H. Agent tool plumbing and MCP (111–116)
+
+The newest family, and the one this revision leans on hardest
+(specification in [MCP.md](MCP.md)).
+
+| 111 | Agent tool protocol (tools/resources/prompts, JSON-RPC, stateless requests) | The right primitives: tools are model-controlled, resources application-controlled, prompts user-controlled; content-hash handles instead of sessions | No content hash, no version pinning, no re-approval for tool definitions — the gap that became a year of poisoning and rug-pull incidents |
+| 112 | Agent-to-tool registry with discovery | A `server/discover` method plus a public registry: discovery as a protocol verb | Registries that list capabilities but attest nothing about them |
+| 113 | Server-to-client request redesign (multi round-trip) | Accomplishing interactivity without holding a stream open | Designing for stateful streams and calling it simplicity |
+| 114 | Tool-definition scanning and prompt-injection benchmarks | Treating the description layer as executable input; adversarial corpora as a test suite | Scanners that only look at install time and never at drift |
+| 115 | Gateway/WAF routing on protocol headers | Routing and metering on `Mcp-Method`/`Mcp-Name` instead of parsing bodies | Per-request body parsing at the edge |
+| 116 | Cacheable list results with TTL/scope | Making capability listings cache-friendly and deterministic to raise prompt-cache hit rates | Ephemeral, ordering-random listings that defeat caching |
+
+**Synthesis:** the protocol is good and incomplete in exactly one place — **nothing proves that
+the definition I approved yesterday is the definition I am calling today.** A content-hashed
+lockfile for tool definitions is a small, boring, standardizable artifact. That is the shape of
+everything that has ever won in this space.
+
+---
+
+## The nine constraints this list generates
 
 If the plan honours only these, it will be recognizably the same product:
 
@@ -210,3 +229,5 @@ If the plan honours only these, it will be recognizably the same product:
 6. **Native speed is an accelerator, never a prerequisite** (73, 74, 78, 86).
 7. **Boring schema, irrevocable license, tiny dependency budget** (100, 101, 104).
 8. **Launch with evidence; sustain before scaling** (97, 98, 99).
+9. **Anything an agent trusts must be hashed, locked and drift-checked** (111, 112, 114) —
+   the lockfile idea extended to the one dependency class that has no lockfile.

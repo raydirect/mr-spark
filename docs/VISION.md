@@ -48,7 +48,14 @@ Three consequences that make this a single product instead of a bundle:
    ends.
 2. **Verification is a *property of the pipeline*, not a separate tool.** You cannot skip it,
    because it is the middle of the compiler, not a step after it.
-3. **Cross-artifact checks become possible for the first time.** Single-artifact linters can
+3. **MCP is threaded through every layer, in four directions** — see [MCP.md](MCP.md):
+   Spark *is* an MCP server; MCP servers are themselves a **verified surface** (a new rule
+   family, `MCP001`–`MCP010`); one capability declaration lowers to **three machine faces**
+   (browser-side tools, an MCP server, a content index) which we then prove agree; and the five
+   pillars are exposed as one tool family so an agent can drive the whole lifecycle. The
+   protocol's own gaps — no content hash, no version pinning, no re-approval for tool
+   definitions — are our thesis appearing on a brand-new surface.
+4. **Cross-artifact checks become possible for the first time.** Single-artifact linters can
    never say: *"this button is 2.9:1 from the design token, animates a property that triggers
    vestibular symptoms, has no accessible name in the shipped DOM, and declares no agent
    tool."* An IR can. That sentence is the product.
@@ -65,14 +72,17 @@ Three consequences that make this a single product instead of a bundle:
   "motion":   [ { "target": "#hero", "properties": ["transform"], "durationMs": 420,
                   "reducedMotion": "none" } ],
   "data":     { "bindings": [ { "path": "/api/products", "schema": "ref#/Product" } ] },
-  "caps":     { "tools": [], "contentMap": null },
+  "tools":    { "server": "2026-07-28",
+                "declared": [ { "name": "searchProducts", "readOnly": true,
+                                "sha256": "…", "faces": ["browser","mcp","index"] } ] },
   "findings": []
 }
 ```
 
-v0 only *populates* `document`, `tokens`, and `findings`. `motion`, `data`, and `caps` are
-declared in the schema from day one (so the spec is stable) and filled as pillars land.
-That is how you design a spine without building six products at once.
+v0 *populates* `document`, `tokens`, `tools`, and `findings`. `motion` and `data` are declared
+from day one (so the spec is stable) and filled as later pillars land. `tools` is populated
+early **because MCP is load-bearing**: tool declarations are the artifact an agent trusts, and
+they currently have no lockfile, no hash and no drift detection anywhere in the ecosystem.
 
 ---
 
@@ -86,11 +96,13 @@ FRONT-ENDS  (lower into the IR)              BACK-ENDS  (emit from the IR)
 ├─ design document (own open format)         ├─ agent manifest (tool declarations, content map)
 └─ motion document (own open format)         ├─ token/theme export (CSS, JSON)
                                              └─ render (scene → DOM + canvas; v3+)
+        MCP SURFACE  (every pillar is a tool family; see MCP.md)
+        audit · explain · fix · verify_tools · emit_faces · baseline
                      ┌──────────────────┐
                      │   SPARK IR 0.x   │   ← the standard-shaped artifact
                      └──────────────────┘
                               │
-        ANALYZERS  ───────────┴───────────  accessible · fast · safe · legible · resilient
+        ANALYZERS  ───────────┴───────────  accessible · fast · safe (incl. MCP*) · legible · resilient
 ```
 
 Five pillars, in the order they must be built. The order is not taste; it is forced by
@@ -99,7 +111,7 @@ distribution and by credibility.
 | # | Pillar | What ships | Why now |
 |---|---|---|---|
 | 1 | **Verify** | `check`, IR v0, score, baseline, CI gate | Works on any URL today. Needs no ecosystem. This is the wedge the research identified. |
-| 2 | **Manifest** | agent tool declarations, content map, `llms.txt`-style index generated *from the IR* | Cheapest possible output of an IR, and the strongest 2026 narrative. Turns the verifier into a producer. |
+| 2 | **Manifest** | **one declaration → three machine faces** (browser tools, MCP server, content index), plus `MCP*` conformance and `.spark-tools.lock` | Cheapest possible output of an IR, and the strongest 2026 narrative. Turns the verifier into a producer — and creates the missing lockfile for agent-trusted definitions. |
 | 3 | **Author** | settings-as-data → conformant page; design document v0 → code; safe fixes | Uses the IR in the other direction. The verifier validates the generator, so authoring arrives *trustworthy*. |
 | 4 | **Animate** | open motion document + runtime that is reduced-motion-aware by construction, and whose accessibility is checkable | Motion is the accessibility blind spot. First motion format where vestibular safety is a checked property, not a wish. |
 | 5 | **Render** | scene renderer with semantic projection (real DOM over drawn output) and a canvas path with accessibility preserved | This is the big swing, and it is only defensible *after* the verifier exists — otherwise we become one more canvas tool nobody can audit. |
@@ -138,17 +150,19 @@ The design response, baked into this plan:
 Each phase is one visible command. Scope discipline is the whole game.
 
 ### Phase 1 — Verify (the wedge)
-`check` on URL/file, IR v0, four/five sub-scores, terminal + SARIF + PR comment, `baseline`,
-`--ci` regression-only failures, the GitHub Action. Publishes `docs/STATE-OF-THE-WEB.md`
-generated by our own scanner over the top 1,000 sites.
+`check` on URL/file, IR v0 (including `tools`), the five sub-scores, terminal + SARIF + PR
+comment, `baseline`, `--ci` regression-only failures, the GitHub Action — **and `spark mcp
+serve`**, because the audit must be reachable as a tool, not only as a terminal command.
+Publishes `docs/STATE-OF-THE-WEB.md` generated by our own scanner over the top 1,000 sites.
 **Exit:** 10 real repositories gated with a committed baseline; ≥3 merges blocked by a real
 regression and then fixed.
 
 ### Phase 2 — Manifest (the 2026 story)
-Ability to emit, from the IR: an agent tool declaration set, a content map/index for machines,
-structured-data blocks, and a diff view of "what machines can do on this page".
-**Exit:** a page whose agent-visible capabilities go from 0 → N by adding declarations that
-the verifier proves are reachable and labeled.
+MCP conformance as a product: `verify_tools`, the `MCP001`–`MCP010` rule family with published
+rationale, `.spark-tools.lock` + drift detection, and `emit_faces` producing all three machine
+faces from one declaration.
+**Exit:** a real repository whose tools are locked, drift-checked in CI, and whose three faces
+are proven identical — plus one third-party MCP server fixed by our findings.
 
 ### Phase 3 — Author (design + config, verified)
 A settings/design document format (own schema) that lowers to the IR and emits a conformant
@@ -183,6 +197,8 @@ did not originate. An AI page generator. A hosted design tool.
 | **We ship a renderer and it is inaccessible** | Would confirm every critic at once. | Renderer ships only after *its own* verifier does, with the same bar as DOM pages. Non-negotiable. |
 | **Ecosystem cold start for design/motion formats** | Real; formats die without both authoring and consumption. | Formats are published specs with reference implementations on both ends; every format is valuable alone (the verifier reads it even if nobody authors in it). |
 | **Systems-language work is unreachable in the current environment** | Verified: no Rust toolchain, crates.io not reachable from this sandbox. | Rust/WASM is an *optional accelerator* compiled in CI, never a build prerequisite. JS/TS core until a WASM analyzer proves a measurable win. |
+| **MCP spec churn** (quarterly revisions; 2026-07-28 removed sessions, sampling, roots, logging and the GET endpoint) | High: a server written to one revision ages fast | Revision-aware adapters behind one internal interface; conformance rules keyed to a declared revision ([MCP.md §5](MCP.md#5-risks-specific-to-being-mcp-first)) |
+| **Our own MCP server becomes an attack surface** | We would be shipping exactly what we audit | Deterministic, read-only by default, no write tools without opt-in, allowlisted egress, self-conformance in CI |
 | **Agent-authored code outruns verification** | This is the wind at our back, but it also means our reports must be consumable by agents, or we become a human-only bottleneck. | Agent-consumable report format from Phase 1, not later. |
 | **Maintainer burnout** | The standard OSS failure. | Narrow surface, automated triage, funding from day one, governance that lets the spec outlive the repo. |
 
@@ -195,7 +211,9 @@ did not originate. An AI page generator. A hosted design tool.
 3. **Time to a green gate in a real repo** — target under 10 minutes from `npx`.
 4. **Practitioner sign-off** — two or three respected accessibility engineers publicly say the
    score is honest. Without this, nothing else matters.
-5. **One third-party implementation** of the IR or the score spec without our help — the first
+5. **MCP conformance adopted** — repos with a committed `.spark-tools.lock`, and tool-definition
+   drift caught before merge. This is the metric that proves Direction 2 is a real category.
+6. **One third-party implementation** of the IR or the score spec without our help — the first
    real evidence that this is becoming a standard rather than a tool.
 
 ---
@@ -214,6 +232,10 @@ did not originate. An AI page generator. A hosted design tool.
 5. **The five public names.** Pillars need words that are ours: *Verify, Manifest, Author,
    Animate, Render*; scores *accessible / fast / safe / legible / resilient*; the IR *Spark IR*.
    Confirm or rename before they appear in a schema URL.
-6. **Scope of the public promise.** "Unifies design, motion and engineering" is a three-year
+6. **Is MCP really load-bearing, or a layer?** This revision treats it as load-bearing: the IR
+   has a `tools` section, SAFE has an `mcp` dimension, Phase 1 ships `spark mcp serve`, and Spark
+   must permanently pass its own `MCP*` rules. The alternative — MCP as an integration added in
+   Phase 3 — is far cheaper and, I think, wrong. See [MCP.md §7](MCP.md#7-decisions-this-document-needs).
+7. **Scope of the public promise.** "Unifies design, motion and engineering" is a three-year
    claim. Recommend the README says what is true today and lists the rest as a public roadmap,
    so credibility compounds instead of evaporating.
