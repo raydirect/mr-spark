@@ -58,6 +58,10 @@ export const COPY = Object.freeze({
     noDecidedFindings: 'no decided findings',
     noFindingsBody: 'No decided findings.',
     unmeasured: '—',
+    /** A score where checks remain undecided is an upper bound, and the glyph says so. */
+    upperBound: '≤',
+    upperBoundNote: (n) =>
+      `at most — ${n} check(s) could not be decided, so this is an upper bound, not a measurement`,
     undecidedCount: (n) => `${n} undecided`,
     undecidedFooter: (n) =>
       `? = could not be decided in this environment (${n}). Excluded from the score; not violations.`,

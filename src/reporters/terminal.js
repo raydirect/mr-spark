@@ -93,8 +93,13 @@ export function renderTerminal(
 
   for (const pillar of PILLARS) {
     const score = scores[pillar] ?? null;
+    const undecidedHere = ir.findings.filter(
+      (finding) => finding.pillar === pillar && !isDecided(finding)
+    ).length;
+    const boundHere =
+      score !== null && undecidedHere > 0 ? copy('state.upperBound') : ''.padEnd(DISPLAY.boundWidth - 1);
     lines.push(
-      `  ${pillar.toUpperCase().padEnd(DISPLAY.terminalPillarWidth)}${scoreCell(score, c)}  ` +
+      `  ${pillar.toUpperCase().padEnd(DISPLAY.terminalPillarWidth)}${boundHere}${scoreCell(score, c)}  ` +
         `${iconCell(score, c)}  ` +
         c(
           DIM,
@@ -133,13 +138,17 @@ export function renderTerminal(
   }
 
   lines.push('');
+  const bound = view.overallUpperBound ? copy('state.upperBound') : '';
   lines.push(
-    `  ${c(BOLD, 'CONFORMANCE')} ${scoreCell(view.overall.score, c)}  ` +
+    `  ${c(BOLD, 'CONFORMANCE')} ${bound}${scoreCell(view.overall.score, c)}  ` +
       `${c(DIM, band(view.overall.score))}` +
       (view.coverage.measured < view.coverage.total
         ? c(GRAY, `  (${copy('state.pillarsMeasuredShort', view.coverage.measured, view.coverage.total)})`)
         : '')
   );
+  if (view.overallUpperBound) {
+    lines.push(`    ${c(GRAY, copy('state.upperBoundNote', view.undecidedCount))}`);
+  }
 
   const undecidedCount = ir.findings.filter((finding) => !isDecided(finding)).length;
   if (undecidedCount > 0) {

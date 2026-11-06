@@ -115,7 +115,11 @@ export function renderReport({ ir, scores, hash }, { reproduceCommand, generated
     .map(
       (row) => `      <div class="score-row">
         <span class="pillar">${escapeHtml(row.pillar)}</span>
-        <span class="num ${escapeHtml(row.tone)}">${escapeHtml(row.value)}</span>
+        <span class="num ${escapeHtml(row.tone)}">${
+          row.score !== null && row.undecidedCount > 0
+            ? `<span class="bound">${escapeHtml(copy('state.upperBound'))}</span>`
+            : ''
+        }${escapeHtml(row.value)}</span>
         <span class="small ${row.tone === 'none' ? 'muted' : escapeHtml(row.tone)}">${escapeHtml(
           row.score === null ? copy('state.notMeasured') : row.band
         )}${row.summaryProse ? ` — ${escapeHtml(row.summaryProse)}` : ''}</span>
@@ -170,7 +174,9 @@ ${
   <main id="main">
     <h2>${escapeHtml(copy('headings.result'))}</h2>
     <div class="result">
-      <span class="big ${escapeHtml(view.overallTone)}">${escapeHtml(
+      <span class="big ${escapeHtml(view.overallTone)}">${
+        view.overallUpperBound ? `<span class="bound">${escapeHtml(copy('state.upperBound'))}</span>` : ''
+      }${escapeHtml(
         view.overall.score === null ? copy('state.unmeasured') : String(view.overall.score)
       )}</span>
       <span class="${escapeHtml(view.overallTone)}"><strong>${escapeHtml(view.overall.band)}</strong></span>
@@ -178,6 +184,11 @@ ${
     </div>
 ${meter(view.overall.score, view.overallTone)}
     <p class="meter-legend"><span>0</span><span>50</span><span>100</span></p>
+${
+  view.overallUpperBound
+    ? `    <p class="small muted bound-note">${escapeHtml(copy('state.upperBoundNote', view.undecidedCount))}</p>`
+    : ''
+}
 
     <h2>${escapeHtml(copy('headings.scores'))}</h2>
 ${pillarRows}

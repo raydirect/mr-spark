@@ -22,6 +22,18 @@ import { findingsFor, sortByImpact, isDecided } from './vocabulary.js';
  * counted as zero, and the count is always reported alongside, so a single-pillar run is
  * never mistaken for a whole-page verdict.
  */
+/**
+ * Whether a score is an upper bound. Undecided findings are excluded from damage, so they can
+ * only ever raise a score: the computed value is the highest it could be. Printing "100" next
+ * to two undecided checks - one of them contrast - claims a verification that did not happen.
+ */
+export function isUpperBound(conformanceResult, ir) {
+  return (
+    conformanceResult.score !== null &&
+    ir.findings.some((finding) => finding.coverage === 'incomplete')
+  );
+}
+
 export function conformance(scores) {
   const measured = PILLARS.filter((pillar) => scores[pillar] !== null && scores[pillar] !== undefined);
   if (measured.length === 0) return { score: null, band: band(null), measured: [], total: PILLARS.length };
@@ -118,6 +130,8 @@ export function buildView(ir, scores) {
     /** Band word for the conformance score, e.g. "poor". */
     overallBand: summary.band,
     overallTone: bandOf(summary.score).tone,
+    overallUpperBound: isUpperBound(summary, ir),
+    undecidedCount: ir.findings.filter((finding) => finding.coverage === 'incomplete').length,
     rows,
     findings,
     coverage: {
