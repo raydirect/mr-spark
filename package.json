@@ -1,0 +1,33 @@
+{
+  "name": "webspark",
+  "version": "0.0.0",
+  "description": "Every artifact proves itself. A conformance compiler for the web: one IR in, honest findings out.",
+  "type": "module",
+  "license": "Apache-2.0",
+  "engines": {
+    "node": ">=20"
+  },
+  "bin": {
+    "spark": "./bin/spark.js"
+  },
+  "exports": {
+    ".": "./src/engine.js",
+    "./ir": "./src/ir.js",
+    "./score": "./src/score.js"
+  },
+  "files": [
+    "bin",
+    "src",
+    "docs",
+    "LICENSE",
+    "README.md"
+  ],
+  "scripts": {
+    "test": "node --test test/*.test.js",
+    "check:self": "node bin/spark.js check fixtures/bad.html"
+  },
+  "optionalDependencies": {
+    "axe-core": "^4.10.2",
+    "jsdom": "^25.0.1"
+  }
+}

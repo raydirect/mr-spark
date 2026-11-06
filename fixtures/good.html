@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <title>Checkout — good fixture</title>
+    <style>
+      body { font-family: system-ui; background: #ffffff; color: #1a1a1a; margin: 2rem; }
+      .muted { color: #595959; background: #ffffff; }
+      .sr-only {
+        position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+        overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0;
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <a href="/" aria-label="Home">
+        <svg width="24" height="24" aria-hidden="true" focusable="false"></svg>
+      </a>
+      <nav aria-label="Main">
+        <a href="/products">Products</a>
+        <a href="/pricing">Pricing</a>
+      </nav>
+    </header>
+
+    <main>
+      <h1>Complete your order</h1>
+
+      <img src="/hero.png" width="320" height="180" alt="Two pairs of running shoes on a track">
+
+      <p class="muted">By continuing you agree to our <a href="/terms">terms</a> and
+        <a href="/privacy">privacy policy</a>.</p>
+
+      <form>
+        <p>
+          <label for="email">Email address</label>
+          <input id="email" name="email" type="email" autocomplete="email" required>
+        </p>
+        <p>
+          <label for="password">Password</label>
+          <input id="password" name="password" type="password" autocomplete="current-password" required>
+        </p>
+        <button type="submit">Place order</button>
+      </form>
+
+      <p><a href="/help">Need help with your order?</a></p>
+    </main>
+  </body>
+</html>

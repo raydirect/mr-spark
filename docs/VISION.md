@@ -184,6 +184,23 @@ machine, someone must be watching, users run stale builds, and CI is where a gat
 
 ---
 
+## 3c. Where we actually are
+
+Phase 1a is **built and tested** as of this commit: the engine seam, IR v0 with a content
+address, the accessibility collector, the public score, terminal and JSON reporters, the `check`
+command, two fixtures (one known-bad, one known-good), 13 unit tests, and a CI workflow that
+gates this repository on its own tool.
+
+Measured in this environment, cold CLI run against a local file: **~640 ms**, of which ~300 ms
+is the audit itself. No browser, no network, no daemon.
+
+The two things it does *not* do are the things that would be dishonest to fake:
+
+- Pillars that are not built report `—` (not measured), never a comfortable number.
+- Checks the environment cannot evaluate (contrast without a canvas) are listed as
+  *undecided*, and excluded from the score, rather than counted as violations or silently
+  dropped.
+
 ## 4. Roadmap (with exit criteria, not dates)
 
 Each phase is one visible command. Scope discipline is the whole game.
