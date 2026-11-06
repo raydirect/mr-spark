@@ -19,6 +19,7 @@ import { SCORE_SPEC_VERSION, AUTOMATION_COVERAGE } from '../score.js';
 import { VERSION, ID_LENGTH } from '../config/brand.js';
 import { copy } from '../config/copy.js';
 import { buildView } from '../view-model.js';
+import { sortByImpact } from '../vocabulary.js';
 import { renderStyles } from './styles.js';
 
 /** Total escaping. Everything from the target goes through this. */
@@ -52,6 +53,15 @@ export function ruleLabel(ruleId) {
     'landmark-one-main': 'The page should have one main landmark',
     'region': 'All content should be inside a landmark',
     'heading-order': 'Headings must not skip levels',
+    'aria-input-field-name': 'Custom input fields must have an accessible name',
+    'aria-command-name': 'Custom buttons and links must have an accessible name',
+    'aria-required-attr': 'ARIA roles must carry their required attributes',
+    'aria-valid-attr-value': 'ARIA attribute values must be valid',
+    'aria-allowed-attr': 'ARIA attributes must be allowed on their role',
+    'duplicate-id-aria': 'Ids referenced by ARIA must be unique',
+    'target-size': 'Touch targets must be large enough to hit',
+    'frame-title': 'Frames must have a title',
+    'html-has-lang-bcp47': 'The declared language must be a valid language tag',
   };
   if (known[ruleId]) return known[ruleId];
   // Deterministic fallback: turn the id into words without inventing meaning.
@@ -68,14 +78,24 @@ function meter(score, tone) {
 }
 
 function findingItem(finding) {
-  return `      <li class="${escapeHtml(finding.impact)}">
-        <div class="rule">${escapeHtml(ruleLabel(finding.ruleId))}</div>
+  const decided = finding.coverage !== 'incomplete';
+  return `      <li class="${escapeHtml(finding.impact)}${decided ? '' : ' undecided'}">
+        <div class="rule">${decided ? '' : '<span class="question" aria-hidden="true">?</span> '}${escapeHtml(ruleLabel(finding.ruleId))}</div>
         <p class="small muted">
           <span class="tag">${escapeHtml(finding.impact)}</span>
-          ${escapeHtml(copy('labels.rule'))} <code>${escapeHtml(finding.ruleId)}</code>${
+          ${
+            decided
+              ? ''
+              : `<span class="tag undecided-tag">${escapeHtml(copy('labels.undecided'))}</span> `
+          }${escapeHtml(copy('labels.rule'))} <code>${escapeHtml(finding.ruleId)}</code>${
             finding.selector ? ` · <code>${escapeHtml(finding.selector)}</code>` : ''
           }
         </p>
+        ${
+          finding.coverageReason
+            ? `<p class="small muted">${escapeHtml(finding.coverageReason)}</p>`
+            : ''
+        }
         ${finding.snippet ? `<pre>${escapeHtml(finding.snippet)}</pre>` : ''}
       </li>`;
 }
@@ -103,25 +123,16 @@ export function renderReport({ ir, scores, hash }, { reproduceCommand, generated
     )
     .join('\n');
 
-  const findingItems = decided.map(findingItem).join('\n');
+  // One list, worst first, with undecided checks IN PLACE. A separate section below the
+  // violations pushed a critical undecided check (contrast) out of sight, which is the opposite
+  // of what a report should do with something it could not answer.
+  const allFindings = sortByImpact(ir.findings);
+  const findingItems = allFindings.map(findingItem).join('\n');
 
   const undecidedNote = undecided.length
-    ? `    <h2>${escapeHtml(copy('state.couldNotBeDecided', undecided.length))}</h2>
-    <p class="small muted">
+    ? `    <p class="small muted">
       ${escapeHtml(copy('state.undecidedExplanation'))}
-    </p>
-    <ul class="findings" role="list">
-${undecided
-  .map(
-    (f) => `      <li class="minor">
-        <div class="rule">${escapeHtml(ruleLabel(f.ruleId))}</div>
-        <p class="small muted">${escapeHtml(copy('labels.rule'))} <code>${escapeHtml(f.ruleId)}</code>${
-          f.selector ? ` · <code>${escapeHtml(f.selector)}</code>` : ''
-        }</p>
-      </li>`
-  )
-  .join('\n')}
-    </ul>`
+    </p>`
     : '';
 
   const envNote = ir.environment?.issues?.length
@@ -166,9 +177,9 @@ ${meter(view.overall.score, view.overallTone)}
     <h2>${escapeHtml(copy('headings.scores'))}</h2>
 ${pillarRows}
 
-    <h2>${escapeHtml(copy('state.findingsCount', decided.length))}</h2>
+    <h2>${escapeHtml(copy('state.findingsHeading', decided.length, undecided.length))}</h2>
 ${
-  decided.length
+  allFindings.length
     ? `    <ul class="findings" role="list">\n${findingItems}\n    </ul>`
     : `    <p class="small muted">${escapeHtml(copy('state.noFindingsBody'))}</p>`
 }

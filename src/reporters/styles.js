@@ -215,6 +215,11 @@ pre {
 .findings li.minor { border-inline-start-color: var(--impact-minor); }
 
 .rule { font-weight: var(--weight-strong); }
+/* Undecided: a question, not a verdict. Dashed edge and a muted marker say "unresolved"
+   without borrowing the visual language of a violation. */
+.findings li.undecided { border-style: dashed; border-inline-start-color: var(--impact-minor); }
+.question { color: var(--muted); font-weight: var(--weight-bold); }
+.undecided-tag { color: var(--muted); text-transform: none; letter-spacing: var(--tracking-normal); }
 .tag {
   display: inline-block;
   font-size: var(--text-xs);

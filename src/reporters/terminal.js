@@ -54,6 +54,11 @@ function scoreCell(score, c) {
   return c(colour, cell.padStart(DISPLAY.scoreCellWidth, ' '));
 }
 
+/** Rule ids are ASCII padded; this keeps alignment explicit rather than incidental. */
+function decidingWidth(ruleId) {
+  return ruleId;
+}
+
 function iconCell(score, c) {
   const t = tone(score);
   return c(TONE_COLOUR[t] ?? GRAY, TONE_ICON[t] ?? '·');
@@ -94,20 +99,29 @@ export function renderTerminal(
     );
   }
 
-  const worst = sortByImpact(ir.findings.filter(isDecided)).slice(0, DISPLAY.terminalFindings);
-  if (worst.length) {
+  // ONE list, worst first, decided and undecided together. Splitting undecided checks into a
+  // footnote below the violations was the most misleading thing the first report did: a CRITICAL
+  // undecided check (contrast) sorted below three decided serious ones and effectively vanished.
+  //
+  // Symbols rather than colour alone, because colour is unavailable in half the terminals this
+  // will run in: an undecided check is genuinely NOT a violation, so it must not wear the same
+  // mark as one. It gets a question mark, not a cross.
+  const shown = sortByImpact(ir.findings).slice(0, DISPLAY.terminalFindings);
+  if (shown.length) {
     lines.push('');
-    for (const finding of worst) {
+    for (const finding of shown) {
+      const decided = isDecided(finding);
+      const mark = decided ? c(RED, '✗') : c(YELLOW, '?');
+      const rule = decidingWidth(finding.ruleId).padEnd(DISPLAY.terminalRuleWidth);
       lines.push(
-        `  ${c(RED, '✗')} ` +
-          `${finding.ruleId.padEnd(DISPLAY.terminalRuleWidth)} ` +
+        `    ${mark} ${c(decided ? RESET : DIM, rule)}` +
           `${c(DIM, finding.impact.padEnd(DISPLAY.terminalImpactWidth))} ` +
           c(GRAY, (finding.selector ?? '').slice(0, DISPLAY.terminalSelectorWidth))
       );
     }
-    const remaining = ir.findings.length - worst.length;
+    const remaining = ir.findings.length - shown.length;
     if (remaining > 0) {
-      lines.push(`  ${c(GRAY, `  ${copy('state.moreFindings', remaining)}`)}`);
+      lines.push(`    ${c(GRAY, copy('state.moreFindings', remaining))}`);
     }
   }
 
@@ -119,6 +133,11 @@ export function renderTerminal(
         ? c(GRAY, `  (${copy('state.pillarsMeasuredShort', view.coverage.measured, view.coverage.total)})`)
         : '')
   );
+
+  const undecidedCount = ir.findings.filter((finding) => !isDecided(finding)).length;
+  if (undecidedCount > 0) {
+    lines.push(`    ${c(GRAY, copy('state.undecidedFooter', undecidedCount))}`);
+  }
 
   const issues = ir.environment?.issues ?? [];
   if (issues.length) {

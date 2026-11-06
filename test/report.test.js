@@ -38,7 +38,7 @@ test('a target value cannot inject markup into the report', async () => {
 test('the report shows raw findings, the caveat, and provenance', async () => {
   const { ir, scores, hash } = await build('bad.html');
   const html = renderReport({ ir, scores, hash }, { reproduceCommand: 'spark check fixtures/bad.html' });
-  assert.match(html, /Findings \(\d+\)/);
+  assert.match(html, /Findings \(\d+ violations(, \d+ undecided)?\)/);
   assert.match(html, /Absence of findings does not mean this page is accessible/);
   // The spec version is printed, whatever it currently is — a score without it is not a score.
   assert.match(html, /score spec <code>\d+\.\d+\.\d+<\/code>/);
@@ -87,4 +87,42 @@ test('the report server serves the report and nothing else', async () => {
   response = await fetch(`${base}/nope`);
   assert.equal(response.status, 404);
   await close();
+});
+
+test('listed plus hidden always equals the total, so the count cannot be invented', async () => {
+  // A real page printed "… 3 more finding(s)" while every decided finding was on screen, because
+  // the count subtracted the listed findings from ALL findings. The number a reader uses to decide
+  // whether to keep looking must be arithmetic, not arithmetic on the wrong operand.
+  const { ir, scores, hash } = await build('bad.html');
+  const { renderTerminal } = await import('../src/reporters/terminal.js');
+  const out = renderTerminal({ ir, scores, hash }, { color: false });
+  // The legend line also starts with "? " — it explains the marker, it is not a finding.
+  const listed = (out.match(/^\s+[✗?] (?!=\s)/gm) ?? []).length;
+  const hidden = Number(out.match(/… (\d+) more finding/)?.[1] ?? 0);
+  assert.equal(listed + hidden, ir.findings.length);
+});
+
+test('undecided checks stay in the list, marked with a question rather than a cross', async () => {
+  // Splitting them into a footnote pushed a CRITICAL undecided check (contrast) below three
+  // decided serious ones. They belong in the order their severity earns.
+  const { ir, scores, hash } = await build('bad.html');
+  const { renderTerminal } = await import('../src/reporters/terminal.js');
+  const out = renderTerminal({ ir, scores, hash }, { color: false });
+  assert.ok(!/not decided here:/.test(out), 'undecided findings are no longer a separate footnote');
+  assert.match(out, /\? color-contrast/, 'the undecided check must appear in the list, as a question');
+  assert.match(out, /could not be decided in this environment/);
+});
+
+test('an unmeasured pillar never claims it found nothing', async () => {
+  // "not measured in this build — no decided findings" reads as four passes.
+  const { ir, scores, hash } = await build('bad.html');
+  const { renderTerminal } = await import('../src/reporters/terminal.js');
+  const { renderReport } = await import('../src/reporters/html.js');
+  const term = renderTerminal({ ir, scores, hash }, { color: false });
+  const html = renderReport({ ir, scores, hash }, {});
+  for (const output of [term, html]) {
+    assert.ok(!/not measured in this build — no decided findings/.test(output));
+    assert.ok(!/not measured in this build — no findings/.test(output));
+  }
+  assert.match(term, /FAST\s+—\s+·\s+not measured in this build/);
 });

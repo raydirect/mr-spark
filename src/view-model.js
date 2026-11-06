@@ -66,6 +66,12 @@ export function pillarRows(ir, scores) {
     const score = scores[pillar] ?? null;
     const info = bandOf(score);
     const { decided, undecided } = findingsFor(ir, pillar);
+    // A pillar that was never collected has no findings because it never ran - not because the
+    // page passed it. Saying "no decided findings" there is a false all-clear, and it was the
+    // first thing a real report showed: four pillars reading "not measured - no decided
+    // findings", which sounds like four passes.
+    const summary = score === null ? copy('state.notMeasured') : pillarSummary(ir, pillar);
+    const summaryProse = score === null ? copy('state.notMeasured') : pillarSummary(ir, pillar, { format: 'prose' });
     return Object.freeze({
       pillar,
       score,
@@ -74,8 +80,8 @@ export function pillarRows(ir, scores) {
       tone: info.tone,
       decidedCount: decided.length,
       undecidedCount: undecided.length,
-      summary: pillarSummary(ir, pillar),
-      summaryProse: pillarSummary(ir, pillar, { format: 'prose' }),
+      summary,
+      summaryProse,
     });
   });
 }

@@ -25,10 +25,16 @@ On Windows 11 with PowerShell, see [docs/WINDOWS.md](docs/WINDOWS.md) for the ve
 accounts for `localhost`/IPv6, `$LASTEXITCODE` and the editor setup.
 
 ```bash
-git clone <this repo> && cd web-spark
+git clone https://github.com/raydirect/web-spark.git
+cd web-spark
 npm ci
 node bin/spark.js check fixtures/bad.html
 ```
+
+Nothing is published to a registry yet, so there is no package to install — cloning is the only
+way in, and it is two commands. If `npm ci` says *"can only install with an existing
+package-lock.json"*, you are not inside the clone: `Test-Path .\package-lock.json` should print
+`True`, and `git rev-parse --show-toplevel` should print the folder you cloned into.
 
 ```
   web-spark  file:///…/fixtures/bad.html

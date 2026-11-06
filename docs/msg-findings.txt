@@ -1,0 +1,33 @@
+fix(report): put undecided checks where their severity earns, and stop the false all-clear
+
+A real page's report exposed four defects, all in what the reader is told rather
+than what is computed.
+
+1. Unmeasured pillars claimed "not measured in this build - no decided findings".
+   They had no findings because they never ran, not because the page passed them.
+   Four pillars reading that way is four false all-clears, and it was the first
+   thing on screen. A pillar with no score now says only that it was not measured.
+
+2. Undecided checks were forced to impact 'minor' and then pushed into a footnote
+   below the violations. The undisciplined part is the impact: a CRITICAL check
+   the environment could not decide sorted below three decided serious ones and
+   effectively vanished. Severity is a property of the check, not of our ability
+   to answer it. They now keep the engine's impact and stay in ONE list, worst
+   first, marked with ? instead of a cross - so the marker alone distinguishes
+   "broken" from "unknown" in a terminal with no colour.
+
+3. Undecided findings lost the engine's own reason. "Axe encountered an error" or
+   "No valid skip link found" is what makes a shrug actionable; the first useful
+   line of the failure summary is now carried on the IR as coverageReason, and the
+   boilerplate line ("Fix any of the following:") is skipped.
+
+4. The "N more finding(s)" count mixed decided and undecided while the displayed
+   list did not. Both now describe the same list, and a test asserts
+   listed + hidden = total.
+
+The HTML report follows the same rule: findings ordered by severity across
+decided and undecided, undecided items drawn with a dashed edge, a muted ?
+marker, an "undecided" tag and their reason - visually distinct from a violation
+without borrowing its language.
+
+Tests 57 (was 56).

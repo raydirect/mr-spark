@@ -18,6 +18,8 @@ export const DEFAULTS = Object.freeze({
 
 /** Display limits. These shape what a reader sees, not what the tool computes. */
 export const DISPLAY = Object.freeze({
+  /** Characters of the engine's own reason kept for an undecided check. */
+  reasonLength: 200,
   /** Characters of the failing element's markup kept in the IR. */
   snippetLength: 160,
   /** Width of a score cell: three digits plus the em dash used for "not measured". */

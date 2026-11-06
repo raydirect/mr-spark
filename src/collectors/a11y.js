@@ -8,6 +8,7 @@
  */
 
 import { createIR, addFinding } from '../ir.js';
+import { DISPLAY } from '../config/constants.js';
 
 /**
  * Extract document facts from an HTML string using a DOM implementation.
@@ -63,7 +64,7 @@ export async function collectAccessibility({ document, window, axe }) {
         pillar: 'accessible',
         message: violation.help ?? violation.description,
         selector: (node.target && node.target.join(' ')) || null,
-        snippet: typeof node.html === 'string' ? node.html.slice(0, 160) : null,
+        snippet: typeof node.html === 'string' ? node.html.slice(0, DISPLAY.snippetLength) : null,
         help: violation.helpUrl ?? null,
         coverage: 'automated',
       });
@@ -71,24 +72,44 @@ export async function collectAccessibility({ document, window, axe }) {
   }
 
   // `incomplete` is where automation admits it cannot decide (e.g. contrast without a
-  // canvas). We report it as its own impact class rather than silently dropping it,
-  // because "we could not tell" is information.
+  // canvas). Two rules apply:
+  //
+  //  1. Keep the engine's OWN impact. Forcing `minor` made an undecided CRITICAL check sort
+  //     below decided serious ones, so it vanished from the top of a report. The severity of a
+  //     question does not drop because this environment could not answer it.
+  //  2. Keep the reason. "Could not be decided" without saying why is a shrug; the engine gives
+  //     a specific message ("no canvas", "element is not visible") and the reader deserves it.
   for (const partial of results.incomplete) {
     for (const node of partial.nodes) {
       findings.push({
         ruleId: partial.id,
-        impact: 'minor',
+        impact: partial.impact ?? 'serious',
         pillar: 'accessible',
         message: `${partial.help ?? partial.id} (could not be decided automatically)`,
         selector: (node.target && node.target.join(' ')) || null,
-        snippet: typeof node.html === 'string' ? node.html.slice(0, 160) : null,
+        snippet: typeof node.html === 'string' ? node.html.slice(0, DISPLAY.snippetLength) : null,
         help: partial.helpUrl ?? null,
         coverage: 'incomplete',
+        coverageReason: firstUsefulLine(node.failureSummary ?? node.any?.[0]?.message),
       });
     }
   }
 
   return findings;
+}
+
+/**
+ * The engine's failure summaries start with boilerplate ("Fix any of the following:", "Fix all
+ * of the following:"). Skipping it is the difference between a reason a reader can use and one
+ * that looks like a formatting artefact.
+ */
+function firstUsefulLine(summary) {
+  if (typeof summary !== 'string') return null;
+  const line = summary
+    .split('\n')
+    .map((part) => part.trim())
+    .find((part) => part && !/^Fix (any|all) of the following:?$/.test(part));
+  return line ? line.slice(0, DISPLAY.reasonLength) : null;
 }
 
 /**
