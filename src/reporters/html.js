@@ -52,6 +52,15 @@ export function ruleLabel(ruleId) {
     'landmark-one-main': 'The page should have one main landmark',
     'region': 'All content should be inside a landmark',
     'heading-order': 'Headings must not skip levels',
+    'aria-input-field-name': 'Custom input fields must have an accessible name',
+    'aria-command-name': 'Custom buttons and links must have an accessible name',
+    'aria-required-attr': 'ARIA roles must carry their required attributes',
+    'aria-valid-attr-value': 'ARIA attribute values must be valid',
+    'aria-allowed-attr': 'ARIA attributes must be allowed on their role',
+    'duplicate-id-aria': 'Ids referenced by ARIA must be unique',
+    'target-size': 'Touch targets must be large enough to hit',
+    'frame-title': 'Frames must have a title',
+    'html-has-lang-bcp47': 'The declared language must be a valid language tag',
   };
   if (known[ruleId]) return known[ruleId];
   // Deterministic fallback: turn the id into words without inventing meaning.

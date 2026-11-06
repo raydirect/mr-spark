@@ -94,20 +94,26 @@ export function renderTerminal(
     );
   }
 
-  const worst = sortByImpact(ir.findings.filter(isDecided)).slice(0, DISPLAY.terminalFindings);
+  // Count what is actually hidden. The first version subtracted the number LISTED from ALL
+  // findings, which mixed decided findings with undecided ones: a page with 3 decided findings
+  // and 3 undecided reported "… 3 more finding(s)" while every decided finding was already on
+  // screen. That is not a rounding error - it invents problems, and the count is the one thing
+  // a reader uses to decide whether to look further.
+  const decidedFindings = sortByImpact(ir.findings.filter(isDecided));
+  const worst = decidedFindings.slice(0, DISPLAY.terminalFindings);
   if (worst.length) {
     lines.push('');
     for (const finding of worst) {
       lines.push(
-        `  ${c(RED, '✗')} ` +
+        `    ${c(RED, '✗')} ` +
           `${finding.ruleId.padEnd(DISPLAY.terminalRuleWidth)} ` +
           `${c(DIM, finding.impact.padEnd(DISPLAY.terminalImpactWidth))} ` +
           c(GRAY, (finding.selector ?? '').slice(0, DISPLAY.terminalSelectorWidth))
       );
     }
-    const remaining = ir.findings.length - worst.length;
+    const remaining = decidedFindings.length - worst.length;
     if (remaining > 0) {
-      lines.push(`  ${c(GRAY, `  ${copy('state.moreFindings', remaining)}`)}`);
+      lines.push(`    ${c(GRAY, copy('state.moreFindings', remaining))}`);
     }
   }
 
@@ -119,6 +125,17 @@ export function renderTerminal(
         ? c(GRAY, `  (${copy('state.pillarsMeasuredShort', view.coverage.measured, view.coverage.total)})`)
         : '')
   );
+
+  const undecided = ir.findings.filter((finding) => !isDecided(finding));
+  if (undecided.length) {
+    const byRule = new Map();
+    for (const finding of undecided) byRule.set(finding.ruleId, (byRule.get(finding.ruleId) ?? 0) + 1);
+    const named = [...byRule.entries()]
+      .sort((a, b) => b[1] - a[1] || (a[0] < b[0] ? -1 : 1))
+      .map(([rule, n]) => `${rule} ×${n}`)
+      .join(' · ');
+    lines.push(`    ${c(GRAY, copy('state.undecidedDetail', named))}`);
+  }
 
   const issues = ir.environment?.issues ?? [];
   if (issues.length) {

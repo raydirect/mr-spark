@@ -56,6 +56,8 @@ export const COPY = Object.freeze({
     noFindingsBody: 'No decided findings.',
     unmeasured: '—',
     undecidedCount: (n) => `${n} undecided`,
+    undecidedDetail: (named) =>
+      `? not decided here: ${named} — needs a rendering surface; excluded from the score, not violations`,
     findingsCount: (n) => `Findings (${n})`,
     couldNotBeDecided: (n) => `Could not be decided automatically (${n})`,
     moreFindings: (n) => `… ${n} more finding(s)`,

@@ -88,3 +88,23 @@ test('the report server serves the report and nothing else', async () => {
   assert.equal(response.status, 404);
   await close();
 });
+
+test('the "more findings" count never counts findings that are already listed', async () => {
+  // A real page produced "… 3 more finding(s)" while all three decided findings were on screen:
+  // the count subtracted the listed findings from ALL findings, mixing undecided ones in. The
+  // number a reader uses to decide whether to keep looking must not be invented.
+  const { ir, scores, hash } = await build('bad.html');
+  const { renderTerminal } = await import('../src/reporters/terminal.js');
+  const out = renderTerminal({ ir, scores, hash }, { color: false });
+  assert.ok(!/more finding/.test(out), 'every decided finding fits, so nothing is hidden');
+  const listed = (out.match(/^\s+✗ /gm) ?? []).length;
+  assert.equal(listed, ir.findings.filter((f) => f.coverage !== 'incomplete').length);
+});
+
+test('undecided findings are named, not only counted', async () => {
+  const { ir, scores, hash } = await build('bad.html');
+  const { renderTerminal } = await import('../src/reporters/terminal.js');
+  const out = renderTerminal({ ir, scores, hash }, { color: false });
+  assert.match(out, /not decided here:/);
+  assert.match(out, /color-contrast/, 'the reader must be able to see WHICH check was undecided');
+});
