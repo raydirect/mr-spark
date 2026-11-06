@@ -31,6 +31,19 @@ export function stableStringify(value) {
   return `{${keys.map((k) => `${JSON.stringify(k)}:${stableStringify(value[k])}`).join(',')}}`;
 }
 
+/**
+ * The content address: SHA-256 over the IR with volatile provenance removed.
+ *
+ * Two runs over the same page must yield the same handle, or the handle is useless as a
+ * cache key, a shareable id, or the "explicit handle" the MCP server hands back instead of a
+ * session. So `collectedAt` is provenance, not content, and it is excluded.
+ */
+export async function contentHash(ir) {
+  const { provenance, ...content } = ir;
+  const { collectedAt, ...stableProvenance } = provenance ?? {};
+  return hashIR({ ...content, provenance: stableProvenance });
+}
+
 /** SHA-256 of the canonical form. Used as the IR handle — never a session id. */
 export async function hashIR(ir) {
   const bytes = encoder.encode(stableStringify(ir));
@@ -41,13 +54,26 @@ export async function hashIR(ir) {
 }
 
 /** Create an empty IR shell. Collectors attach facts to it. */
+/**
+ * Collection time, reproducible on request.
+ *
+ * Honouring SOURCE_DATE_EPOCH (the reproducible-builds convention) is what lets two runs
+ * produce byte-identical reports, including the timestamp — which is the only way a "diff two
+ * reports" test can be honest.
+ */
+function collectedAt() {
+  const epoch = process.env.SOURCE_DATE_EPOCH;
+  if (epoch && /^\d+$/.test(epoch)) return new Date(Number(epoch) * 1000).toISOString();
+  return new Date().toISOString();
+}
+
 export function createIR({ source, uri }) {
   return {
     ir: IR_VERSION,
     provenance: {
       source, // 'file' | 'url' | 'capture'
       uri,
-      collectedAt: new Date().toISOString(),
+      collectedAt: collectedAt(),
       collector: 'spark-cli',
     },
     document: null,

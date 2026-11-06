@@ -37,10 +37,8 @@ test('analysis is deterministic: same input, same IR hash', async () => {
   const html = await read('bad.html');
   const a = await analyze({ html, uri: 'file://x', engines });
   const b = await analyze({ html, uri: 'file://x', engines });
-  // collectedAt differs by design; the addressable content must not.
-  const strip = (ir) => ({ ...ir, provenance: { ...ir.provenance, collectedAt: null } });
-  const { hashIR } = await import('../src/ir.js');
-  assert.equal(await hashIR(strip(a.ir)), await hashIR(strip(b.ir)));
+  // The content address excludes volatile provenance, so the handle is stable across runs.
+  assert.equal(a.hash, b.hash);
 });
 
 test('environment limits are recorded rather than thrown', async () => {

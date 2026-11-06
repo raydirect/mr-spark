@@ -27,3 +27,15 @@ jobs:
           fi
       - name: audit the known-good fixture (expected to pass)
         run: node bin/spark.js check fixtures/good.html --no-color --fail-under 90
+      # Dogfooding: our own report must pass our own tool.
+      - name: the generated report must pass its own audit
+        run: |
+          node bin/spark.js report fixtures/bad.html --out spark-report.html
+          node bin/spark.js check spark-report.html --no-color --fail-under 90
+      # Reproducibility: with a fixed clock, two runs must be byte-identical.
+      - name: the report is byte-identical across runs
+        run: |
+          export SOURCE_DATE_EPOCH=1762000000
+          node bin/spark.js report fixtures/bad.html --out r1.html
+          node bin/spark.js report fixtures/bad.html --out r2.html
+          diff r1.html r2.html
