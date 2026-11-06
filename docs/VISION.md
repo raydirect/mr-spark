@@ -164,6 +164,11 @@ Two rules that make this work, and that must be enforced from the first commit:
    timings, interactions) and hands that to the same engine. Anything it can compute, CI can
    compute from the same capture — which is what makes the score comparable across surfaces.
 
+**Where the authoring UI lives** is a separate decision, answered in [SHELL.md](SHELL.md): a
+browser-based web app driven by the local engine, with a thin native shell added later for
+filesystem and offline. The reason is the same one that governs everything here — the design
+surface must *be* the runtime, and a native host would mean a second engine to verify.
+
 The extension is *not* optional and *not* the main app: it is the only surface that can reach
 authenticated, in-session pages, and its `capture → baseline` export is how a page you can only
 see while logged in becomes a test in CI. But it cannot be the authority: results vary per
@@ -194,7 +199,9 @@ are proven identical — plus one third-party MCP server fixed by our findings.
 
 ### Phase 3 — Author (design + config, verified)
 A settings/design document format (own schema) that lowers to the IR and emits a conformant
-page; a fix engine that applies only provably safe changes; token export.
+page; a fix engine that applies only provably safe changes; token export. The authoring UI is a
+**browser-based web app driven by the local engine** (see [SHELL.md](SHELL.md)) — same IR in,
+same findings out, no bespoke backend.
 **Exit:** a real marketing page rebuilt from a document, scoring higher than its hand-written
 original, with the diff published.
 
@@ -208,11 +215,15 @@ vestibular-sensitive user can both approve, demonstrated on camera.
 A scene renderer: drawn output with a real, projected semantic DOM layer, so screen readers,
 find-in-page, autofill, and browser agents all work over pixels.
 **Exit:** a scene-based page passes the same verifier at the same bar as a DOM page.
+Packaging note: a thin **native desktop shell** (filesystem + offline only, the same web app
+inside) may ship here if users ask for it — it is a distribution format, never a second
+architecture ([SHELL.md §3](SHELL.md#3-but-a-web-app-has-three-real-deficits-and-they-need-answers)).
 
 ### Deliberately not built
 A framework to replace the incumbent. A bundler. A component library. A dependency scanner we
 did not originate. An AI page generator. A hosted design tool. An MCP gateway or proxy. A hosted
-dashboard as the main app — and *not* an extension that computes its own verdicts.
+dashboard as the main app, an extension that computes its own verdicts, and *not* a native-UI
+rewrite of the editor (Rust stays a WASM accelerator; native is packaging only).
 
 ---
 
@@ -225,7 +236,7 @@ dashboard as the main app — and *not* an extension that computes its own verdi
 | **Scoring gets gamed** once it is popular | Certain, eventually. | Public versioned weights, wrong-answer fixtures, no badge without findings and disclaimer, and a policy that we break the badge before we let it lie. |
 | **We ship a renderer and it is inaccessible** | Would confirm every critic at once. | Renderer ships only after *its own* verifier does, with the same bar as DOM pages. Non-negotiable. |
 | **Ecosystem cold start for design/motion formats** | Real; formats die without both authoring and consumption. | Formats are published specs with reference implementations on both ends; every format is valuable alone (the verifier reads it even if nobody authors in it). |
-| **Systems-language work is unreachable in the current environment** | Verified: no Rust toolchain, crates.io not reachable from this sandbox. | Rust/WASM is an *optional accelerator* compiled in CI, never a build prerequisite. JS/TS core until a WASM analyzer proves a measurable win. |
+| **Systems-language work is unreachable in the current environment** | Verified: no Rust toolchain, no crates registry reachable from this sandbox. | Rust/WASM is an *optional accelerator* compiled in CI, never a build prerequisite, and it lives **inside** the web app and CLI as a library — it never hosts the UI ([SHELL.md](SHELL.md)). JS/TS core until a WASM path proves a measurable win. |
 | **MCP spec churn** (quarterly revisions; 2026-07-28 removed sessions, sampling, roots, logging and the GET endpoint) | High: a server written to one revision ages fast | Revision-aware adapters behind one internal interface; conformance rules keyed to a declared revision ([MCP.md §5](MCP.md#5-risks-specific-to-being-mcp-first)) |
 | **Our own MCP server becomes an attack surface** | We would be shipping exactly what we audit | Deterministic, read-only by default, no write tools without opt-in, allowlisted egress, self-conformance in CI |
 | **Agent-authored code outruns verification** | This is the wind at our back, but it also means our reports must be consumable by agents, or we become a human-only bottleneck. | Agent-consumable report format from Phase 1, not later. |
