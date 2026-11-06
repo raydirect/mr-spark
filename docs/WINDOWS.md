@@ -21,8 +21,24 @@ You should see `ACCESSIBLE 53 ✗`, then `CONFORMANCE 53 poor (1/5 pillars measu
 | Node 20 or newer | `node -v` | `package.json` sets `"engines": { "node": ">=20" }`. A Node 16 install from an old project will fail on the first `import`. |
 | npm (bundled with Node) | `npm -v` | Nothing else is required. No build step, no compiler, no Rust, no browser. |
 
-`npm ci` needs `package-lock.json`, which is committed. If it complains the lockfile is out of
-sync, use `npm install` once — and please open an issue, because that means the lockfile drifted.
+### If `npm ci` fails
+
+**`EUSAGE: can only install with an existing package-lock.json`** means npm is not looking at this
+repository. Two causes, both common:
+
+1. **You are in the wrong directory.** Check `Get-Location` and `Test-Path .\package-lock.json`.
+   It must print `True` from `D:\Ray\web-spark`. Run `npm ci` in the folder that contains
+   `package.json` — it takes no directory argument, so `npm ci somewhere\else` does not mean what
+   it looks like.
+2. **Your clone predates the lockfile.** It was not committed in the first few commits, so an old
+   clone genuinely has none. Fix: `git pull`, then `npm ci`.
+
+If `git pull` says you are up to date but there is still no `package-lock.json`, you are likely in
+a different checkout than you think — `git rev-parse --show-toplevel` prints the repository root
+that the current folder belongs to.
+
+`npm install` also works and will generate a lockfile, but prefer `npm ci`: it installs exactly
+what CI installs, which is the whole point of testing locally.
 
 ## 2. Run it
 
@@ -95,6 +111,7 @@ being constructed. That is expected; there is nothing to tune.
 | `ACCESSIBLE 53` on a page that looks fine to you | The fixture is deliberately bad. Your own page will score differently. |
 | No colour in the terminal | Expected when output is redirected, when `NO_COLOR` is set, or in some Windows terminal hosts. Use `FORCE_COLOR=1` to override. |
 | Piping to `Select-String` loses the score column | ANSI colour is disabled on a pipe, but the text is identical. Use `--format json` if you need to parse it. |
+| `Dependencies are not installed in …` | The tool checked before running. It names the directory it looked in, because that is always the useful fact — usually `npm ci` ran somewhere else. |
 
 ## 6. Editor setup
 

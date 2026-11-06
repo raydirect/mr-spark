@@ -16,6 +16,7 @@ import { renderTerminal, shouldColour } from './reporters/terminal.js';
 import { buildJsonReport, renderJson } from './reporters/json.js';
 import { renderReport } from './reporters/html.js';
 import { serveReport } from './reporters/serve.js';
+import { checkInstall, installMessage } from './require.js';
 import { DEFAULTS, ENV, EXIT } from './config/constants.js';
 import { NAME, VERSION, BIN } from './config/brand.js';
 import { copy } from './config/copy.js';
@@ -200,6 +201,13 @@ export async function main(argv, { stdout = process.stdout, stderr = process.std
   }
   if (!opts.target) {
     stderr.write(`${copy('errorPrefix', copy('errors.noTarget'))}\n\n${USAGE}\n`);
+    return EXIT.couldNotRun;
+  }
+
+  // Fail before doing any work if the install is incomplete, and say which directory is wrong.
+  const install = checkInstall();
+  if (!install.ok) {
+    stderr.write(`${copy('errorPrefix', installMessage(install))}\n`);
     return EXIT.couldNotRun;
   }
 

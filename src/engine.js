@@ -20,19 +20,36 @@ export async function loadEngines() {
   let axe;
   try {
     ({ JSDOM, VirtualConsole } = await import('jsdom'));
-  } catch {
-    throw new Error(
-      'Missing dependency: jsdom. Install it with `npm i jsdom axe-core` to run accessibility checks.'
-    );
+  } catch (cause) {
+    throw new Error(installHint('jsdom', cause));
   }
   try {
     axe = (await import('axe-core')).default;
-  } catch {
-    throw new Error(
-      'Missing dependency: axe-core. Install it with `npm i jsdom axe-core` to run accessibility checks.'
-    );
+  } catch (cause) {
+    throw new Error(installHint('axe-core', cause));
   }
   return { JSDOM, VirtualConsole, axe };
+}
+
+/**
+ * A dependency error is almost never "the dependency is missing" — which is why the original
+ * message sent people to install two packages they had already declared, in the wrong place.
+ * The common cases, in order of likelihood:
+ *
+ *   1. `npm ci` was never run, because it failed in this directory (no lockfile here).
+ *   2. `npm ci` was run in a DIFFERENT directory than the one the command runs in.
+ *   3. The dependency is genuinely absent.
+ *
+ * So the message names the directory we looked in. That one fact distinguishes all three.
+ */
+function installHint(name, cause) {
+  const where = process.cwd();
+  return [
+    `Cannot load the "${name}" engine in ${where}.`,
+    `Run \`npm ci\` from the project root (in Bash: \`cd /d/...\`, not as an argument to npm ci),`,
+    `then run this command again from that same directory.`,
+    `Underlying error: ${cause?.code ?? cause?.message ?? String(cause)}`,
+  ].join(' ');
 }
 
 /**

@@ -107,8 +107,8 @@ export const COPY = Object.freeze({
     cannotRead: (name) => `Cannot read ${name} — no such file`,
     unreachable: (target, cause) => `Could not reach ${target}: ${cause}`,
     badStatus: (target, status) => `${target} returned ${status}`,
-    missingJsdom: 'Missing dependency: jsdom. Install it with `npm i jsdom axe-core` to run accessibility checks.',
-    missingAxe: 'Missing dependency: axe-core. Install it with `npm i jsdom axe-core` to run accessibility checks.',
+    missingDependency: (name, where, cause) =>
+      `Cannot load the "${name}" engine in ${where}. Run \`npm ci\` from the project root, then run this command again from that same directory. Underlying error: ${cause}`,
   },
 
   /** Prefix for anything written to stderr by the CLI. */
