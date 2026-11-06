@@ -49,7 +49,15 @@ export async function collectAccessibility({ document, window, axe }) {
   const results = await window.axe.run(document, {
     runOnly: {
       type: 'tag',
-      values: ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa'],
+      // WCAG success criteria PLUS best-practice.
+      //
+      // Only the WCAG tags were run at first, which silently excluded 30 of 105 rules - among
+      // them heading-order, region, landmark-one-main, page-has-heading-one, aria-allowed-role
+      // and empty-heading. A page with h1 followed by h3, or with content outside any landmark,
+      // scored as if nothing were wrong. Those rules are excluded from a WCAG conformance claim
+      // for good reason, but this tool reports quality, not certification, and the README
+      // promises to say so. Excluded rules are listed in docs/COVERAGE.md.
+      values: ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa', 'best-practice'],
     },
     // Nothing to point at when there is no rendering surface; keep signals truthful.
     resultTypes: ['violations', 'incomplete'],

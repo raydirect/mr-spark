@@ -152,3 +152,15 @@ test('a whole document is still checked as a document', async () => {
   const lang = ir.findings.find((f) => f.ruleId === 'html-has-lang');
   assert.equal(lang.coverage, 'automated', 'a real page without a language is a real finding');
 });
+
+test('best-practice rules run, so a page cannot pass by skipping landmarks', async () => {
+  // Only WCAG-tagged rules were being run, which excluded 30 rules including region,
+  // heading-order, landmark-one-main and page-has-heading-one. A page with content outside any
+  // landmark scored as if nothing were wrong. This asserts the rule set, not a number.
+  const html = `<!doctype html><html lang="en"><head><title>t</title></head>
+<body><h1>a</h1><h3>skipped</h3><p>outside any landmark</p></body></html>`;
+  const { ir } = await analyze({ html, uri: 'file:///bp.html', engines });
+  const rules = new Set(ir.findings.map((f) => f.ruleId));
+  assert.ok(rules.has('region'), 'content outside a landmark must be found');
+  assert.ok(rules.has('heading-order'), 'a skipped heading level must be found');
+});
