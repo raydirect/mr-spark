@@ -12,9 +12,9 @@
  */
 
 import { PILLARS, IR_VERSION } from '../ir.js';
-import { SCORE_SPEC_VERSION, AUTOMATION_COVERAGE, band, IMPACT_WEIGHT, SATURATION } from '../score.js';
+import { SCORE_SPEC_VERSION, AUTOMATION_COVERAGE, band } from '../score.js';
 
-const ENGINE_VERSION = '0.1.0';
+const ENGINE_VERSION = '0.2.0';
 
 /** Minimal, total escaping. Everything from the target goes through this. */
 export function escapeHtml(value) {
@@ -94,9 +94,6 @@ pre { background: #f4f6f8; border: 1px solid #dde2e8; border-radius: 8px; paddin
 @media (max-width: 40rem) { .two-col { grid-template-columns: 1fr; } .score-row { grid-template-columns: 7rem 3rem 1fr; } }
 footer { margin-top: 3rem; padding-top: 1rem; border-top: 1px solid #dde2e8; }
 `;
-void IMPACT_WEIGHT;
-void SATURATION;
-
 function bandClass(score) {
   if (score === null) return 'none';
   if (score >= 90) return 'good';

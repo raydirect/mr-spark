@@ -11,12 +11,11 @@
 
 import { PILLARS, COLLECTABLE } from './ir.js';
 
-export const SCORE_SPEC_VERSION = '1.0.0';
+export const SCORE_SPEC_VERSION = '2.0.0';
 
 /**
- * Impact weights for the accessibility pillar. Chosen so that the six failure classes
- * that dominate the web (per the accessibility research in docs/RESEARCH.md) cannot be
- * outvoted by a pile of minor issues.
+ * Impact weights. Chosen so the failure classes that dominate the web cannot be outvoted by
+ * a pile of minor issues: one critical finding should be visible on its own.
  */
 export const IMPACT_WEIGHT = {
   critical: 10,
@@ -25,8 +24,22 @@ export const IMPACT_WEIGHT = {
   minor: 1,
 };
 
-/** Damage at which a pillar is considered fully broken. Linear below, so scores move smoothly. */
-export const SATURATION = 100;
+/**
+ * The damage scale of the scoring curve.
+ *
+ * score = 100 * K / (damage + K)
+ *
+ * A hyperbola rather than a straight line, because a straight line flatters: with linear
+ * scoring, a page with two missing alt texts and no document language still reads like a
+ * pass. Anchors (see docs/SCORE-SPEC.md):
+ *   no findings            -> 100
+ *   one critical           ->  80
+ *   two critical + 3 serious ->  53
+ *   six critical           ->  40
+ * The curve never reaches 0, so "0" stays reserved for the degenerate case rather than
+ * becoming a routine verdict.
+ */
+export const DAMAGE_SCALE = 40;
 
 /**
  * Score a single pillar from its findings.
@@ -34,11 +47,14 @@ export const SATURATION = 100;
  */
 export function scorePillar(ir, pillar) {
   if (!COLLECTABLE.has(pillar)) return null;
-  const findings = ir.findings.filter((f) => f.pillar === pillar);
+  // Undecided checks are excluded: "we could not tell" is not damage, and counting it would
+  // make the score depend on the runner's capabilities rather than the page's quality.
+  const findings = ir.findings.filter(
+    (f) => f.pillar === pillar && f.coverage !== 'incomplete'
+  );
   if (findings.length === 0) return 100;
   const damage = findings.reduce((sum, f) => sum + (IMPACT_WEIGHT[f.impact] ?? 2), 0);
-  const ratio = Math.min(1, damage / SATURATION);
-  return Math.max(0, Math.round((1 - ratio) * 100));
+  return Math.round((100 * DAMAGE_SCALE) / (damage + DAMAGE_SCALE));
 }
 
 /** All pillar scores. Unmeasured pillars are `null`, not zero — a gap, not a verdict. */

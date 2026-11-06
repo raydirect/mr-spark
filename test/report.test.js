@@ -40,7 +40,8 @@ test('the report shows raw findings, the caveat, and provenance', async () => {
   const html = renderReport({ ir, scores, hash }, { reproduceCommand: 'spark check fixtures/bad.html' });
   assert.match(html, /Findings \(\d+\)/);
   assert.match(html, /Absence of findings does not mean this page is accessible/);
-  assert.match(html, /score spec <code>1\.0\.0<\/code>/);
+  // The spec version is printed, whatever it currently is — a score without it is not a score.
+  assert.match(html, /score spec <code>\d+\.\d+\.\d+<\/code>/);
   assert.ok(html.includes(hash));
   assert.match(html, /spark check fixtures\/bad\.html/);
 });

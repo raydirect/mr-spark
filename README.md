@@ -177,8 +177,10 @@ cautionary tale of a dead animation ecosystem, is in
 
 - Automated checks cover roughly **30% of WCAG success criteria**. web-spark will never claim a
   site is compliant, and the report says so in its own output.
-- Scores get gamed. Ours uses public, versioned weights, four subscores that are never merged,
-  and always ships the raw findings alongside.
+- Scores get gamed. Ours publishes its weights *and its curve*
+  ([SCORE-SPEC.md](docs/SCORE-SPEC.md)) with a semantic version and a frozen calibration table
+  that is enforced by tests; pillars are never merged into one grade that hides a failure; and
+  the raw findings always ship alongside the number.
 - Phase 1 is a CLI, a CI gate, and an MCP server. Design, motion and rendering are a published
   roadmap, not a shipped claim.
 - We audit MCP servers but cannot certify them. A clean `MCP*` report means the definition layer
