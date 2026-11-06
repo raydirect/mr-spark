@@ -2,10 +2,19 @@
  * Terminal reporter. This is the product's face for most people, so it is designed,
  * not dumped: one line per pillar, the worst findings first, and the honest caveat
  * printed every single time.
+ *
+ * Presentation only. Every verdict — which findings are decided, what a pillar's summary is,
+ * what the conformance score is — comes from src/view-model.js, so the terminal and the HTML
+ * report cannot disagree about the same IR.
  */
 
-import { AUTOMATION_COVERAGE, band } from '../score.js';
+import { AUTOMATION_COVERAGE } from '../score.js';
 import { PILLARS } from '../ir.js';
+import { DISPLAY, ENV } from '../config/constants.js';
+import { copy } from '../config/copy.js';
+import { band, tone } from '../config/thresholds.js';
+import { buildView, pillarSummary } from '../view-model.js';
+import { sortByImpact, isDecided } from '../vocabulary.js';
 
 const RESET = '\u001b[0m';
 const DIM = '\u001b[2m';
@@ -15,108 +24,109 @@ const YELLOW = '\u001b[33m';
 const GREEN = '\u001b[32m';
 const GRAY = '\u001b[90m';
 
-/** Respect a non-TTY or NO_COLOR environment; a redirected report must stay readable. */
+const TONE_COLOUR = { good: GREEN, warn: YELLOW, bad: RED, none: GRAY };
+const TONE_ICON = { good: '✓', warn: '~', bad: '✗', none: '·' };
+
 function paint(enabled) {
   return (code, text) => (enabled ? `${code}${text}${RESET}` : text);
 }
 
-function scoreLabel(score, c) {
-  if (score === null) return c(GRAY, '    —');
-  const text = String(score).padStart(3, ' ');
-  if (score >= 90) return c(GREEN, `${text}`);
-  if (score >= 70) return c(YELLOW, `${text}`);
-  return c(RED, `${text}`);
-}
-
-function icon(score, c) {
-  if (score === null) return c(GRAY, '·');
-  if (score >= 90) return c(GREEN, '✓');
-  if (score >= 70) return c(YELLOW, '~');
-  return c(RED, '✗');
-}
-
 /**
- * One-line reason per pillar, built from decided findings only.
- * Undecided checks are counted separately: "we could not tell" is not a violation, and
- * printing it as one would overstate both the problem and our confidence.
+ * Whether to colourise.
+ *
+ * Previously the reporter took `process.stdout.isTTY` directly and a comment claimed NO_COLOR
+ * was respected when it was not — a documented behaviour that did not exist. Order of
+ * precedence follows the conventions: an explicit flag wins, then NO_COLOR (any value,
+ * including empty), then FORCE_COLOR, then the TTY check.
  */
-function summarize(ir, pillar) {
-  const all = ir.findings.filter((f) => f.pillar === pillar);
-  const decided = all.filter((f) => f.coverage !== 'incomplete');
-  const undecided = all.length - decided.length;
-
-  const parts = [];
-  if (decided.length === 0) parts.push(all.length === 0 ? 'no findings' : 'no decided findings');
-  else {
-    const byRule = new Map();
-    for (const f of decided) byRule.set(f.ruleId, (byRule.get(f.ruleId) ?? 0) + 1);
-    parts.push(
-      [...byRule.entries()]
-        .sort((a, b) => b[1] - a[1])
-        .slice(0, 3)
-        .map(([rule, count]) => `${rule} ×${count}`)
-        .join(' · ')
-    );
-  }
-  if (undecided > 0) parts.push(`${undecided} undecided`);
-  return parts.join(' · ');
+export function shouldColour({ explicit, env = process.env, isTTY = process.stdout.isTTY } = {}) {
+  if (explicit !== undefined) return explicit;
+  if (Object.prototype.hasOwnProperty.call(env, ENV.noColor)) return false;
+  if (Object.prototype.hasOwnProperty.call(env, ENV.forceColor)) return true;
+  return Boolean(isTTY);
 }
 
-const IMPACT_RANK = { critical: 0, serious: 1, moderate: 2, minor: 3 };
+function scoreCell(score, c) {
+  const colour = TONE_COLOUR[tone(score)] ?? GRAY;
+  // Column width must cover the widest value (three digits) AND the em dash used for
+  // "not measured", so the pillar column stays aligned for measured and unmeasured rows alike.
+  const cell = score === null ? copy('state.unmeasured') : String(score);
+  return c(colour, cell.padStart(DISPLAY.scoreCellWidth, ' '));
+}
 
-export function renderTerminal({ ir, scores, hash }, { color = process.stdout.isTTY } = {}) {
+function iconCell(score, c) {
+  const t = tone(score);
+  return c(TONE_COLOUR[t] ?? GRAY, TONE_ICON[t] ?? '·');
+}
+
+export function renderTerminal(
+  { ir, scores, hash },
+  { color = true, quiet = false } = {}
+) {
   const c = paint(color);
+  const view = buildView(ir, scores);
   const lines = [];
+
+  // Quiet mode is a machine contract for scripts: one tab-separated line per decided finding,
+  // no pillar table, no prose, no trailing caveat. Stable field order, ids included.
+  if (quiet) {
+    for (const finding of sortByImpact(ir.findings.filter(isDecided))) {
+      lines.push(
+        [finding.ruleId, finding.impact, finding.selector ?? '', finding.id].join('\t')
+      );
+    }
+    return lines.join('\n');
+  }
 
   lines.push('');
   lines.push(`  ${c(BOLD, 'web-spark')}  ${c(DIM, ir.provenance.uri ?? '')}`);
   lines.push('');
 
   for (const pillar of PILLARS) {
-    const score = scores[pillar];
+    const score = scores[pillar] ?? null;
     lines.push(
-      `  ${pillar.toUpperCase().padEnd(12)}${scoreLabel(score, c)}  ${icon(score, c)}  ` +
-        c(DIM, score === null ? 'not measured in this build' : summarize(ir, pillar))
+      `  ${pillar.toUpperCase().padEnd(DISPLAY.terminalPillarWidth)}${scoreCell(score, c)}  ` +
+        `${iconCell(score, c)}  ` +
+        c(
+          DIM,
+          score === null ? copy('state.notMeasured') : pillarSummary(ir, pillar)
+        )
     );
   }
 
-  const worst = [...ir.findings]
-    .filter((f) => f.pillar === 'accessible' && f.impact !== 'minor')
-    .sort((a, b) => (IMPACT_RANK[a.impact] ?? 9) - (IMPACT_RANK[b.impact] ?? 9))
-    .slice(0, 6);
-
+  const worst = sortByImpact(ir.findings.filter(isDecided)).slice(0, DISPLAY.terminalFindings);
   if (worst.length) {
     lines.push('');
-    for (const f of worst) {
+    for (const finding of worst) {
       lines.push(
-        `  ${c(RED, '✗')} ${f.ruleId.padEnd(16)} ${c(DIM, f.impact.padEnd(9))} ` +
-          c(GRAY, (f.selector ?? '').slice(0, 48))
+        `  ${c(RED, '✗')} ` +
+          `${finding.ruleId.padEnd(DISPLAY.terminalRuleWidth)} ` +
+          `${c(DIM, finding.impact.padEnd(DISPLAY.terminalImpactWidth))} ` +
+          c(GRAY, (finding.selector ?? '').slice(0, DISPLAY.terminalSelectorWidth))
       );
     }
     const remaining = ir.findings.length - worst.length;
-    if (remaining > 0) lines.push(`  ${c(GRAY, `  … ${remaining} more finding(s)`)}`);
+    if (remaining > 0) {
+      lines.push(`  ${c(GRAY, `  ${copy('state.moreFindings', remaining)}`)}`);
+    }
   }
-
-  const measured = PILLARS.filter((p) => scores[p] !== null);
-  const overall =
-    measured.length === 0
-      ? null
-      : Math.round(measured.reduce((sum, p) => sum + scores[p], 0) / measured.length);
 
   lines.push('');
   lines.push(
-    `  ${c(BOLD, 'CONFORMANCE')} ${scoreLabel(overall, c)}  ${c(DIM, band(overall))}` +
-      (measured.length < PILLARS.length
-        ? c(GRAY, `  (${measured.length}/${PILLARS.length} pillars measured)`)
+    `  ${c(BOLD, 'CONFORMANCE')} ${scoreCell(view.overall.score, c)}  ` +
+      `${c(DIM, band(view.overall.score))}` +
+      (view.coverage.measured < view.coverage.total
+        ? c(GRAY, `  (${copy('state.pillarsMeasuredShort', view.coverage.measured, view.coverage.total)})`)
         : '')
   );
+
   const issues = ir.environment?.issues ?? [];
   if (issues.length) {
     lines.push(
-      `  ${c(GRAY, `environment could not evaluate ${issues.length} check(s) — e.g. ${issues[0].slice(0, 60)}`)}`
+      `  ${c(GRAY, copy('state.environmentIssues', issues.length, issues[0].slice(0, DISPLAY.environmentIssueWidth)))}`
     );
   }
-  lines.push(`  ${c(GRAY, `ir ${hash.slice(0, 12)}  ·  ${AUTOMATION_COVERAGE.note}`)}`);
+  lines.push(`  ${c(GRAY, `${copy('labels.irHandle', hash.slice(0, 12))}  ·  ${AUTOMATION_COVERAGE.note}`)}`);
   lines.push('');
 
   return lines.join('\n');

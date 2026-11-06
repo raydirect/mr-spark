@@ -1,8 +1,9 @@
 # Design Review — architecture, tokens, UI/UX
 
 Audit performed against the code as merged at `4d2880b`. This is a *findings* document: what
-holds up, what does not, and what is missing. Fixes are proposed here and implemented in
-follow-up commits, not silently bundled.
+holds up, what does not, and what is missing. Fixes are implemented in follow-up commits, and
+§7 records what has since been closed — the document is kept as written so the reasoning
+survives the fix.
 
 Verdict up front: **the structure is sound, the discipline is real, and three things are
 broken or missing in ways that matter.** One is a shipping bug in the report's dark mode, one is
@@ -122,7 +123,7 @@ the browser runner.
 
 | Issue | Why it matters | Fix |
 |---|---|---|
-| `list-style: none` on `<ul class="findings">` with no `role="list"` | Safari drops list semantics when the marker is removed, so a screen-reader user hears a run of unrelated text instead of "list, 7 items" | add `role="list"` (both lists) |
+| `list-style: none` on `<ul class="findings">` with no `role="list"` | WebKit drops list semantics when the marker is removed, so a screen-reader user hears a run of unrelated text instead of "list, 7 items" | add `role="list"` (both lists) |
 | No focus indicator styles | The page is navigable, but tab focus is the browser default at best | explicit `:focus-visible` token |
 | No skip link | Small page, but it is the pattern we will preach | add one |
 | Heading levels are visual, not structural | `h2` for every section is correct; verify after token refactor | test heading order |
@@ -230,3 +231,30 @@ the browser runner.
 
 Everything above is additive. Nothing in the current architecture needs to be undone — which is
 the strongest signal that the structural decisions were right.
+
+---
+
+## 7. Status of these findings
+
+Implemented on the `config + tokens` branch (each item verified by a test, not by inspection):
+
+| Finding | Status |
+|---|---|
+| Dark mode declared but unimplemented (1.00:1) | **Fixed.** Both themes are tokenised; 36 declared pairs verified at 4.5:1 / 3:1 in both themes by `test/tokens.test.js`. |
+| CSS contains no tokens | **Fixed.** `src/reporters/styles.js` is a pure function of `tokens.json`; a test fails if any hex in the output is not a token value. |
+| Band thresholds duplicated in three files | **Fixed.** One table in `src/config/thresholds.js`; `score.js` re-exports it and every surface reads it. |
+| Version drift (0.1.0 vs 0.2.0) | **Fixed.** `src/config/brand.js` reads `package.json`; the report prints the package version. |
+| Magic numbers scattered | **Fixed.** Ports, limits, widths and timeouts live in `src/config/constants.js`. |
+| Prose scattered across reporters | **Fixed.** `src/config/copy.js`; a test rejects unresolved placeholders. |
+| `NO_COLOR` documented but absent | **Fixed.** `shouldColour()` implements explicit flag → `NO_COLOR` → `FORCE_COLOR` → TTY. |
+| Surfaces can disagree (duplicated `summarize`, `overallScore`) | **Fixed.** `src/view-model.js` is the single projection; reporters are presentation only. |
+| Shared vocabulary re-derived four times | **Fixed.** `src/vocabulary.js`; coverage enum owned by the IR. |
+| `list-style: none` without `role="list"` | **Fixed.** Both lists carry the role. |
+| No `:focus-visible`, no skip link | **Fixed.** Tokenised focus ring and a skip link. |
+| No machine-clean CLI mode | **Fixed.** `--quiet` emits one tab-separated line per finding. |
+| CI not reproducible (`npm install`) | **Fixed.** `npm ci`. |
+
+Still open, in the order the review recommends: IR JSON Schema + `checkJs`; governance files
+(`CONTRIBUTING`, `SECURITY`, `CHANGELOG`, templates); lint/format config; a config file; error
+taxonomy; l10n keying beyond the copy catalogue; packaging proof (`npm pack` + clean install);
+our own performance budget. Then Phase 1c.
