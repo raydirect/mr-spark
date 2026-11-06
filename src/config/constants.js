@@ -16,6 +16,17 @@ export const DEFAULTS = Object.freeze({
   fetchTimeoutMs: 15_000,
 });
 
+/**
+ * Scoring tunables. The curve shape lives in src/score.js with its derivation; the numbers live
+ * here so a reviewer can find every knob in one place.
+ */
+export const SCORING = Object.freeze({
+  /** The damage scale K in score = 100·K/(damage+K). */
+  damageScale: 40,
+  /** How fast the charge for repeated instances of the same rule decays. See SCORE-SPEC §3.5. */
+  repeatDecay: 0.5,
+});
+
 /** Display limits. These shape what a reader sees, not what the tool computes. */
 export const DISPLAY = Object.freeze({
   /** Characters of the engine's own reason kept for an undecided check. */

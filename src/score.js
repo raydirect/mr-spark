@@ -10,10 +10,11 @@
  */
 
 import { PILLARS, COLLECTABLE } from './ir.js';
-import { isDecided } from './vocabulary.js';
+import { isDecided, IMPACTS as IMPACT_ORDER } from './vocabulary.js';
+import { SCORING } from './config/constants.js';
 import { band } from './config/thresholds.js';
 
-export const SCORE_SPEC_VERSION = '2.0.0';
+export const SCORE_SPEC_VERSION = '3.0.0';
 
 /**
  * Impact weights. Chosen so the failure classes that dominate the web cannot be outvoted by
@@ -25,6 +26,28 @@ export const IMPACT_WEIGHT = {
   moderate: 2,
   minor: 1,
 };
+
+/**
+ * How much each additional instance of the SAME rule is charged.
+ *
+ * A real page produced 88 findings with one root cause: a single missing landmark, reported once
+ * per element outside it. Linear weighting turned that into damage 176 and a score of 19 - a
+ * number that says "this page is catastrophic" when it says "this page has one structural
+ * problem". Nobody acts on 19; they stop trusting the tool.
+ *
+ * Repeats still cost something: six unlabelled inputs really is worse than one, and the fix is
+ * six edits not one. The charge decays so that the FIRST instance carries the full weight and the
+ * eleventh carries almost none:
+ *
+ *   charge(n) = 1 / (1 + (n - 1) * REPEAT_DECAY)     n = 1-based occurrence index
+ *
+ * With REPEAT_DECAY = 0.5: 1st = 1.0, 2nd = 0.67, 3rd = 0.5, 4th = 0.4 … 11th = 0.18.
+ * Asymptotic, so no count is ever free and no count is ever catastrophic.
+ *
+ * The findings themselves are never aggregated or hidden - every instance stays on the page. Only
+ * the score is per-root-cause. Reporting what happened and pricing it are different jobs.
+ */
+export const REPEAT_DECAY = SCORING.repeatDecay;
 
 /**
  * The damage scale of the scoring curve.
@@ -41,7 +64,7 @@ export const IMPACT_WEIGHT = {
  * The curve never reaches 0, so "0" stays reserved for the degenerate case rather than
  * becoming a routine verdict.
  */
-export const DAMAGE_SCALE = 40;
+export const DAMAGE_SCALE = SCORING.damageScale;
 
 /**
  * Score a single pillar from its findings.
@@ -53,8 +76,47 @@ export function scorePillar(ir, pillar) {
   // make the score depend on the runner's capabilities rather than the page's quality.
   const findings = ir.findings.filter((f) => f.pillar === pillar && isDecided(f));
   if (findings.length === 0) return 100;
-  const damage = findings.reduce((sum, f) => sum + (IMPACT_WEIGHT[f.impact] ?? 2), 0);
-  return Math.round((100 * DAMAGE_SCALE) / (damage + DAMAGE_SCALE));
+  return Math.round((100 * DAMAGE_SCALE) / (damageOf(findings) + DAMAGE_SCALE));
+}
+
+/** The weight charged for the nth instance of a rule (n is 1-based). */
+export function repeatCharge(n) {
+  return 1 / (1 + (n - 1) * REPEAT_DECAY);
+}
+
+/**
+ * Total damage for a set of decided findings, priced per ROOT CAUSE.
+ *
+ * Findings are grouped by `ruleId` - the root cause - and each group is charged its weight once
+ * per instance with `repeatCharge` decay. Grouping by rule and not by selector is deliberate: a
+ * page with a missing landmark on six elements has ONE structural cause, and a page with six
+ * unlabelled inputs has six instances of one cause. Both are one root cause to fix, and the
+ * charge should reflect the work, not the element count.
+ */
+export function damageOf(findings) {
+  const perRule = new Map();
+  for (const finding of findings) {
+    perRule.set(finding.ruleId, (perRule.get(finding.ruleId) ?? 0) + 1);
+  }
+  let damage = 0;
+  for (const [ruleId, count] of perRule) {
+    const weight = IMPACT_WEIGHT[impactFor(findings, ruleId)] ?? 2;
+    for (let n = 1; n <= count; n += 1) damage += weight * repeatCharge(n);
+  }
+  return damage;
+}
+
+/** The worst impact a rule reported in this set - a rule that fired as critical is priced so. */
+function impactFor(findings, ruleId) {
+  let worst = 'minor';
+  for (const finding of findings) {
+    if (finding.ruleId !== ruleId) continue;
+    const rank = IMPACT_ORDER.indexOf(finding.impact);
+    if (rank !== -1 && (IMPACT_ORDER.indexOf(worst) === -1 || rank < IMPACT_ORDER.indexOf(worst))) {
+      worst = finding.impact;
+    }
+  }
+  return worst;
 }
 
 /** All pillar scores. Unmeasured pillars are `null`, not zero — a gap, not a verdict. */
