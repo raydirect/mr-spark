@@ -46,8 +46,23 @@ node bin/spark.js check fixtures/bad.html
   findings does not mean a page is accessible.
 ```
 
-`npm test` runs 13 tests. `--format json` gives the machine face. `--fail-under 90` makes it a
+`npm test` runs 21 tests. `--format json` gives the machine face. `--fail-under 90` makes it a
 gate. The unbuilt pillars say `—` on purpose: an unmeasured pillar is a gap, never a pass.
+
+**The shareable report** (rung 1 of [EASE.md](docs/EASE.md)) — a complete document with no
+client JS, readable with scripting disabled, and byte-identical across runs when the clock is
+fixed:
+
+```bash
+node bin/spark.js report fixtures/bad.html --out spark-report.html
+node bin/spark.js report fixtures/bad.html --serve      # then open http://localhost:4321/
+SOURCE_DATE_EPOCH=1762000000 node bin/spark.js report fixtures/bad.html --out a.html
+SOURCE_DATE_EPOCH=1762000000 node bin/spark.js report fixtures/bad.html --out b.html
+diff a.html b.html    # identical
+```
+
+It follows the same rule as everything else: the report is *auditable by our own tool*, and that
+is a test, not a promise.
 
 ## The one-sentence thesis
 

@@ -6,7 +6,7 @@
  * what a caller passes in), which is the rule that keeps the four surfaces from drifting.
  */
 
-import { sortFindings, hashIR } from './ir.js';
+import { sortFindings, contentHash } from './ir.js';
 import { scoreAll } from './score.js';
 import { collect } from './collectors/a11y.js';
 
@@ -44,7 +44,7 @@ export async function analyze({ html, uri, source = 'file', engines }) {
   const ir = await collect({ html, uri, source, axe, JSDOM, VirtualConsole });
   sortFindings(ir);
   const scores = scoreAll(ir);
-  const hash = await hashIR(ir);
+  const hash = await contentHash(ir);
   return { ir, scores, hash };
 }
 

@@ -1,6 +1,6 @@
 {
   "name": "webspark",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "description": "Every artifact proves itself. A conformance compiler for the web: one IR in, honest findings out.",
   "type": "module",
   "license": "Apache-2.0",
@@ -26,7 +26,7 @@
     "test": "node --test test/*.test.js",
     "check:self": "node bin/spark.js check fixtures/bad.html"
   },
-  "optionalDependencies": {
+  "dependencies": {
     "axe-core": "^4.10.2",
     "jsdom": "^25.0.1"
   }

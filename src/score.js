@@ -26,7 +26,7 @@ export const IMPACT_WEIGHT = {
 };
 
 /** Damage at which a pillar is considered fully broken. Linear below, so scores move smoothly. */
-const SATURATION = 100;
+export const SATURATION = 100;
 
 /**
  * Score a single pillar from its findings.
