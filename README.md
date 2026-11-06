@@ -7,8 +7,9 @@ shipped bundle — each should carry its own proof that it is accessible, fast, 
 machines, and resilient. Today none of them do. web-spark is the missing layer that makes that
 proof a property of the pipeline instead of an audit after the fact.
 
-> ⚠️ **Status: Phase 1a (early code).** The engine, the `check` command, the score, the
-> reporters and the CI gate exist. Four documents carry the thinking:
+> ⚠️ **Status: early code, honest labels.** The engine, `check`, the score, the report page and the
+> CI gate exist and are tested. The compiler, document formats, studio, motion format and renderer
+> do not. The documents that carry the thinking:
 > - [docs/VISION.md](docs/VISION.md) — the unified plan: one intermediate representation, five pillars
 > - [docs/SURFACES.md](docs/SURFACES.md) — why the product is the engine, and where it runs
 > - [docs/SHELL.md](docs/SHELL.md) — what hosts the authoring UI, and why it is not a native app
@@ -16,6 +17,10 @@ proof a property of the pipeline instead of an audit after the fact.
 > - [docs/MCP.md](docs/MCP.md) — how the Model Context Protocol is threaded through every layer
 > - [docs/RESEARCH.md](docs/RESEARCH.md) — the evidence base, for why this and not something else
 > - [docs/INSPIRATIONS.md](docs/INSPIRATIONS.md) — 100 influences as *borrow this / avoid that*, brand-free
+> - **[docs/REVOLUTION.md](docs/REVOLUTION.md) — the directive plan: what we are building, in what order, and why**
+> - [docs/DOCUMENTS.md](docs/DOCUMENTS.md) — the three document formats and their rules
+> - [docs/LEGIBLE.md](docs/LEGIBLE.md) — discoverability, agent readiness, and what cannot be checked
+> - [docs/COVERAGE.md](docs/COVERAGE.md) — exactly what a run can and cannot see
 
 ---
 
@@ -84,6 +89,31 @@ type scale, radii and durations; `src/reporters/styles.js` is a pure function of
 stylesheet contains no visual literal of its own. Score bands, defaults, limits and every
 user-facing string are in `src/config/` too. Change a token, and the report, the terminal and
 the tests move together.
+
+## The plan, in one table
+
+Read [docs/REVOLUTION.md](docs/REVOLUTION.md) for the whole thing. The shape:
+
+| Phase | What it delivers | Status |
+|---|---|---|
+| 0 | **Ground truth** — a verifier worth trusting: per-root-cause scoring, suppression with printed reasons, a corpus of real pages | 🔨 in progress |
+| 1 | **Spine** — frozen `scene` / `motion` / `settings` document schemas, `lower`, `emit`, byte-identical output | ⏳ |
+| 2 | **Gate** — `baseline`, regression-only `--ci`, SARIF, action, finding identity that survives generated ids | ⏳ |
+| 3 | **Studio** — a browser canvas where you author a page, with the verifier live on the canvas | ⏳ |
+| 4 | **Motion** — a motion document where reduced-motion is a checked property, not a wish | ⏳ |
+| 5 | **Manifest** — one capability declaration → three machine faces, proven to agree | ⏳ |
+| 6 | **Render** — scenes drawn to canvas with a real projected semantic DOM, gated at the same bar | ⏳ |
+
+Three documents, one compiler, one verifier:
+
+| Document | You author | It compiles to |
+|---|---|---|
+| **Scene** | structure, layout, states, tokens | HTML + CSS |
+| **Motion** | timelines, state machines, semantic intent | CSS / WAAPI / a 3 KB runtime |
+| **Settings** | tokens and configuration | CSS custom properties + JSON |
+
+Formats are specified in [docs/DOCUMENTS.md](docs/DOCUMENTS.md). The rule that makes this one
+product rather than six: **you cannot emit an artifact the verifier has not judged.**
 
 ## The one-sentence thesis
 
