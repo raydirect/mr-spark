@@ -5,7 +5,8 @@ how we know it is done, and what the rules of engagement are.** Sequencing lives
 [REVOLUTION.md §7](REVOLUTION.md#7-the-phases-this-is-the-new-sequence) so there is exactly one
 place to change it.
 
-Last updated: the sequence changed. **`REVOLUTION.md` is now the directive plan** for order and
+Last updated 2026-11-07, when the three document formats froze. The sequence changed before that:
+**`REVOLUTION.md` is now the directive plan** for order and
 scope; this file remains the operational checklist and the definition of done. Read
 `REVOLUTION.md §7` for *why* the order below is what it is, and §12 for what the previous order
 got wrong.
@@ -25,7 +26,7 @@ are the trust foundation; 3 is the first creative surface; 4–6 deepen by width
 | **0d** | one token store · one view model · real dark theme · verified contrast | ✅ merged |
 | **0e** | full rule set (100 of 105) · fragments vs documents · upper-bound scores | ✅ merged |
 | **0f** | **ground truth** — per-root-cause scoring · suppression with reasons · real-page corpus · re-audit | ⏳ **current** |
-| **1** | **spine** — frozen `scene`/`motion`/`settings` schemas · `lower` · `emit` · byte-identical output | ⏳ |
+| **1** | **spine** — frozen `scene`/`motion`/`settings` schemas · `lower` · `emit` · byte-identical output | 🟡 **half** — formats, validator and published `schema/` frozen for review ([ADR 0002](adr/0002-one-grammar-three-projections.md)); **no `lower`, no `emit`** |
 | **2** | **gate** — `baseline` · regression-only `--ci` · SARIF · action · structural finding identity | ⏳ |
 | **3** | **studio** — browser canvas, inspector, live verifier, export, URL/HTML import | ⏳ |
 | **4** | **motion** — motion document, timeline, state graph, reduced-motion by construction | ⏳ |
@@ -97,8 +98,11 @@ A phase is only done when **all** of these hold:
 | Machine output | `--format json` | <1 s |
 | Gate behaviour | `--fail-under 90` → exit 1 | <1 s |
 | CI behaviour | push a branch; the workflow self-gates | ~30 s |
+| The document formats | `node --test test/formats.test.js` | ~1 s |
+| A document against the format | `node -e "import('./src/formats/index.js').then(m => console.log(m.validateDocument('scene', JSON.parse(require('node:fs').readFileSync('my.spark.scene.json','utf8')))))"` | <1 s |
+| The published schemas match the grammar | `npm run formats:check` | <1 s |
 
-### Testable at the end of 1b
+### Testable at the end of 0b
 
 | What | How |
 |---|---|
@@ -107,7 +111,14 @@ A phase is only done when **all** of these hold:
 | Accessibility of our own output | `spark check report.html --fail-under 95` |
 | Reader without scripting | disable JS / read in a text browser |
 
-### Testable at the end of 1c
+### Testable at the end of 1
+
+| What | How |
+|---|---|
+| A document becomes a page | `spark lower` then `spark emit` — HTML and CSS, byte-identical across two runs |
+| The IR is the only path | the emitted page contains no value that was not in a document or the token store |
+
+### Testable at the end of 2
 
 | What | How |
 |---|---|
@@ -115,7 +126,7 @@ A phase is only done when **all** of these hold:
 | The ratchet | fix a finding, promote it, confirm it cannot come back |
 | SARIF | upload to a code-scanning surface |
 
-### Testable at the end of 1d
+### Testable at the end of 5
 
 | What | How |
 |---|---|
@@ -125,8 +136,10 @@ A phase is only done when **all** of these hold:
 
 ### Not testable yet — and we will not pretend otherwise
 
-Motion safety, the renderer, the three machine faces, and the editor. Those have no code. Any
-demo of them today would be a mock, and mocks are how projects lie.
+A page. The formats accept or refuse a document, and nothing compiles one into HTML yet: `lower` and
+`emit` are the next pull request and are not in this repository. Motion behaviour beyond what
+`MOTION001`–`MOTION007` can see statically, the renderer, the three machine faces and the editor have
+no code. Any demo of them today would be a mock, and mocks are how projects lie.
 
 ---
 
@@ -138,6 +151,8 @@ demo of them today would be a mock, and mocks are how projects lie.
 | **Contrast is undecided without a canvas** in the browserless path | Our most common real finding is unavailable in the default runner | Keep honest; add the browser runner in Phase 1c/2. Scoped by `UNDECIDED.md`: that runner clears `environment` findings — contrast and nothing else — so `judgement` findings stay permanently undecided and must never be sold as pending work |
 | **First-run install** — `npx` pulls the optional engines, `--omit=optional` does not | A failed first command is a lost user | Verify from a packed tarball in CI; make the error message actionable |
 | **Report page is not yet a URL service** | Rung 1 is a link | Local `--serve` now; hosting is a Phase 2 decision, never a gate |
+| **A valid document is not yet a page** | Phase 1's exit criterion is byte-identical emission, and `lower()` has not been written, so every claim in `docs/` is a claim about a *document*, not about output | `lower`/`emit` land before any wording that suggests "build websites with this"; the status blocks in README and `docs/SCENE.md` say so in those words |
+| **Cross-document rules are not enforced yet** | A motion `target.id` must name a scene component, and `tokens.$ref` must resolve to a real file — both are knowable only when a set of documents is loaded together, which is `lower`'s job | Phase 1; until then the validator reports `unresolved` with `complete: false`, never a pass |
 | **Rules are inherited, not ours** | Coverage and messaging are the upstream engine's | Own the *score* and the *rationale*; never fork the engine |
 
 ---

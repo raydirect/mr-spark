@@ -1,0 +1,46 @@
+{
+  "$schema": "https://web-spark.dev/schema/settings-0.1.json",
+  "version": "0.1",
+  "$comment": "The smallest settings document that exercises every rule: two themes, one lint-free palette, and a panel that can edit it.",
+  "meta": { "name": "fixture brand", "version": "1.0.0", "themes": ["light", "dark"] },
+  "color": {
+    "light": {
+      "bg": "#ffffff",
+      "surface": "#f4f6f8",
+      "text": "#14181d",
+      "accent": "#0b5fd0",
+      "accentHover": "#0a54b8"
+    },
+    "dark": {
+      "bg": "#12161b",
+      "surface": "#1a1f26",
+      "text": "#e9edf2",
+      "accent": "#85b4ff",
+      "accentHover": "#a3c6ff"
+    }
+  },
+  "space": { "none": "0", "sm": "0.75rem", "md": "1rem", "lg": "1.5rem", "xl": "2rem" },
+  "radius": { "sm": "4px", "md": "6px", "pill": "999px" },
+  "type": { "size": { "md": "1rem", "lg": "1.25rem" } },
+  "layout": {
+    "breakpoint": { "narrow": "40rem", "wide": "64rem" },
+    "focusWidth": "2px",
+    "focusRing": "2px solid currentcolor",
+    "oneColumn": "1fr",
+    "twoColumns": "1fr 1fr"
+  },
+  "motion": { "instant": "0ms", "fast": "120ms", "base": "200ms" },
+  "contrast": {
+    "minimum": { "text": 4.5, "ui": 3 },
+    "pairs": [
+      { "fg": "text", "bg": "bg" },
+      { "fg": "text", "bg": "surface" },
+      { "fg": "accent", "bg": "bg", "min": 4.5 },
+      { "fg": "accentHover", "bg": "bg", "min": 4.5 }
+    ]
+  },
+  "controls": [
+    { "group": "Colour", "path": "color.accent", "label": "Accent", "type": "color", "writable": true },
+    { "group": "Rhythm", "path": "space.lg", "label": "Section spacing", "type": "slider", "min": 0, "max": 4, "step": 0.25 }
+  ]
+}

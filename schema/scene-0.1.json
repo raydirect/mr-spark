@@ -1,0 +1,1023 @@
+{
+  "$comment": "GENERATED from src/formats/ — edit the format module, not this file. Regenerate with `npm run formats:generate`. Shape only: the semantic rules (SCENE001, SCENE002, SCENE003, SCENE004, SCENE005, SCENE006, SCENE007, SCENE008, SCENE009) are enforced by src/formats/scene.js and cannot travel with this file.",
+  "$defs": {
+    "alpha": {
+      "pattern": "^(?:0|1|0\\.[0-9]{1,2})$",
+      "type": "string"
+    },
+    "color": {
+      "pattern": "^#[0-9a-f]{6}$",
+      "type": "string"
+    },
+    "colorBlock": {
+      "additionalProperties": {
+        "anyOf": [
+          {
+            "$ref": "#/$defs/color"
+          },
+          {
+            "$ref": "#/$defs/colorBlock"
+          }
+        ]
+      },
+      "propertyNames": {
+        "pattern": "^[a-z0-9][A-Za-z0-9]*(?:[.-][A-Za-z0-9]+)*$"
+      },
+      "type": "object"
+    },
+    "componentVariant": {
+      "anyOf": [
+        {
+          "additionalProperties": false,
+          "properties": {
+            "children": {
+              "description": "A container with no children is an empty box; author a child or drop the container.",
+              "items": {
+                "$ref": "#/$defs/componentVariant"
+              },
+              "minItems": 1,
+              "type": "array"
+            },
+            "id": {
+              "$ref": "#/$defs/id"
+            },
+            "props": {
+              "additionalProperties": false,
+              "properties": {},
+              "type": "object"
+            },
+            "type": {
+              "const": "stack"
+            }
+          },
+          "required": [
+            "type"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "children": {
+              "description": "A container with no children is an empty box; author a child or drop the container.",
+              "items": {
+                "$ref": "#/$defs/componentVariant"
+              },
+              "minItems": 1,
+              "type": "array"
+            },
+            "id": {
+              "$ref": "#/$defs/id"
+            },
+            "props": {
+              "additionalProperties": false,
+              "properties": {},
+              "type": "object"
+            },
+            "type": {
+              "const": "grid"
+            }
+          },
+          "required": [
+            "type"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "children": {
+              "description": "A container with no children is an empty box; author a child or drop the container.",
+              "items": {
+                "$ref": "#/$defs/componentVariant"
+              },
+              "minItems": 1,
+              "type": "array"
+            },
+            "id": {
+              "$ref": "#/$defs/id"
+            },
+            "props": {
+              "additionalProperties": false,
+              "properties": {
+                "label": {
+                  "description": "A region without a name is not a landmark a screen reader can offer as a destination.",
+                  "maxLength": 120,
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "role": {
+                  "enum": [
+                    "region",
+                    "form",
+                    "search",
+                    "navigation"
+                  ],
+                  "type": "string"
+                }
+              },
+              "required": [
+                "label"
+              ],
+              "type": "object"
+            },
+            "type": {
+              "const": "region"
+            }
+          },
+          "required": [
+            "type"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "id": {
+              "$ref": "#/$defs/id"
+            },
+            "props": {
+              "additionalProperties": false,
+              "properties": {
+                "level": {
+                  "description": "The heading level. It is authored because a compiler that guesses it produces a page with three h1s.",
+                  "maximum": 6,
+                  "minimum": 1,
+                  "type": "integer"
+                },
+                "text": {
+                  "description": "The visible text. A heading with no text is a section the reader cannot name.",
+                  "maxLength": 400,
+                  "minLength": 1,
+                  "type": "string"
+                }
+              },
+              "required": [
+                "level",
+                "text"
+              ],
+              "type": "object"
+            },
+            "type": {
+              "const": "heading"
+            }
+          },
+          "required": [
+            "type"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "id": {
+              "$ref": "#/$defs/id"
+            },
+            "props": {
+              "additionalProperties": false,
+              "properties": {
+                "as": {
+                  "enum": [
+                    "p",
+                    "span",
+                    "figcaption",
+                    "blockquote",
+                    "lead"
+                  ],
+                  "type": "string"
+                },
+                "size": {
+                  "anyOf": [
+                    {
+                      "pattern": "^^[a-z][A-Za-z0-9]*(\\.[A-Za-z0-9]+)+$$",
+                      "type": "string"
+                    },
+                    {
+                      "$ref": "#/$defs/length"
+                    }
+                  ],
+                  "description": "A token reference, or a literal. A literal is legal and reported as a lint."
+                },
+                "text": {
+                  "maxLength": 20000,
+                  "minLength": 1,
+                  "type": "string"
+                }
+              },
+              "required": [
+                "text"
+              ],
+              "type": "object"
+            },
+            "type": {
+              "const": "text"
+            }
+          },
+          "required": [
+            "type"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "id": {
+              "$ref": "#/$defs/id"
+            },
+            "props": {
+              "additionalProperties": false,
+              "properties": {
+                "external": {
+                  "description": "The emitter adds `rel=\"noopener\"` for this; it is not authored, so it cannot be forgotten.",
+                  "type": "boolean"
+                },
+                "href": {
+                  "description": "A real destination. `#` alone is not one — see SCENE006.",
+                  "pattern": "^(?:#|/|https?://|mailto:|tel:)",
+                  "type": "string"
+                },
+                "label": {
+                  "maxLength": 200,
+                  "minLength": 1,
+                  "type": "string"
+                }
+              },
+              "required": [
+                "href",
+                "label"
+              ],
+              "type": "object"
+            },
+            "type": {
+              "const": "link"
+            }
+          },
+          "required": [
+            "type"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "id": {
+              "$ref": "#/$defs/id"
+            },
+            "props": {
+              "additionalProperties": false,
+              "properties": {
+                "disabled": {
+                  "type": "boolean"
+                },
+                "label": {
+                  "description": "The accessible name. There is no icon-only button in v1: an icon without a text label cannot be checked, translated, or read.",
+                  "maxLength": 120,
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "tone": {
+                  "anyOf": [
+                    {
+                      "pattern": "^^[a-z][A-Za-z0-9]*(\\.[A-Za-z0-9]+)+$$",
+                      "type": "string"
+                    },
+                    {
+                      "$ref": "#/$defs/color"
+                    }
+                  ],
+                  "description": "A token reference, or a literal. A literal is legal and reported as a lint."
+                },
+                "type": {
+                  "description": "Defaults to `button`, which is the safe default and the one that never submits a form by accident.",
+                  "enum": [
+                    "button",
+                    "submit"
+                  ],
+                  "type": "string"
+                }
+              },
+              "required": [
+                "label"
+              ],
+              "type": "object"
+            },
+            "type": {
+              "const": "button"
+            }
+          },
+          "required": [
+            "type"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "id": {
+              "$ref": "#/$defs/id"
+            },
+            "props": {
+              "additionalProperties": false,
+              "properties": {
+                "alt": {
+                  "description": "Required, and `\"\"` is a legal answer: it means decorative, which is a statement, not an omission.",
+                  "maxLength": 500,
+                  "type": "string"
+                },
+                "height": {
+                  "anyOf": [
+                    {
+                      "pattern": "^^[a-z][A-Za-z0-9]*(\\.[A-Za-z0-9]+)+$$",
+                      "type": "string"
+                    },
+                    {
+                      "$ref": "#/$defs/length"
+                    }
+                  ],
+                  "description": "A token reference, or a literal. A literal is legal and reported as a lint."
+                },
+                "src": {
+                  "description": "An asset id from `assets`, or an absolute URL. A bare filename that is not a declared asset is a broken image waiting for production.",
+                  "pattern": "^(?:[a-z][a-z0-9-]*|https?://\\S+)$",
+                  "type": "string"
+                },
+                "width": {
+                  "anyOf": [
+                    {
+                      "pattern": "^^[a-z][A-Za-z0-9]*(\\.[A-Za-z0-9]+)+$$",
+                      "type": "string"
+                    },
+                    {
+                      "$ref": "#/$defs/length"
+                    }
+                  ],
+                  "description": "A token reference, or a literal. A literal is legal and reported as a lint."
+                }
+              },
+              "required": [
+                "alt",
+                "src"
+              ],
+              "type": "object"
+            },
+            "type": {
+              "const": "image"
+            }
+          },
+          "required": [
+            "type"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "id": {
+              "$ref": "#/$defs/id"
+            },
+            "props": {
+              "additionalProperties": false,
+              "properties": {
+                "autocomplete": {
+                  "pattern": "^[a-z][a-z-]{0,47}$",
+                  "type": "string"
+                },
+                "kind": {
+                  "enum": [
+                    "text",
+                    "email",
+                    "tel",
+                    "url",
+                    "number",
+                    "password",
+                    "search",
+                    "checkbox",
+                    "radio",
+                    "date"
+                  ],
+                  "type": "string"
+                },
+                "label": {
+                  "description": "Required. A placeholder is not a label, and a field authored without one cannot be emitted with one.",
+                  "maxLength": 120,
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "name": {
+                  "pattern": "^[A-Za-z][A-Za-z0-9_]{0,62}$",
+                  "type": "string"
+                },
+                "required": {
+                  "type": "boolean"
+                }
+              },
+              "required": [
+                "kind",
+                "label",
+                "name"
+              ],
+              "type": "object"
+            },
+            "type": {
+              "const": "input"
+            }
+          },
+          "required": [
+            "type"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "children": {
+              "description": "A container with no children is an empty box; author a child or drop the container.",
+              "items": {
+                "$ref": "#/$defs/componentVariant"
+              },
+              "minItems": 1,
+              "type": "array"
+            },
+            "id": {
+              "$ref": "#/$defs/id"
+            },
+            "props": {
+              "additionalProperties": false,
+              "properties": {
+                "ordered": {
+                  "type": "boolean"
+                }
+              },
+              "type": "object"
+            },
+            "type": {
+              "const": "list"
+            }
+          },
+          "required": [
+            "type"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "id": {
+              "$ref": "#/$defs/id"
+            },
+            "props": {
+              "additionalProperties": false,
+              "properties": {
+                "label": {
+                  "maxLength": 120,
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "options": {
+                  "items": {
+                    "additionalProperties": false,
+                    "properties": {
+                      "disabled": {
+                        "type": "boolean"
+                      },
+                      "label": {
+                        "maxLength": 120,
+                        "minLength": 1,
+                        "type": "string"
+                      },
+                      "value": {
+                        "maxLength": 80,
+                        "minLength": 1,
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "label",
+                      "value"
+                    ],
+                    "type": "object"
+                  },
+                  "minItems": 1,
+                  "type": "array"
+                },
+                "value": {
+                  "maxLength": 80,
+                  "type": "string"
+                }
+              },
+              "required": [
+                "label",
+                "options"
+              ],
+              "type": "object"
+            },
+            "type": {
+              "const": "listbox"
+            }
+          },
+          "required": [
+            "type"
+          ],
+          "type": "object"
+        }
+      ]
+    },
+    "cssValue": {
+      "maxLength": 200,
+      "minLength": 1,
+      "pattern": "^[^;{}<>#]+$",
+      "type": "string"
+    },
+    "duration": {
+      "pattern": "^(?:(?:0|[1-9][0-9]*)(?:\\.[0-9]+)?)(?:ms|s)$",
+      "type": "string"
+    },
+    "id": {
+      "pattern": "^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$",
+      "type": "string"
+    },
+    "lang": {
+      "pattern": "^[A-Za-z]{2,3}(?:-[A-Za-z0-9]{2,8})*$",
+      "type": "string"
+    },
+    "layoutBlock": {
+      "additionalProperties": false,
+      "properties": {
+        "align": {
+          "enum": [
+            "start",
+            "center",
+            "end",
+            "stretch",
+            "baseline"
+          ],
+          "type": "string"
+        },
+        "cols": {
+          "anyOf": [
+            {
+              "pattern": "^^[a-z][A-Za-z0-9]*(\\.[A-Za-z0-9]+)+$$",
+              "type": "string"
+            },
+            {
+              "$ref": "#/$defs/cssValue"
+            }
+          ],
+          "description": "A token reference, or a literal. A literal is legal and reported as a lint."
+        },
+        "display": {
+          "enum": [
+            "block",
+            "flex",
+            "grid",
+            "inline-flex"
+          ],
+          "type": "string"
+        },
+        "gap": {
+          "anyOf": [
+            {
+              "pattern": "^^[a-z][A-Za-z0-9]*(\\.[A-Za-z0-9]+)+$$",
+              "type": "string"
+            },
+            {
+              "$ref": "#/$defs/length"
+            }
+          ],
+          "description": "A token reference, or a literal. A literal is legal and reported as a lint."
+        },
+        "justify": {
+          "enum": [
+            "start",
+            "center",
+            "end",
+            "stretch",
+            "between",
+            "around",
+            "evenly"
+          ],
+          "type": "string"
+        },
+        "margin": {
+          "anyOf": [
+            {
+              "pattern": "^^[a-z][A-Za-z0-9]*(\\.[A-Za-z0-9]+)+$$",
+              "type": "string"
+            },
+            {
+              "$ref": "#/$defs/length"
+            }
+          ],
+          "description": "A token reference, or a literal. A literal is legal and reported as a lint."
+        },
+        "maxWidth": {
+          "anyOf": [
+            {
+              "pattern": "^^[a-z][A-Za-z0-9]*(\\.[A-Za-z0-9]+)+$$",
+              "type": "string"
+            },
+            {
+              "$ref": "#/$defs/length"
+            }
+          ],
+          "description": "A token reference, or a literal. A literal is legal and reported as a lint."
+        },
+        "minWidth": {
+          "anyOf": [
+            {
+              "pattern": "^^[a-z][A-Za-z0-9]*(\\.[A-Za-z0-9]+)+$$",
+              "type": "string"
+            },
+            {
+              "$ref": "#/$defs/length"
+            }
+          ],
+          "description": "A token reference, or a literal. A literal is legal and reported as a lint."
+        },
+        "pad": {
+          "anyOf": [
+            {
+              "pattern": "^^[a-z][A-Za-z0-9]*(\\.[A-Za-z0-9]+)+$$",
+              "type": "string"
+            },
+            {
+              "$ref": "#/$defs/length"
+            }
+          ],
+          "description": "A token reference, or a literal. A literal is legal and reported as a lint."
+        },
+        "responsive": {
+          "additionalProperties": {
+            "$ref": "#/$defs/layoutBlock"
+          },
+          "type": "object"
+        },
+        "rows": {
+          "anyOf": [
+            {
+              "pattern": "^^[a-z][A-Za-z0-9]*(\\.[A-Za-z0-9]+)+$$",
+              "type": "string"
+            },
+            {
+              "$ref": "#/$defs/cssValue"
+            }
+          ],
+          "description": "A token reference, or a literal. A literal is legal and reported as a lint."
+        },
+        "span": {
+          "maximum": 12,
+          "minimum": 1,
+          "type": "integer"
+        }
+      },
+      "type": "object"
+    },
+    "length": {
+      "pattern": "^(?:0|(?:(?:0|[1-9][0-9]*)(?:\\.[0-9]+)?)(?:px|rem|em|%))$",
+      "type": "string"
+    },
+    "propertyValue": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/tokenRef"
+        },
+        {
+          "$ref": "#/$defs/length"
+        },
+        {
+          "$ref": "#/$defs/alpha"
+        },
+        {
+          "$ref": "#/$defs/duration"
+        },
+        {
+          "$ref": "#/$defs/cssValue"
+        }
+      ]
+    },
+    "tokenRef": {
+      "description": "A dotted reference into the token store, e.g. \"space.lg\".",
+      "pattern": "^^[a-z][A-Za-z0-9]*(\\.[A-Za-z0-9]+)+$$",
+      "type": "string"
+    },
+    "tokenStoreInline": {
+      "additionalProperties": false,
+      "properties": {
+        "color": {
+          "additionalProperties": {
+            "$ref": "#/$defs/colorBlock"
+          },
+          "propertyNames": {
+            "pattern": "^[a-z][A-Za-z0-9]*$"
+          },
+          "type": "object"
+        },
+        "layout": {
+          "$ref": "#/$defs/valueBlock"
+        },
+        "motion": {
+          "additionalProperties": {
+            "$ref": "#/$defs/duration"
+          },
+          "propertyNames": {
+            "pattern": "^[a-z0-9][A-Za-z0-9]*(?:[.-][A-Za-z0-9]+)*$"
+          },
+          "type": "object"
+        },
+        "radius": {
+          "additionalProperties": {
+            "$ref": "#/$defs/length"
+          },
+          "propertyNames": {
+            "pattern": "^[a-z0-9][A-Za-z0-9]*(?:[.-][A-Za-z0-9]+)*$"
+          },
+          "type": "object"
+        },
+        "space": {
+          "additionalProperties": {
+            "$ref": "#/$defs/length"
+          },
+          "propertyNames": {
+            "pattern": "^[a-z0-9][A-Za-z0-9]*(?:[.-][A-Za-z0-9]+)*$"
+          },
+          "type": "object"
+        },
+        "type": {
+          "$ref": "#/$defs/valueBlock"
+        }
+      },
+      "type": "object"
+    },
+    "valueBlock": {
+      "additionalProperties": {
+        "anyOf": [
+          {
+            "$ref": "#/$defs/propertyValue"
+          },
+          {
+            "$ref": "#/$defs/valueBlock"
+          }
+        ]
+      },
+      "propertyNames": {
+        "pattern": "^[a-z0-9][A-Za-z0-9]*(?:[.-][A-Za-z0-9]+)*$"
+      },
+      "type": "object"
+    }
+  },
+  "$id": "https://web-spark.dev/schema/scene-0.1.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "description": "Structure, layout, states and assets for one page. Compiles to semantic HTML and CSS, and nothing else.",
+  "properties": {
+    "$schema": {
+      "const": "https://web-spark.dev/schema/scene-0.1.json",
+      "description": "The schema this document claims to satisfy. Required, so a document cannot be validated against the wrong vocabulary by accident."
+    },
+    "a11y": {
+      "additionalProperties": false,
+      "properties": {
+        "landmarks": {
+          "items": {
+            "additionalProperties": false,
+            "properties": {
+              "contains": {
+                "$ref": "#/$defs/id",
+                "description": "The component that carries this landmark. One id, so the mapping is auditable rather than implied."
+              },
+              "role": {
+                "enum": [
+                  "banner",
+                  "navigation",
+                  "main",
+                  "complementary",
+                  "contentinfo",
+                  "search",
+                  "form",
+                  "region"
+                ],
+                "type": "string"
+              }
+            },
+            "required": [
+              "contains",
+              "role"
+            ],
+            "type": "object"
+          },
+          "minItems": 1,
+          "type": "array"
+        },
+        "skipLink": {
+          "description": "Emitted as the first focusable element on the page, pointing at `main`.",
+          "type": "boolean"
+        }
+      },
+      "type": "object"
+    },
+    "assets": {
+      "items": {
+        "additionalProperties": false,
+        "properties": {
+          "altDefault": {
+            "description": "Fallback alt text for an asset used without an explicit `alt`.",
+            "maxLength": 300,
+            "type": "string"
+          },
+          "id": {
+            "$ref": "#/$defs/id"
+          },
+          "kind": {
+            "enum": [
+              "svg",
+              "png",
+              "jpg",
+              "webp",
+              "avif",
+              "woff2"
+            ],
+            "type": "string"
+          },
+          "path": {
+            "description": "Relative to this document. An absolute path is a build that only works on one machine.",
+            "maxLength": 300,
+            "minLength": 1,
+            "type": "string"
+          },
+          "sha256": {
+            "description": "Content address. A changed file with an unchanged hash is a build error, not a warning.",
+            "pattern": "^[a-f0-9]{64}$",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "kind",
+          "path",
+          "sha256"
+        ],
+        "type": "object"
+      },
+      "type": "array"
+    },
+    "components": {
+      "items": {
+        "$ref": "#/$defs/componentVariant"
+      },
+      "minItems": 1,
+      "type": "array"
+    },
+    "layout": {
+      "additionalProperties": {
+        "$ref": "#/$defs/layoutBlock"
+      },
+      "propertyNames": {
+        "pattern": "^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$"
+      },
+      "type": "object"
+    },
+    "meta": {
+      "additionalProperties": false,
+      "properties": {
+        "description": {
+          "description": "Free text for the humans who inherit this file.",
+          "maxLength": 400,
+          "type": "string"
+        },
+        "lang": {
+          "$ref": "#/$defs/lang"
+        },
+        "name": {
+          "description": "What this document calls itself. Appears in report provenance and in the studio tab.",
+          "maxLength": 120,
+          "minLength": 1,
+          "type": "string"
+        },
+        "title": {
+          "maxLength": 120,
+          "minLength": 1,
+          "type": "string"
+        },
+        "version": {
+          "description": "The version of what this document describes — the brand, the kit. Not the format version, which is the root `version`.",
+          "pattern": "^\\d+\\.\\d+\\.\\d+$",
+          "type": "string"
+        }
+      },
+      "required": [
+        "name"
+      ],
+      "type": "object"
+    },
+    "states": {
+      "additionalProperties": {
+        "additionalProperties": {
+          "additionalProperties": false,
+          "properties": {
+            "background": {
+              "anyOf": [
+                {
+                  "pattern": "^^[a-z][A-Za-z0-9]*(\\.[A-Za-z0-9]+)+$$",
+                  "type": "string"
+                },
+                {
+                  "$ref": "#/$defs/color"
+                }
+              ],
+              "description": "A token reference, or a literal. A literal is legal and reported as a lint."
+            },
+            "border": {
+              "description": "A dotted reference into the token store, e.g. \"space.lg\".",
+              "pattern": "^^[a-z][A-Za-z0-9]*(\\.[A-Za-z0-9]+)+$$",
+              "type": "string"
+            },
+            "color": {
+              "anyOf": [
+                {
+                  "pattern": "^^[a-z][A-Za-z0-9]*(\\.[A-Za-z0-9]+)+$$",
+                  "type": "string"
+                },
+                {
+                  "$ref": "#/$defs/color"
+                }
+              ],
+              "description": "A token reference, or a literal. A literal is legal and reported as a lint."
+            },
+            "opacity": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/tokenRef"
+                },
+                {
+                  "$ref": "#/$defs/alpha"
+                }
+              ]
+            },
+            "outline": {
+              "description": "A dotted reference into the token store, e.g. \"space.lg\".",
+              "pattern": "^^[a-z][A-Za-z0-9]*(\\.[A-Za-z0-9]+)+$$",
+              "type": "string"
+            },
+            "radius": {
+              "anyOf": [
+                {
+                  "pattern": "^^[a-z][A-Za-z0-9]*(\\.[A-Za-z0-9]+)+$$",
+                  "type": "string"
+                },
+                {
+                  "$ref": "#/$defs/length"
+                }
+              ],
+              "description": "A token reference, or a literal. A literal is legal and reported as a lint."
+            },
+            "shadow": {
+              "description": "A dotted reference into the token store, e.g. \"space.lg\".",
+              "pattern": "^^[a-z][A-Za-z0-9]*(\\.[A-Za-z0-9]+)+$$",
+              "type": "string"
+            }
+          },
+          "type": "object"
+        },
+        "type": "object"
+      },
+      "description": "Component id → state → property → value.",
+      "propertyNames": {
+        "pattern": "^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$"
+      },
+      "type": "object"
+    },
+    "tokens": {
+      "anyOf": [
+        {
+          "additionalProperties": false,
+          "properties": {
+            "$ref": {
+              "pattern": "\\.spark\\.settings\\.json(?:#/(?:color|space|radius|type|layout|motion))?$",
+              "type": "string"
+            }
+          },
+          "required": [
+            "$ref"
+          ],
+          "type": "object"
+        },
+        {
+          "$ref": "#/$defs/tokenStoreInline"
+        }
+      ],
+      "description": "Either `{\"$ref\": \"./brand.spark.settings.json\"}` or, for a self-contained document, the token groups written inline. A scene with no `tokens` at all can only use literal values, and every one of them is a lint."
+    },
+    "version": {
+      "const": "0.1",
+      "description": "The format version this document is written against. This build implements \"0.1\" and refuses every other."
+    }
+  },
+  "required": [
+    "$schema",
+    "components",
+    "meta",
+    "version"
+  ],
+  "title": "Scene document",
+  "type": "object"
+}

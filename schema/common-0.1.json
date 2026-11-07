@@ -1,0 +1,182 @@
+{
+  "$comment": "GENERATED from src/formats/ — edit the format module, not this file. Regenerate with `npm run formats:generate`.",
+  "$defs": {
+    "alpha": {
+      "pattern": "^(?:0|1|0\\.[0-9]{1,2})$",
+      "type": "string"
+    },
+    "color": {
+      "pattern": "^#[0-9a-f]{6}$",
+      "type": "string"
+    },
+    "colorBlock": {
+      "additionalProperties": {
+        "anyOf": [
+          {
+            "$ref": "#/$defs/color"
+          },
+          {
+            "$ref": "#/$defs/colorBlock"
+          }
+        ]
+      },
+      "propertyNames": {
+        "pattern": "^[a-z0-9][A-Za-z0-9]*(?:[.-][A-Za-z0-9]+)*$"
+      },
+      "type": "object"
+    },
+    "colorPath": {
+      "pattern": "^[a-z][A-Za-z0-9]*(?:\\.[A-Za-z0-9]+)*$",
+      "type": "string"
+    },
+    "cssValue": {
+      "maxLength": 200,
+      "minLength": 1,
+      "pattern": "^[^;{}<>#]+$",
+      "type": "string"
+    },
+    "duration": {
+      "pattern": "^(?:(?:0|[1-9][0-9]*)(?:\\.[0-9]+)?)(?:ms|s)$",
+      "type": "string"
+    },
+    "easing": {
+      "anyOf": [
+        {
+          "enum": [
+            "linear",
+            "ease",
+            "ease-in",
+            "ease-out",
+            "ease-in-out",
+            "power1.in",
+            "power1.out",
+            "power1.inOut",
+            "power2.in",
+            "power2.out",
+            "power2.inOut",
+            "power3.in",
+            "power3.out",
+            "power3.inOut",
+            "power4.in",
+            "power4.out",
+            "power4.inOut",
+            "quad.in",
+            "quad.out",
+            "quad.inOut",
+            "cubic.in",
+            "cubic.out",
+            "cubic.inOut",
+            "quart.in",
+            "quart.out",
+            "quart.inOut",
+            "quint.in",
+            "quint.out",
+            "quint.inOut",
+            "sine.in",
+            "sine.out",
+            "sine.inOut",
+            "circ.in",
+            "circ.out",
+            "circ.inOut",
+            "expo.in",
+            "expo.out",
+            "expo.inOut",
+            "bounce.in",
+            "bounce.out",
+            "bounce.inOut"
+          ],
+          "type": "string"
+        },
+        {
+          "pattern": "^(?:(?:back|elastic)\\.(?:in|out|inOut)\\(\\s*\\d+(?:\\.\\d+)?(?:\\s*,\\s*\\d+(?:\\.\\d+)?)?\\s*\\)|steps\\(\\s*(?:[1-9]|1\\d|2[0-4])\\s*,\\s*(?:start|end)\\s*\\))$",
+          "type": "string"
+        }
+      ]
+    },
+    "id": {
+      "pattern": "^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$",
+      "type": "string"
+    },
+    "lang": {
+      "pattern": "^[A-Za-z]{2,3}(?:-[A-Za-z0-9]{2,8})*$",
+      "type": "string"
+    },
+    "length": {
+      "pattern": "^(?:0|(?:(?:0|[1-9][0-9]*)(?:\\.[0-9]+)?)(?:px|rem|em|%))$",
+      "type": "string"
+    },
+    "meta": {
+      "additionalProperties": false,
+      "properties": {
+        "description": {
+          "description": "Free text for the humans who inherit this file.",
+          "maxLength": 400,
+          "type": "string"
+        },
+        "name": {
+          "description": "What this document calls itself. Appears in report provenance and in the studio tab.",
+          "maxLength": 120,
+          "minLength": 1,
+          "type": "string"
+        },
+        "version": {
+          "description": "The version of what this document describes — the brand, the kit. Not the format version, which is the root `version`.",
+          "pattern": "^\\d+\\.\\d+\\.\\d+$",
+          "type": "string"
+        }
+      },
+      "required": [
+        "name"
+      ],
+      "type": "object"
+    },
+    "propertyValue": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/tokenRef"
+        },
+        {
+          "$ref": "#/$defs/length"
+        },
+        {
+          "$ref": "#/$defs/alpha"
+        },
+        {
+          "$ref": "#/$defs/duration"
+        },
+        {
+          "$ref": "#/$defs/cssValue"
+        }
+      ]
+    },
+    "themeName": {
+      "pattern": "^[a-z][a-z0-9]*$",
+      "type": "string"
+    },
+    "tokenRef": {
+      "description": "A dotted reference into the token store, e.g. \"space.lg\".",
+      "pattern": "^^[a-z][A-Za-z0-9]*(\\.[A-Za-z0-9]+)+$$",
+      "type": "string"
+    },
+    "valueBlock": {
+      "additionalProperties": {
+        "anyOf": [
+          {
+            "$ref": "#/$defs/propertyValue"
+          },
+          {
+            "$ref": "#/$defs/valueBlock"
+          }
+        ]
+      },
+      "propertyNames": {
+        "pattern": "^[a-z0-9][A-Za-z0-9]*(?:[.-][A-Za-z0-9]+)*$"
+      },
+      "type": "object"
+    }
+  },
+  "$id": "https://web-spark.dev/schema/common-0.1.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "description": "Ids, lengths, durations, colours, token references and eases — defined once, referenced by all three formats.",
+  "title": "Shared vocabulary for web-spark documents"
+}

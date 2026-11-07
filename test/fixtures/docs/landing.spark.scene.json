@@ -1,0 +1,84 @@
+{
+  "$schema": "https://web-spark.dev/schema/scene-0.1.json",
+  "version": "0.1",
+  "$comment": "A page authored as a document. Every visual value here is a token; the one literal is deliberate and is a lint in test/formats.test.js.",
+  "meta": { "name": "landing", "lang": "en", "title": "Black Friday" },
+  "tokens": { "$ref": "./brand.spark.settings.json" },
+
+  "components": [
+    {
+      "id": "hero",
+      "type": "stack",
+      "children": [
+        { "id": "hero-title", "type": "heading", "props": { "level": 1, "text": "Black Friday" } },
+        { "id": "hero-copy", "type": "text", "props": { "text": "Deals worth getting up for.", "as": "lead", "size": "type.size.lg" } },
+        { "id": "hero-cta", "type": "button", "props": { "label": "Shop deals", "tone": "color.accent" } },
+        { "id": "hero-image", "type": "image", "props": { "src": "logo", "alt": "" } },
+        { "id": "hero-offers", "type": "list", "props": { "ordered": true }, "children": [
+          { "type": "text", "props": { "text": "Free shipping over 50" } },
+          { "type": "text", "props": { "text": "Two-year warranty" } }
+        ] }
+      ]
+    },
+    {
+      "id": "signup",
+      "type": "region",
+      "props": { "label": "Email me when the sale starts", "role": "form" },
+      "children": [
+        { "id": "signup-email", "type": "input", "props": { "name": "email", "label": "Email address", "kind": "email", "autocomplete": "email", "required": true } },
+        { "id": "signup-submit", "type": "button", "props": { "label": "Remind me" } }
+      ]
+    },
+    {
+      "id": "deals",
+      "type": "grid",
+      "children": [
+        { "id": "deal-one", "type": "heading", "props": { "level": 2, "text": "Up to 40% off" } },
+        { "id": "deal-two", "type": "heading", "props": { "level": 2, "text": "Doorbusters, hourly" } }
+      ]
+    }
+  ],
+
+  "layout": {
+    "hero": { "display": "grid", "cols": "layout.oneColumn", "gap": "space.lg", "pad": "space.xl", "align": "center" },
+    "signup": { "display": "flex", "gap": "space.sm", "pad": "space.lg" },
+    "deals": {
+      "display": "grid",
+      "cols": "layout.twoColumns",
+      "gap": "space.md",
+      "responsive": { "narrow": { "cols": "layout.oneColumn" } }
+    }
+  },
+
+  "states": {
+    "hero-cta": {
+      "default": { "background": "color.accent", "color": "color.bg" },
+      "hover": { "background": "color.accentHover" },
+      "focus-visible": { "outline": "layout.focusRing" },
+      "disabled": { "opacity": "0.5" }
+    },
+    "signup-submit": {
+      "default": { "background": "color.text", "color": "color.bg" },
+      "hover": { "background": "color.accent" },
+      "focus-visible": { "outline": "layout.focusRing" }
+    },
+    "signup-email": {
+      "default": { "border": "layout.focusRing", "background": "color.surface" },
+      "focus-visible": { "outline": "layout.focusRing" },
+      "invalid": { "border": "layout.focusRing", "color": "color.accentHover" }
+    }
+  },
+
+  "assets": [
+    { "id": "logo", "kind": "svg", "path": "./logo.svg", "sha256": "0f2f157227e5c132466efda7e55a7d00b9c0ab4b1a52f74a4d9d0d1e0a5b1c4d" }
+  ],
+
+  "a11y": {
+    "landmarks": [
+      { "role": "banner", "contains": "hero" },
+      { "role": "main", "contains": "deals" },
+      { "role": "form", "contains": "signup" }
+    ],
+    "skipLink": true
+  }
+}
