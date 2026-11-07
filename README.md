@@ -40,8 +40,8 @@ On Windows 11 with PowerShell, see [docs/WINDOWS.md](docs/WINDOWS.md) for the ve
 accounts for `localhost`/IPv6, `$LASTEXITCODE` and the editor setup.
 
 ```bash
-git clone https://github.com/raydirect/mr-spark.git
-cd mr-spark
+git clone https://github.com/raydirect/web-spark.git   # being renamed to raydirect/mr-spark; until then this is the path that resolves
+cd web-spark
 npm ci
 node bin/spark.js check fixtures/bad.html
 ```

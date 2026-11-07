@@ -6,8 +6,8 @@ that is a bug worth reporting — see the end.
 ## 0. The one-line version
 
 ```powershell
-git clone https://github.com/raydirect/mr-spark.git
-cd mr-spark
+git clone https://github.com/raydirect/web-spark.git
+cd web-spark
 npm ci
 node bin/spark.js check fixtures/bad.html
 ```
@@ -18,9 +18,9 @@ in use, and the error is `The process cannot access the file because it is being
 process`. Then, from `D:\Ray`:
 
 ```powershell
-Move-Item mr-spark mr-spark-mine     # only if mr-spark is your own folder of pages
-git clone https://github.com/raydirect/mr-spark.git
-Move-Item .\mr-spark-mine\html-bak .\mr-spark\html-bak
+Move-Item web-spark web-spark-mine     # only if web-spark is your own folder of pages
+git clone https://github.com/raydirect/web-spark.git
+Move-Item .\web-spark-mine\html-bak .\web-spark\html-bak
 ```
 
 Or skip all of it: clone beside the folder and pass the page path to the tool, which takes an
