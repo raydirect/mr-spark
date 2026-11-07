@@ -37,7 +37,12 @@ export class ConfigError extends Error {
 }
 
 const SUPPRESSION_KEYS = new Set(['ruleId', 'selector', 'reason', 'expires', 'all']);
-const TOP_LEVEL_KEYS = new Set(['$schema', 'version', 'suppress']);
+/**
+ * The config keys. `baseline` lives here as well as on the command line because the choice of gate file is
+ * a property of the *project*, not of the invocation: a CI workflow that passes `--baseline` by hand is a
+ * workflow that can silently point at the wrong file.
+ */
+const TOP_LEVEL_KEYS = new Set(['$schema', 'version', 'suppress', 'baseline']);
 
 /**
  * Validate and normalise a config object. Returns `{ suppressions }` with defaults filled in.
@@ -50,6 +55,10 @@ export function parseConfig(raw) {
   for (const key of Object.keys(raw)) {
     if (!TOP_LEVEL_KEYS.has(key)) throw new ConfigError(`unknown key "${key}"`);
   }
+  if (raw.baseline !== undefined && (typeof raw.baseline !== 'string' || !raw.baseline.trim())) {
+    throw new ConfigError('"baseline" must be a path, as a string');
+  }
+
   const list = raw.suppress ?? [];
   if (!Array.isArray(list)) throw new ConfigError('"suppress" must be an array');
 
@@ -85,7 +94,7 @@ export function parseConfig(raw) {
     });
   });
 
-  return { suppressions };
+  return { suppressions, baseline: raw.baseline ?? null };
 }
 
 /** Read a config file. A missing file is not an error — it means "no suppressions". */
@@ -94,7 +103,7 @@ export async function loadConfig(path) {
   try {
     text = await readFile(path, 'utf8');
   } catch {
-    return { suppressions: [], path: null };
+    return { suppressions: [], baseline: null, path: null };
   }
   let raw;
   try {

@@ -24,18 +24,27 @@ export const COPY = Object.freeze({
     format: 'check output format (default: terminal)',
     failUnder: 'exit 1 when conformance is below this score',
     noColor: 'disable ANSI colour',
-    out: 'report: write HTML here (default: ./spark-report.html); emit: output directory (default: ./build); lower: IR file',
+    out:
+      'report: write HTML here (default: ./spark-report.html); --format json|sarif: write the payload here;' +
+      ' emit: output directory (default: ./build); lower: IR file',
     serve: 'report: also serve it over HTTP',
     port: 'report: port for --serve (default: 4321)',
     quiet: 'machine output: one tab-separated line per finding, no prose',
     config: 'path to spark.config.json (default: alongside the target)',
+    baseline: 'write the current findings to .spark-baseline.json',
+    ci: 'fail only on findings the baseline does not already have',
+    baselinePath: 'path to the baseline file (default: ./.spark-baseline.json, or "baseline" in spark.config.json)',
+    strict: 'with --ci: findings from rules the baseline never saw also block',
     lower: 'lower a document set to the IR (JSON)',
     emit: 'lower a document set and write HTML + CSS',
     settings: 'document set: resolve tokens against this settings document instead of the one the scene references',
+    warnStrict: '--strict only means something next to --ci: it is a decision about what the gate blocks',
+    warnCiOnBaseline:
+      'ignored: `spark baseline` writes the file that --ci reads, so there is nothing to compare on this run',
     exitCodes: 'Exit codes',
     exitOk: 'audit completed, thresholds met',
     exitThreshold: 'audit completed, thresholds not met',
-    exitCouldNotRun: 'audit could not run (bad input, missing engine)',
+    exitCouldNotRun: 'audit could not run (bad input, missing engine, no baseline to compare against)',
     measuredNote:
       'Other pillars report "—" until they are built; an unmeasured pillar is a gap, never a passing grade.',
   },
@@ -55,6 +64,16 @@ export const COPY = Object.freeze({
   // ---------------------------------------------------------------- states
   state: {
     notMeasured: 'not measured in this build',
+    /**
+     * The sentence a `spark baseline` run ends on. It says "the floor, not the failure" on purpose: the
+     * reader has just been shown a few hundred findings, and the difference between adopting them and
+     * giving up on the tool is whether that number reads as permission to ship or as a verdict.
+     */
+    baselineWritten: (file, findings, rules) =>
+      `wrote ${file}: ${findings} finding(s) across ${rules} rule(s) are now the floor, not the failure`,
+    baselineEmpty: (file) =>
+      `wrote ${file}: an empty baseline — this page has nothing to carry forward, and the gate will stop the ` +
+      'first finding it ever sees',
     fragmentNotice:
       'this input is a fragment, not a whole page — checks about the document (title, language,' +
       ' skip link) are undecided here, because they describe the page it was taken from',
@@ -223,6 +242,34 @@ export const COPY = Object.freeze({
     irNoDocument: 'this IR carries no document — it was lowered from a motion or settings file alone, so there is no page to emit',
   },
 
+  // ---------------------------------------------------------------- the gate
+  /**
+   * The baseline gate's sentences. Kept together because they are read in one screenful and because the
+   * wording is the product: "400 known findings, +2 new" has to land as *progress you can keep*, not as
+   * a wall of red that gets the workflow disabled.
+   */
+  gate: {
+    summary: (blocking, escalated, resolved, unchanged) => {
+      const parts = [];
+      parts.push(blocking === 0 ? 'no new findings' : `${blocking} new`);
+      if (escalated) parts.push(`${escalated} worse`);
+      if (resolved) parts.push(`${resolved} fixed`);
+      parts.push(`${unchanged} already known`);
+      return `gate · ${parts.join(' · ')}`;
+    },
+    entry: (rule, count, anchor, impact) =>
+      `+${count} ${rule} at ${anchor}${impact && impact !== 'unknown' ? ` (${impact})` : ''}`,
+    escalated: (rule, from, to, anchor) => `${rule} went ${from} → ${to} at ${anchor}`,
+    more: (n) => `… and ${n} more; run without --quiet to see the list`,
+    adoptable: (count, rules) =>
+      `${count} finding(s) come from rules this baseline predates (${rules}) — reported, not blocking. ` +
+      'Run `spark baseline` to adopt them, or use --strict to block on them today.',
+    specChanged: (from, to) =>
+      `score spec changed since the baseline (${from} → ${to}): counts still compare, scores do not`,
+    howToFix:
+      'either fix them, or accept them deliberately with `spark baseline` and say why in the commit',
+  },
+
   // ---------------------------------------------------------------- CLI errors
   errors: {
     unknownArgument: (arg) => `Unknown argument: ${arg}`,
@@ -231,6 +278,22 @@ export const COPY = Object.freeze({
     cannotRead: (name) => `Cannot read ${name} — no such file`,
     unreachable: (target, cause) => `Could not reach ${target}: ${cause}`,
     badStatus: (target, status) => `${target} returned ${status}`,
+    noBaseline: (file) =>
+      `--ci needs a baseline and ${file} does not exist — run \`spark baseline\` once and commit the file. ` +
+      'A gate with nothing to compare against cannot tell "no regressions" from "never checked", so it does not guess',
+    baselineUnreadable: (cause) => `cannot read the baseline (${cause})`,
+    baselineNotJson: (cause) => `is not valid JSON (${cause})`,
+    baselineShape: 'the baseline must be a JSON object',
+    baselineUnknownKey: (key) => `unknown key "${key}"`,
+    baselineVersion: (found, wanted) => `unsupported baseline version ${found} (this build writes ${wanted})`,
+    baselineNoFindings: '"findings" must be an array',
+    baselineEntry: (index) => `findings[${index}] must be an object`,
+    baselineEntryKey: 'every entry needs a "key" of the form rule@digest',
+    baselineEntryCount: '"count" must be an integer of at least 1',
+    baselineDuplicate: (key) => `duplicate entry "${key}"`,
+    baselineKindMismatch: (was, now) =>
+      `this baseline was written for a ${was} and you are checking a ${now}, which skips different rules — ` +
+      'the comparison would find nothing to report and call that a pass. Re-run `spark baseline` on the same kind of input',
     missingDependency: (name, where, cause) =>
       `Cannot load the "${name}" engine in ${where}. Run \`npm ci\` from the project root, then run this command again from that same directory. Underlying error: ${cause}`,
   },

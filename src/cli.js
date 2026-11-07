@@ -23,6 +23,16 @@ import { renderReport } from './reporters/html.js';
 import { serveReport } from './reporters/serve.js';
 import { checkInstall, installMessage } from './require.js';
 import { applySuppressions, configPathFor, loadConfig, ConfigError } from './suppress.js';
+import {
+  BASELINE_FILENAME,
+  BaselineError,
+  compare,
+  readBaseline,
+  renderGate,
+  snapshot,
+  writeBaseline,
+} from './baseline.js';
+import { buildSarif, renderSarif } from './reporters/sarif.js';
 import { DEFAULTS, ENV, EXIT } from './config/constants.js';
 import { NAME, VERSION, BIN } from './config/brand.js';
 import { copy } from './config/copy.js';
@@ -30,6 +40,7 @@ import { copy } from './config/copy.js';
 const COMMANDS = {
   check: 'check',
   report: 'report',
+  baseline: 'baseline',
   lower: 'lower',
   emit: 'emit',
 };
@@ -39,7 +50,24 @@ const COMMANDS = {
  * the field it writes. Adding a flag here makes it appear in --help automatically.
  */
 const OPTIONS = [
-  { flag: '--format', key: 'format', takesValue: true, values: ['terminal', 'json'], helpKey: 'format' },
+  { flag: '--format', key: 'format', takesValue: true, values: ['terminal', 'json', 'sarif'], helpKey: 'format' },
+  {
+    flag: '--ci',
+    key: 'ci',
+    takesValue: false,
+    value: true,
+    helpKey: 'ci',
+    warnWhen: (parsed) => (parsed.command === COMMANDS.baseline ? copy('usage.warnCiOnBaseline') : null),
+  },
+  { flag: '--baseline', key: 'baseline', takesValue: true, helpKey: 'baselinePath' },
+  {
+    flag: '--strict',
+    key: 'strict',
+    takesValue: false,
+    value: true,
+    helpKey: 'strict',
+    warnWhen: (parsed) => (parsed.ci ? null : copy('usage.warnStrict')),
+  },
   { flag: '--fail-under', key: 'failUnder', takesValue: true, coerce: Number, validate: isScore, helpKey: 'failUnder' },
   { flag: '--no-color', key: 'color', takesValue: false, value: false, helpKey: 'noColor' },
   { flag: '--out', key: 'out', takesValue: true, helpKey: 'out' },
@@ -65,6 +93,7 @@ export function usage() {
   const rows = [
     ['check  <file.html|url>', copy('usage.check')],
     ['report <file.html|url>', copy('usage.report')],
+    ['baseline <file.html|url>', copy('usage.baseline')],
     ['lower  <name.spark.scene.json>', copy('usage.lower')],
     ['emit   <name.spark.scene.json>', copy('usage.emit')],
   ];
@@ -341,6 +370,16 @@ export async function main(argv, { stdout = process.stdout, stderr = process.std
     return EXIT.couldNotRun;
   }
 
+  // A flag that means nothing on this command is not an error. Silence would let a workflow that typed
+  // `--strict` without `--ci` believe it had the hard line, so it warns — through this same table, so a
+  // flag can never advertise a warning its parser does not implement.
+  for (const option of OPTIONS) {
+    if (!option.warnWhen) continue;
+    if (opts[option.key] === undefined || opts[option.key] === false) continue;
+    const warning = option.warnWhen(opts);
+    if (warning) stderr.write(`${copy('errorPrefix', warning)}\n`);
+  }
+
   if (opts.help) {
     stdout.write(USAGE);
     return EXIT.ok;
@@ -368,12 +407,13 @@ export async function main(argv, { stdout = process.stdout, stderr = process.std
   }
 
   let result;
+  let config = { suppressions: [], baseline: null, path: null };
   try {
     const target = await loadTarget(opts.target);
     result = await analyze(target);
     // The config is looked up beside the project being audited, which is where a maintainer will
     // put it; falling back to the working directory covers `spark check <url>` from a repo root.
-    const config = await loadConfig(opts.config ?? configPathFor());
+    config = await loadConfig(opts.config ?? configPathFor());
     const suppression = applySuppressions(result.ir, config.suppressions);
     result.suppression = suppression;
     if (config.suppressions.length) result.scores = scoreAll(result.ir);
@@ -386,7 +426,56 @@ export async function main(argv, { stdout = process.stdout, stderr = process.std
     return EXIT.couldNotRun;
   }
 
-  if (opts.command === COMMANDS.report) {
+  // ---- the gate file: `spark baseline` writes it, `spark check --ci` reads it ----------------
+  // One rule for the path, so a laptop and a CI job cannot disagree about which file they mean:
+  // `--baseline`, else `"baseline"` in spark.config.json, else ./.spark-baseline.json — and every
+  // relative path resolves against the current directory, never against the target's directory, so
+  // `spark check fixtures/real/x.html` cannot start writing baselines into fixtures.
+  const baselinePath = resolve(opts.baseline ?? config.baseline ?? BASELINE_FILENAME);
+
+  if (opts.command === COMMANDS.baseline) {
+    const next = snapshot(result);
+    const file = await writeBaseline(baselinePath, next);
+    if (opts.format === 'json') {
+      // Asking for the machine format here means "show me what you wrote" — the file is written either
+      // way, because a baseline printed to a CI log and never committed is not a baseline.
+      stdout.write(`${JSON.stringify(next, null, 2)}\n`);
+    }
+    if (opts.format === 'sarif') stdout.write(renderSarif(buildSarif(result)));
+    const shown = relative(process.cwd(), file) || BASELINE_FILENAME;
+    // Findings, not entries: three identical siblings are one entry and three findings, and the number a
+    // reader compares against their report has to be the number the report printed.
+    const found = next.findings.reduce((sum, entry) => sum + entry.count, 0);
+    const rules = new Set(next.findings.map((entry) => entry.ruleId)).size;
+    stdout.write(
+      `  ${found === 0 ? copy('state.baselineEmpty', shown) : copy('state.baselineWritten', shown, found, rules)}\n`,
+    );
+    return EXIT.ok;
+  }
+
+  let diff = null;
+  if (opts.ci) {
+    try {
+      const baseline = await readBaseline(baselinePath);
+      if (!baseline) {
+        stderr.write(
+          `${copy('errorPrefix', copy('errors.noBaseline', relative(process.cwd(), baselinePath) || BASELINE_FILENAME))}\n`,
+        );
+        return EXIT.couldNotRun;
+      }
+      diff = compare(baseline, result.ir, { strict: opts.strict === true });
+    } catch (error) {
+      // A baseline nobody can read is not a passing build. It is also not a failing one — the page was
+      // never compared to anything — so it exits 2, the code that says "the gate did not run".
+      if (error instanceof BaselineError) {
+        stderr.write(`${copy('errorPrefix', error.message)}\n`);
+        return EXIT.couldNotRun;
+      }
+      throw error;
+    }
+  }
+
+  if (opts.command === COMMANDS.report && opts.format === 'terminal') {
     const out = opts.out ?? DEFAULTS.out;
     const html = renderReport(result, {
       reproduceCommand: `${BIN} check ${opts.target}`,
@@ -415,8 +504,26 @@ export async function main(argv, { stdout = process.stdout, stderr = process.std
     return EXIT.ok;
   }
 
-  if (opts.format === 'json') {
-    stdout.write(renderJson(buildJsonReport(result)));
+  const machine = opts.format === 'json' || opts.format === 'sarif';
+  if (opts.format === 'sarif') {
+    // The gate verdict rides inside the payload (`runs[0].properties.sparkGate`, and each result's
+    // `baselineState`), so a code-scanning upload gets the judgement the exit code carries instead of a
+    // second, drift-prone copy of it.
+    const text = renderSarif(buildSarif({ ...result, diff }));
+    if (opts.out) {
+      await writeFile(resolve(opts.out), text, 'utf8');
+      stdout.write(`${copy('state.reportWritten', opts.out)}\n`);
+    } else {
+      stdout.write(text);
+    }
+  } else if (opts.format === 'json') {
+    const text = renderJson(buildJsonReport(result));
+    if (opts.out) {
+      await writeFile(resolve(opts.out), text, 'utf8');
+      stdout.write(`${copy('state.reportWritten', opts.out)}\n`);
+    } else {
+      stdout.write(text);
+    }
   } else {
     const rendered = renderTerminal(result, {
       color: shouldColour({ explicit: opts.color, env }),
@@ -426,10 +533,20 @@ export async function main(argv, { stdout = process.stdout, stderr = process.std
     stdout.write(opts.quiet ? (rendered ? `${rendered}\n` : '') : `${rendered}\n`);
   }
 
+  // ---- the gate's verdict --------------------------------------------------------------------
+  // Terminal output takes stdout, because for a human the sentence belongs to the report. A machine
+  // format takes stderr instead: a workflow that pipes `--format sarif` into an uploader, or `--quiet`
+  // into `cut -f1`, would otherwise choke on prose. Scripts read the exit code, and that never moves.
+  if (diff) {
+    const sink = machine || opts.quiet ? stderr : stdout;
+    for (const line of renderGate(diff)) sink.write(`${line}\n`);
+  }
+
   if (opts.failUnder !== null) {
     const overall = buildJsonReport(result).conformance.score;
     if (overall === null || overall < opts.failUnder) return EXIT.thresholdNotMet;
   }
+  if (diff && !diff.ok) return EXIT.thresholdNotMet;
   return EXIT.ok;
 }
 

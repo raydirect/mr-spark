@@ -8,7 +8,9 @@ machines, and resilient. Today none of them do. MR-Spark is the missing layer th
 proof a property of the pipeline instead of an audit after the fact.
 
 > ⚠️ **Status: early code, honest labels.** The engine, `check`, the score, the report page and the CI
-> gate exist and are tested. So do the three **document formats** — `src/formats/` is the grammar and the
+> gate exist and are tested — `spark baseline` commits what a project already has, `spark check --ci`
+> fails only on what got worse, and `--format sarif` puts the findings where a reviewer looks. This
+> repository runs that gate on its own fixtures. So do the three **document formats** — `src/formats/` is the grammar and the
 > validator, `schema/` is its published projection, `npm run formats:check` proves they agree — and the
 > spine between them and a page: `spark lower` turns a document set into the IR, `spark emit` writes
 > `index.html`, `spark.css` and `tokens.json`, byte-identical across runs, and CI audits that output with
@@ -30,6 +32,7 @@ proof a property of the pipeline instead of an audit after the fact.
 > - [docs/LEGIBLE.md](docs/LEGIBLE.md) — discoverability, agent readiness, and what cannot be checked
 > - [docs/COVERAGE.md](docs/COVERAGE.md) — exactly what a run can and cannot see
 > - [docs/UNDECIDED.md](docs/UNDECIDED.md) — checks that need a capability vs. checks no environment can answer
+> - [docs/GATE.md](docs/GATE.md) — the baseline, what counts as a regression, and the SARIF upload
 > - [docs/LIMITS.md](docs/LIMITS.md) — the ten things this will still not do when it is finished
 
 ---
@@ -209,10 +212,26 @@ node bin/spark.js check https://example.com
 
 Then in CI, gating only on *new* problems:
 
+```bash
+$ spark baseline dist/index.html            # once; commit .spark-baseline.json
+$ spark check dist/index.html --ci --no-color
+
+  ✓ gate · no new findings · 11 already known
 ```
-MR-Spark  72 → 78 (+6)   ✓ passed
-  +2 accessible   fixed 4 contrast issues
-  -3 fast         entry bundle +38 KB
+
+A page with 400 findings does not get a red build on the day the gate is installed. Those 400 are the
+floor, written down in a file a reviewer can read, and the build stops the pull request that adds
+finding 401 — or that turns a `moderate` into a `serious` at something that was already there. What the
+gate refuses to treat as a regression is the interesting part, and it is written down:
+[docs/GATE.md](docs/GATE.md) and [ADR 0005](docs/adr/0005-a-gate-on-regressions-keyed-by-structure.md).
+
+A run with new findings says so and says what to do about it:
+
+```
+  ✗ gate · 1 new · 5 already known
+      +1 region at input (moderate)
+  1 finding(s) come from rules this baseline predates (label) — reported, not blocking. Run `spark baseline` to adopt them, or use --strict to block on them today.
+  either fix them, or accept them deliberately with `spark baseline` and say why in the commit
 ```
 
 ## Where it runs
