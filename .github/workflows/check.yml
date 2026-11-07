@@ -55,6 +55,16 @@ jobs:
           fi
       - name: audit the known-good fixture (expected to pass)
         run: node bin/spark.js check fixtures/good.html --no-color --fail-under 90
+      # The gate, on ourselves, with the committed baseline files. Two things this proves that no unit test
+      # does: the `baseline` → `--ci` path works end to end on real files in the order a user runs it, and
+      # the two fixtures still produce the same findings they did when those baselines were written — so a
+      # change in the engine that silently shifts what we report on our own pages shows up as a red build
+      # naming the rule, not as a surprise in a client's PR. `npm test` additionally checks the files are
+      # byte-current, so a deliberate fixture edit has to regenerate them in the same commit.
+      - name: the gate is green on the pages we ship as examples
+        run: |
+          node bin/spark.js check fixtures/good.html --no-color --baseline test/fixtures/gate/good.baseline.json --ci
+          node bin/spark.js check fixtures/bad.html --no-color --baseline test/fixtures/gate/bad.baseline.json --ci
       # Dogfooding: our own report must pass our own tool.
       - name: the generated report must pass its own audit
         run: |

@@ -14,6 +14,8 @@ export const DEFAULTS = Object.freeze({
   /** `spark emit` writes a page here unless told otherwise; a directory, because a page is three files. */
   outDir: 'build',
   format: 'terminal',
+  /** The gate file. Committed by `spark baseline`, read by `spark check --ci`. */
+  baseline: '.spark-baseline.json',
   /** How long a URL fetch may take before the run is abandoned. */
   fetchTimeoutMs: 15_000,
 });

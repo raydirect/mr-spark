@@ -5,20 +5,23 @@
  * agent, a saved baseline) can reason about whether the number it read is comparable to
  * the number it is about to write.
  *
+ * `engine.name` is the product name, not the CLI verb: `spark` is what a person types, `MR-Spark` is what
+ * a report says produced it, and the baseline and the SARIF run both name the producer the same way.
+ *
  * This is a contract, not a debug dump: field names and shapes are stable, and the same
  * numbers appear here as on screen because both come from src/view-model.js.
  */
 
 import { SCORE_SPEC_VERSION, AUTOMATION_COVERAGE } from '../score.js';
 import { IR_VERSION, PILLARS } from '../ir.js';
-import { VERSION } from '../config/brand.js';
+import { NAME, VERSION } from '../config/brand.js';
 import { band } from '../config/thresholds.js';
 import { buildView } from '../view-model.js';
 
 export function buildJsonReport({ ir, scores, hash }) {
   const view = buildView(ir, scores);
   return {
-    engine: { name: 'spark', version: VERSION },
+    engine: { name: NAME, version: VERSION },
     irVersion: IR_VERSION,
     scoreSpec: SCORE_SPEC_VERSION,
     ir: hash,

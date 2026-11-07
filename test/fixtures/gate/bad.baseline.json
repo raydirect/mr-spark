@@ -1,0 +1,127 @@
+{
+  "baseline": 1,
+  "engine": {
+    "name": "MR-Spark",
+    "version": "0.2.0",
+    "scoreSpec": "3.0.0",
+    "irVersion": "0.1"
+  },
+  "target": {
+    "source": "file",
+    "kind": "document",
+    "file": "bad.html"
+  },
+  "score": {
+    "accessible": 50
+  },
+  "ir": "e10770a356ce5499ac09504118a32ff0c82d6baa96cbf425ab64044348de8c53",
+  "rules": [
+    "button-name",
+    "html-has-lang",
+    "image-alt",
+    "link-name",
+    "region"
+  ],
+  "anchors": {
+    "total": 10,
+    "byKind": {
+      "id": 0,
+      "named": 2,
+      "shape": 7,
+      "document": 1
+    },
+    "positional": 7
+  },
+  "findings": [
+    {
+      "key": "button-name@74995c4fbec3",
+      "ruleId": "button-name",
+      "pillar": "accessible",
+      "anchor": "button",
+      "anchorKind": "shape",
+      "impact": "critical",
+      "count": 1
+    },
+    {
+      "key": "html-has-lang@d21a9d308317",
+      "ruleId": "html-has-lang",
+      "pillar": "accessible",
+      "anchor": "(document)",
+      "anchorKind": "document",
+      "impact": "serious",
+      "count": 1
+    },
+    {
+      "key": "image-alt@1f9ddfe48422",
+      "ruleId": "image-alt",
+      "pillar": "accessible",
+      "anchor": "img",
+      "anchorKind": "shape",
+      "impact": "critical",
+      "count": 1
+    },
+    {
+      "key": "link-name@fd81cbdbef67",
+      "ruleId": "link-name",
+      "pillar": "accessible",
+      "anchor": "a[href$=\"help\"]",
+      "anchorKind": "named",
+      "impact": "serious",
+      "count": 1
+    },
+    {
+      "key": "link-name@ffa1f62b9f98",
+      "ruleId": "link-name",
+      "pillar": "accessible",
+      "anchor": "a[href=\"/\"]",
+      "anchorKind": "named",
+      "impact": "serious",
+      "count": 1
+    },
+    {
+      "key": "region@132c1d51bd94",
+      "ruleId": "region",
+      "pillar": "accessible",
+      "anchor": ".nav",
+      "anchorKind": "shape",
+      "impact": "moderate",
+      "count": 1
+    },
+    {
+      "key": "region@6407600097c4",
+      "ruleId": "region",
+      "pillar": "accessible",
+      "anchor": "img",
+      "anchorKind": "shape",
+      "impact": "moderate",
+      "count": 1
+    },
+    {
+      "key": "region@65fd3dce2885",
+      "ruleId": "region",
+      "pillar": "accessible",
+      "anchor": "p",
+      "anchorKind": "shape",
+      "impact": "moderate",
+      "count": 1
+    },
+    {
+      "key": "region@afdc0639e717",
+      "ruleId": "region",
+      "pillar": "accessible",
+      "anchor": ".field",
+      "anchorKind": "shape",
+      "impact": "moderate",
+      "count": 2
+    },
+    {
+      "key": "region@f91db372ad22",
+      "ruleId": "region",
+      "pillar": "accessible",
+      "anchor": ".title",
+      "anchorKind": "shape",
+      "impact": "moderate",
+      "count": 1
+    }
+  ]
+}
