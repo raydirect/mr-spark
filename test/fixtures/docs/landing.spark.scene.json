@@ -1,5 +1,5 @@
 {
-  "$schema": "https://web-spark.dev/schema/scene-0.1.json",
+  "$schema": "https://mr-spark.pages.dev/schema/scene-0.1.json",
   "version": "0.1",
   "$comment": "A page authored as a document. Every visual value here is a token; the one literal is deliberate and is a lint in test/formats.test.js.",
   "meta": { "name": "landing", "lang": "en", "title": "Black Friday" },

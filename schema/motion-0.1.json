@@ -135,13 +135,13 @@
       "type": "string"
     }
   },
-  "$id": "https://web-spark.dev/schema/motion-0.1.json",
+  "$id": "https://mr-spark.pages.dev/schema/motion-0.1.json",
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "additionalProperties": false,
   "description": "Time, sequencing and state machines for a page, with the semantic intent each animation exists to serve.",
   "properties": {
     "$schema": {
-      "const": "https://web-spark.dev/schema/motion-0.1.json",
+      "const": "https://mr-spark.pages.dev/schema/motion-0.1.json",
       "description": "The schema this document claims to satisfy. Required, so a document cannot be validated against the wrong vocabulary by accident."
     },
     "animations": {

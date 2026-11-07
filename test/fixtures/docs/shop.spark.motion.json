@@ -1,5 +1,5 @@
 {
-  "$schema": "https://web-spark.dev/schema/motion-0.1.json",
+  "$schema": "https://mr-spark.pages.dev/schema/motion-0.1.json",
   "version": "0.1",
   "$comment": "Every trigger this emitter can honour without a runtime, and one of each ease class: `ease-out` passes through as a CSS word, `power2.out` is baked into linear(), `steps(2, end)` is already CSS.",
   "meta": { "name": "shop motion" },

@@ -1,13 +1,12 @@
 {
-  "name": "webspark",
+  "name": "mr-spark",
   "version": "0.2.0",
   "description": "Every artifact proves itself. A conformance compiler for the web: one IR in, honest findings out.",
   "type": "module",
   "license": "Apache-2.0",
-  "private": true,
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/raydirect/web-spark.git"
+    "url": "git+https://github.com/raydirect/mr-spark.git"
   },
   "engines": {
     "node": ">=20"
@@ -50,5 +49,6 @@
   "dependencies": {
     "axe-core": "^4.10.2",
     "jsdom": "^25.0.1"
-  }
+  },
+  "homepage": "https://github.com/raydirect/mr-spark"
 }

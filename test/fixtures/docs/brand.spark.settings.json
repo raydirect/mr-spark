@@ -1,5 +1,5 @@
 {
-  "$schema": "https://web-spark.dev/schema/settings-0.1.json",
+  "$schema": "https://mr-spark.pages.dev/schema/settings-0.1.json",
   "version": "0.1",
   "$comment": "The smallest settings document that exercises every rule: two themes, one lint-free palette, and a panel that can edit it.",
   "meta": { "name": "fixture brand", "version": "1.0.0", "themes": ["light", "dark"] },

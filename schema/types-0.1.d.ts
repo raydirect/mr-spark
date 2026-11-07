@@ -345,7 +345,7 @@ export type SceneDocument = {
    * The schema this document claims to satisfy. Required, so a document cannot
    * be validated against the wrong vocabulary by accident.
    */
-  $schema: "https://web-spark.dev/schema/scene-0.1.json";
+  $schema: "https://mr-spark.pages.dev/schema/scene-0.1.json";
   a11y?: {
     landmarks?: Array<{
         /**
@@ -434,7 +434,7 @@ export type MotionDocument = {
    * The schema this document claims to satisfy. Required, so a document cannot
    * be validated against the wrong vocabulary by accident.
    */
-  $schema: "https://web-spark.dev/schema/motion-0.1.json";
+  $schema: "https://mr-spark.pages.dev/schema/motion-0.1.json";
   animations?: Array<{
       duration?: string;
       easing?: easing;
@@ -620,7 +620,7 @@ export type SettingsDocument = {
    * The schema this document claims to satisfy. Required, so a document cannot
    * be validated against the wrong vocabulary by accident.
    */
-  $schema: "https://web-spark.dev/schema/settings-0.1.json";
+  $schema: "https://mr-spark.pages.dev/schema/settings-0.1.json";
   /**
    * Theme name → colour block. Checked against `meta.themes` by SETTINGS001.
    */

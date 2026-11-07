@@ -2,7 +2,7 @@
  * Serving `schema/` — the address that every document names.
  *
  * `$schema` is a required `const` in all three formats (`src/formats/common.js`), so the string
- * `https://web-spark.dev/schema/scene-0.1.json` is not a comment about where the schema lives: it is
+ * `https://mr-spark.pages.dev/schema/scene-0.1.json` is not a comment about where the schema lives: it is
  * part of what a valid document *is*, and every document ever written will carry it. An address that is
  * part of a format has to be reachable and permanent, which is why `docs/DOCUMENTS.md` treats it as
  * frozen. This file does not decide the permanent host — it makes the address *testable* today, on a
@@ -34,6 +34,7 @@ import { fileURLToPath } from 'node:url';
 
 import { render, readCommitted, SCHEMA_HOST } from './formats/generate.js';
 import { VERSION } from './formats/common.js';
+import { NAME } from './config/brand.js';
 
 /**
  * The files the generator owns, as bare names. The server's whole surface, so a request cannot name
@@ -111,15 +112,15 @@ export function indexPage() {
 <html lang="en">
   <head>
     <meta charset="utf-8" />
-    <title>web-spark schema ${VERSION}</title>
+    <title>${NAME} schema ${VERSION}</title>
     <style>body{font:15px/1.6 ui-sans-serif,system-ui;max-width:46rem;padding:2rem;margin:auto}
       code{background:#f4f4f5;padding:.1em .3em}li{margin:.35em 0}</style>
   </head>
   <body>
-    <h1>web-spark schemas · format ${VERSION}</h1>
+    <h1>${NAME} schemas · format ${VERSION}</h1>
     <p>
       Generated from <code>src/formats/</code> — the committed files are artifacts, not sources. Every
-      web-spark document names one of these URLs in its required <code>$schema</code> field, so the
+      ${NAME} document names one of these URLs in its required <code>$schema</code> field, so the
       address is part of the format and does not move.
     </p>
     <ul>

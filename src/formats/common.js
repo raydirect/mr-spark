@@ -185,7 +185,7 @@ export const DEFS = Object.freeze({
  * Changing it is a format amendment, not a config change: documents already written name the old
  * address, and they stay valid only while it keeps serving the bytes they expect. `docs/HOSTING.md` §5.
  */
-export const SCHEMA_HOST = 'https://web-spark.dev/schema';
+export const SCHEMA_HOST = 'https://mr-spark.pages.dev/schema';
 
 /** Every document starts the same way, so the same two nodes describe the same two fields. */
 export function schemaUrl(format, version) {
