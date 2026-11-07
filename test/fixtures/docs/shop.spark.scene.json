@@ -1,0 +1,118 @@
+{
+  "$schema": "https://web-spark.dev/schema/scene-0.1.json",
+  "version": "0.1",
+  "$comment": "The spine fixture: small enough to read in one screen, wide enough that `emit` has to handle every mapping — landmarks, an asset, a responsive grid, all four interactive types, and a list whose children a stagger addresses.",
+  "meta": { "name": "shop", "lang": "en", "title": "Spark Supply — order a kit" },
+  "tokens": { "$ref": "./brand.spark.settings.json" },
+
+  "components": [
+    {
+      "id": "masthead",
+      "type": "stack",
+      "children": [
+        { "id": "masthead-title", "type": "heading", "props": { "level": 1, "text": "Spark Supply" } },
+        { "id": "masthead-cart", "type": "link", "props": { "label": "Cart (2)", "href": "/cart" } }
+      ]
+    },
+    {
+      "id": "order",
+      "type": "region",
+      "props": { "label": "Order a kit" },
+      "children": [
+        {
+          "id": "order-form",
+          "type": "region",
+          "props": { "label": "Your details", "role": "form" },
+          "children": [
+          { "id": "order-copy", "type": "text", "props": { "text": "Three tools, one case, shipped in a week.", "as": "lead", "size": "type.size.lg" } },
+        { "id": "order-list", "type": "list", "props": { "ordered": false }, "children": [
+          { "type": "text", "props": { "text": "Driver, 4 mm" } },
+          { "type": "text", "props": { "text": "Plier, needle" } },
+          { "type": "text", "props": { "text": "Case, felt-lined" } }
+        ] },
+        { "id": "order-image", "type": "image", "props": { "src": "kit", "alt": "The three tools laid out in their open case", "width": "space.xl", "height": "space.xl" } },
+        { "id": "order-size", "type": "listbox", "props": { "label": "Case size", "options": [
+          { "value": "compact", "label": "Compact" },
+          { "value": "full", "label": "Full set" }
+        ], "value": "compact" } },
+        { "id": "order-email", "type": "input", "props": { "name": "email", "label": "Email for the invoice", "kind": "email", "autocomplete": "email", "required": true } },
+        { "id": "order-submit", "type": "button", "props": { "label": "Order the kit", "type": "submit", "tone": "color.accent" } },
+            { "id": "order-terms", "type": "input", "props": { "name": "terms", "label": "I accept the two-year warranty terms", "kind": "checkbox", "required": true } }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "footer-note",
+      "type": "text",
+      "props": { "text": "Spark Supply, Made in Dhaka.", "as": "span" }
+    }
+  ],
+
+  "layout": {
+    "masthead": { "display": "grid", "cols": "layout.twoColumns", "gap": "space.md", "pad": "space.lg", "align": "center" },
+    "order": {
+      "display": "grid",
+      "gap": "space.md",
+      "pad": "space.xl",
+      "align": "start"
+    },
+    "order-form": {
+      "display": "grid",
+      "cols": "layout.twoColumns",
+      "gap": "space.lg",
+      "responsive": { "narrow": { "cols": "layout.oneColumn", "pad": "space.md" } }
+    },
+    "order-list": { "display": "grid", "gap": "space.sm" },
+    "footer-note": { "pad": "space.md", "align": "center" }
+  },
+
+  "states": {
+    "masthead-cart": {
+      "default": { "color": "color.accent" },
+      "hover": { "color": "color.accentHover" },
+      "focus-visible": { "outline": "layout.focusRing" }
+    },
+    "order-submit": {
+      "default": { "background": "color.accent", "color": "color.bg", "radius": "radius.md" },
+      "hover": { "background": "color.accentHover" },
+      "focus-visible": { "outline": "layout.focusRing" },
+      "disabled": { "opacity": "0.5" }
+    },
+    "order-email": {
+      "default": { "border": "layout.focusRing", "radius": "radius.sm" },
+      "hover": { "opacity": "0.95" },
+      "focus-visible": { "outline": "layout.focusRing" },
+      "invalid": { "border": "layout.focusRing" }
+    },
+    "order-terms": {
+      "default": { "opacity": "1" },
+      "hover": { "opacity": "0.8" },
+      "focus-visible": { "outline": "layout.focusRing" },
+      "checked": { "opacity": "0.6" }
+    },
+    "order-size": {
+      "default": { "border": "layout.focusRing", "color": "color.text" },
+      "hover": { "background": "color.surface" },
+      "focus-visible": { "outline": "layout.focusRing" }
+    }
+  },
+
+  "assets": [
+    {
+      "id": "kit",
+      "kind": "svg",
+      "path": "./kit.svg",
+      "sha256": "4d7a6b7e2f8e2c1a0b3d5e6f708192a3b4c5d6e7f8091a2b3c4d5e6f708192a3"
+    }
+  ],
+
+  "a11y": {
+    "landmarks": [
+      { "role": "banner", "contains": "masthead" },
+      { "role": "main", "contains": "order" },
+      { "role": "contentinfo", "contains": "footer-note" }
+    ],
+    "skipLink": true
+  }
+}
