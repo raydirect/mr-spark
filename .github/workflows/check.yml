@@ -62,9 +62,29 @@ jobs:
       # naming the rule, not as a surprise in a client's PR. `npm test` additionally checks the files are
       # byte-current, so a deliberate fixture edit has to regenerate them in the same commit.
       - name: the gate is green on the pages we ship as examples
+        uses: ./.github/actions/spark-gate
+        with:
+          target: fixtures/good.html
+          baseline: test/fixtures/gate/good.baseline.json
+          spark: node bin/spark.js
+          # The disabled path, on the page that has nothing to carry forward: no payload, no summary line.
+          sarif: ''
+      - name: the gate is green on the known-bad fixture, and writes a payload
+        uses: ./.github/actions/spark-gate
+        with:
+          target: fixtures/bad.html
+          baseline: test/fixtures/gate/bad.baseline.json
+          spark: node bin/spark.js
+          sarif: .spark/bad.sarif
+      # `summary.mjs` runs under `|| true`, because a step summary must never be the thing that breaks a
+      # build — which is exactly why the dogfooding run checks it produced something. It reads the copy
+      # beside the payload, not `$GITHUB_STEP_SUMMARY`: that path is per-step, so from here it is empty.
+      - name: the step summary was written from that payload
         run: |
-          node bin/spark.js check fixtures/good.html --no-color --baseline test/fixtures/gate/good.baseline.json --ci
-          node bin/spark.js check fixtures/bad.html --no-color --baseline test/fixtures/gate/bad.baseline.json --ci
+          grep "MR-Spark gate ✓ no new findings" .spark/summary.md
+          grep -q "already in the baseline" .spark/summary.md
+          grep -q "score spec" .spark/summary.md
+          test -s .spark/bad.sarif
       # Dogfooding: our own report must pass our own tool.
       - name: the generated report must pass its own audit
         run: |

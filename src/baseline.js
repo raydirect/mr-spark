@@ -212,46 +212,65 @@ export function compare(baseline, ir, { strict = false } = {}) {
   const byKey = new Map(baseline.findings.map((entry) => [entry.key, entry]));
   const current = gateEntries(ir);
 
-  const blocking = [];
-  const adoptable = [];
-  const escalated = [];
-  let unchanged = 0;
-
-  for (const entry of current) {
-    const before = byKey.get(entry.key);
+  /**
+   * One delta table, so the gate line, the SARIF results and the step summary cannot each do their own
+   * arithmetic and disagree. Everything below is derived from these rows.
+   *
+   * `state` is stamped per *key*, and a key with three identical siblings has no per-element identity to
+   * stamp (see `src/identity.js`) — so a grown key is `updated`, not "one of these three is new". That is
+   * also the most a SARIF `baselineState` may honestly say.
+   */
+  const entries = current.map((entry) => {
+    const before = byKey.get(entry.key) ?? null;
     const added = before ? Math.max(0, entry.count - before.count) : entry.count;
-    if (added > 0) {
-      const line = { ...entry, added, from: before?.count ?? 0 };
-      if (strict || known.has(entry.ruleId)) blocking.push(line);
-      else adoptable.push(line);
-    }
-    if (before && isEscalation(entry.impact, before.impact)) {
-      escalated.push({ ...entry, from: before.impact, to: entry.impact });
-    }
-    if (before) {
-      const counted = Math.min(entry.count, before.count);
-      unchanged += counted;
-    }
-  }
+    const escalated = before !== null && isEscalation(entry.impact, before.impact);
+    const knownRule = before !== null || known.has(entry.ruleId);
+    return {
+      // The one field a consumer most needs and least deserves to recompute: whether *this* delta is why
+      // the build stops. It is `added` on a known rule, or any escalation, and the strictness of the run.
+      blocking: (added > 0 && (strict || knownRule)) || escalated,
+      key: entry.key,
+      ruleId: entry.ruleId,
+      anchor: entry.anchor,
+      impact: entry.impact,
+      fromImpact: before?.impact ?? null,
+      from: before?.count ?? 0,
+      count: entry.count,
+      added,
+      escalated,
+      known: knownRule,
+      state: before === null ? 'new' : added > 0 || escalated ? 'updated' : 'unchanged',
+    };
+  });
 
-  const resolved = [];
-  for (const before of baseline.findings) {
-    const now = current.find((entry) => entry.key === before.key);
-    const gone = before.count - (now?.count ?? 0);
-    if (gone > 0) resolved.push({ ...before, gone });
-  }
+  // Both lists are the same field read two ways, so `--strict` moving a row from one to the other cannot
+  // desynchronise the counts from the verdict.
+  const blocking = entries.filter((entry) => entry.added > 0 && entry.blocking);
+  const adoptable = entries.filter((entry) => entry.added > 0 && !entry.blocking);
+  const escalated = entries
+    .filter((entry) => entry.escalated)
+    .map((entry) => ({ ...entry, from: entry.fromImpact, to: entry.impact }));
+
+  const resolved = baseline.findings
+    .map((before) => {
+      const now = entries.find((entry) => entry.key === before.key);
+      return { ...before, gone: before.count - (now?.count ?? 0) };
+    })
+    .filter((entry) => entry.gone > 0);
 
   const counts = {
     blocking: blocking.reduce((sum, entry) => sum + entry.added, 0),
     adoptable: adoptable.reduce((sum, entry) => sum + entry.added, 0),
     escalated: escalated.length,
     resolved: resolved.reduce((sum, entry) => sum + entry.gone, 0),
-    unchanged,
+    unchanged: entries.reduce((sum, entry) => sum + Math.min(entry.count, entry.from), 0),
   };
 
   return {
     ok: counts.blocking + counts.escalated === 0,
     strict,
+    entries: entries.filter((entry) => entry.state !== 'unchanged'),
+    states: Object.fromEntries(entries.map((entry) => [entry.key, entry.state])),
     blocking,
     adoptable,
     escalated,

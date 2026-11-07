@@ -22,18 +22,53 @@ The path is `--baseline <path>`, else `"baseline"` in `spark.config.json`, else 
 Relative paths resolve against the current directory and never against the target's directory, so
 `spark baseline fixtures/real/x.html` cannot start writing gate files into `fixtures/`.
 
-In a workflow, assuming the CLI is on `PATH` for the runner (the package's bin, `spark`):
-
-```yaml
-- run: spark check dist/index.html --ci --no-color
-```
-
 The file is reviewable, which is the point: a baseline is a decision, not a cache. Adopt it in a pull
-request of its own — `spark baseline` on the pages you want gated, commit the files, turn the gate on in
+request of its own — `spark baseline` on the pages you want gated, commit the file, turn the gate on in
 the next one. Then a change to a page and a change to what the page is allowed to have are two diffs a
 reviewer can weigh separately.
 
-## 2. What the file is
+## 2. In a workflow
+
+```yaml
+name: a11y gate
+on: [pull_request]
+permissions:
+  contents: read
+  security-events: write   # only for the upload step below
+jobs:
+  gate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 20 }
+      - run: npm install --no-save mr-spark
+      - uses: raydirect/mr-spark/.github/actions/spark-gate@<pinned-ref>
+        with:
+          target: dist/index.html
+          baseline: .spark-baseline.json
+      - uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with: { sarif_file: .spark/spark-gate.sarif }
+```
+
+Pin a release tag or a full commit SHA, not `@main`. This repository has cut no tags yet, so today that
+placeholder has to be a SHA — a gate pointed at a moving ref is a gate whose behaviour changes without a
+pull request, which is the one thing the baseline file exists to prevent.
+
+**What the action does, and what it refuses to do.** It runs the audit and sets the step's exit code; it
+writes the SARIF payload and a step summary; and that is all. It does not upload the SARIF (code-scanning
+upload needs `security-events: write`, which is your repository's permission to grant, not something an
+action should ask for on your behalf), it does not install the CLI (so a project can pin the version it
+audits with, in the same lockfile as everything else), and it has no flag to write a missing baseline.
+That last refusal is the important one: a CI job that generates its own floor has a gate that can never
+fail, and `--ci` with no baseline file exits `2` with a message telling a human to run `spark baseline`
+once and commit the file.
+
+Non-GitHub CI gets the same thing in one line: `spark check dist/index.html --ci --no-color`, with
+`--format sarif --out .spark/spark-gate.sarif` if the payload is wanted.
+
+## 3. What the file is
 
 From `test/fixtures/gate/bad.baseline.json`, our own known-bad fixture:
 
@@ -77,7 +112,7 @@ generating a baseline from one commit get byte-identical files and `git diff` on
 something. `score` is context for whoever reads the pull request; the comparison never uses it, because a
 baseline that pinned a score invites somebody to gate on the number instead of the findings.
 
-## 3. What counts as a regression
+## 4. What counts as a regression
 
 | Change | Gate | Why |
 |---|---|---|
@@ -106,7 +141,7 @@ The last line is not decoration. The honest move when a page genuinely needs its
 *adopt* it and say why in the commit message; the line has to be on screen at the moment that decision is
 made, or the decision becomes "add `continue-on-error`".
 
-## 4. How a finding is identified
+## 5. How a finding is identified
 
 `src/identity.js`. A key is `rule@digest` where the digest covers the rule id and a **structural anchor**
 derived from the selector:
@@ -128,7 +163,7 @@ on a shape-only anchor, which a class rename can move. On our own `bad.html` tha
 honest answer for a page written from scratch to be bad and worth re-reading before anybody treats this
 module as stronger than it is.
 
-## 5. SARIF
+## 6. SARIF
 
 ```bash
 spark check page.html --ci --format sarif > spark.sarif
@@ -154,20 +189,22 @@ When a baseline is in play each result also carries `baselineState` (`new` / `up
 run carries `properties.sparkGate` with the same verdict the exit code reports, so a diff-aware annotation
 comes from the upload rather than from a second copy of the logic. GitHub Actions:
 
-```yaml
-- run: spark check dist/index.html --ci --format sarif > spark.sarif
-- uses: github/codeql-action/upload-sarif@v3
-  if: always()
-  with: { sarif_file: spark.sarif }
-```
+The step summary is the payload's own arithmetic, not a second opinion: the action reads the SARIF it just
+wrote (`runs[0].properties.sparkGate`) and prints the same numbers the exit code was decided from, so a
+green summary and a red build cannot coexist. It runs under `|| true`, because a summary must never be the
+thing that breaks a build.
 
-The `if: always()` matters: `--ci` exits 1 when something regressed, and an upload step that only runs on
-success would hide exactly the findings the annotation exists to point at.
+The markdown goes to `$GITHUB_STEP_SUMMARY` *and* to `summary.md` beside the payload — `GITHUB_STEP_SUMMARY`
+is per-step, so it is empty for the step after the one that wrote it, and a workflow that wants to assert on
+the summary or upload it needs a workspace path (`docs/adr/0006` records the red build that found this).
+
+The upload snippet is in §2. The `if: always()` in it matters: `--ci` exits 1 when something regressed, and
+an upload step that only runs on success would hide exactly the findings the annotation exists to point at.
 
 Machine formats keep stdout to the payload alone: the gate's prose goes to stderr. A pipe that expects JSON
 gets JSON, and a script reads the exit code, which never moves.
 
-## 6. What this is not yet
+## 7. What this is not yet
 
 - **One target per run.** `spark baseline page.html` and `spark check page.html --ci` describe one page. A
   repo-wide baseline covering a directory is not built, and `loadTarget` does not read directories; a
@@ -181,3 +218,8 @@ gets JSON, and a script reads the exit code, which never moves.
   from them. The ten repos are the part that cannot be written into existence.
 - **`--ci` and `--fail-under` are independent.** The score threshold gates the number, `--ci` gates the
   findings, and a build can pass one and fail the other on purpose.
+- **The action has nothing stable to point at yet.** `uses:` needs a tag or a SHA, and this repository has
+  cut no tags, so the snippet in §2 says `<pinned-ref>` and means it. A `v1` tag is the next thing to cut
+  after `npm publish`, and it is the release that makes the promise in `docs/HOSTING.md` §5.1 testable.
+- **One shell.** The action is `bash`, which every Linux and macOS runner has and a Windows runner has from
+  the Git install. A pwsh variant is not built; on a Windows-only setup, call the CLI directly (§1).
