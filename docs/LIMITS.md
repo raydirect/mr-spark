@@ -182,9 +182,13 @@ Worth naming, because these get raised as limits and are already decided:
 
 - **No accounts.** Never a limitation, always a design constraint (`EASE.md`).
 - **"It's only a CLI."** The engine is the product; the surfaces are projections of it (`SURFACES.md`).
-- **"Only one file at a time."** Whole-repo runs arrive with the baseline work — Phase 2's exit
-  criterion is literally *"a repo with 400 existing findings goes green in one commit"*, which is
-  not a thing a per-file tool can do.
+- **"Only one file at a time."** Still true after the gate shipped, and not by accident.
+  `.spark-baseline.json` describes one target, because an entry's key is *rule + structural anchor* and
+  nothing in an anchor says which file it came from — a repo-wide file would need a document
+  discriminator in the key, which is a change to a format people commit, so it gets a version bump and
+  its own ADR rather than a quiet widening (`docs/GATE.md` §6 says the same thing from the user's side).
+  Phase 2's exit criterion — *"a repo with 400 existing findings goes green in one commit"* — is met per
+  page today, and per repo when that change lands.
 - **"It needs a server."** It does not. Everything here runs in a browser tab or a laptop with the
   lid shut on a flight.
 - **"Designers won't write JSON."** Correct — which is why the canvas exists (Phase 3) and why the
