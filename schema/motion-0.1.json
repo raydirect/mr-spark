@@ -1,0 +1,781 @@
+{
+  "$comment": "GENERATED from src/formats/ — edit the format module, not this file. Regenerate with `npm run formats:generate`. Shape only: the semantic rules (MOTION001, MOTION002, MOTION003, MOTION004, MOTION005, MOTION006, MOTION007) are enforced by src/formats/motion.js and cannot travel with this file.",
+  "$defs": {
+    "alpha": {
+      "pattern": "^(?:0|1|0\\.[0-9]{1,2})$",
+      "type": "string"
+    },
+    "color": {
+      "pattern": "^#[0-9a-f]{6}$",
+      "type": "string"
+    },
+    "duration": {
+      "pattern": "^(?:(?:0|[1-9][0-9]*)(?:\\.[0-9]+)?)(?:ms|s)$",
+      "type": "string"
+    },
+    "easing": {
+      "anyOf": [
+        {
+          "enum": [
+            "linear",
+            "ease",
+            "ease-in",
+            "ease-out",
+            "ease-in-out",
+            "power1.in",
+            "power1.out",
+            "power1.inOut",
+            "power2.in",
+            "power2.out",
+            "power2.inOut",
+            "power3.in",
+            "power3.out",
+            "power3.inOut",
+            "power4.in",
+            "power4.out",
+            "power4.inOut",
+            "quad.in",
+            "quad.out",
+            "quad.inOut",
+            "cubic.in",
+            "cubic.out",
+            "cubic.inOut",
+            "quart.in",
+            "quart.out",
+            "quart.inOut",
+            "quint.in",
+            "quint.out",
+            "quint.inOut",
+            "sine.in",
+            "sine.out",
+            "sine.inOut",
+            "circ.in",
+            "circ.out",
+            "circ.inOut",
+            "expo.in",
+            "expo.out",
+            "expo.inOut",
+            "bounce.in",
+            "bounce.out",
+            "bounce.inOut"
+          ],
+          "type": "string"
+        },
+        {
+          "pattern": "^(?:(?:back|elastic)\\.(?:in|out|inOut)\\(\\s*\\d+(?:\\.\\d+)?(?:\\s*,\\s*\\d+(?:\\.\\d+)?)?\\s*\\)|steps\\(\\s*(?:[1-9]|1\\d|2[0-4])\\s*,\\s*(?:start|end)\\s*\\))$",
+          "type": "string"
+        }
+      ]
+    },
+    "id": {
+      "pattern": "^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$",
+      "type": "string"
+    },
+    "length": {
+      "pattern": "^(?:0|(?:(?:0|[1-9][0-9]*)(?:\\.[0-9]+)?)(?:px|rem|em|%))$",
+      "type": "string"
+    },
+    "motionDefaults": {
+      "additionalProperties": false,
+      "properties": {
+        "duration": {
+          "anyOf": [
+            {
+              "pattern": "^^[a-z][A-Za-z0-9]*(\\.[A-Za-z0-9]+)+$$",
+              "type": "string"
+            },
+            {
+              "$ref": "#/$defs/duration"
+            }
+          ],
+          "description": "A token reference, or a literal. A literal is legal and reported as a lint."
+        },
+        "easing": {
+          "$ref": "#/$defs/easing"
+        },
+        "intent": {
+          "enum": [
+            "entrance",
+            "exit",
+            "emphasis",
+            "feedback",
+            "decorative"
+          ],
+          "type": "string"
+        },
+        "reducedMotion": {
+          "enum": [
+            "instant",
+            "fade",
+            "none"
+          ],
+          "type": "string"
+        },
+        "repeat": {
+          "anyOf": [
+            {
+              "maximum": 999,
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "const": "infinite"
+            }
+          ]
+        },
+        "yoyo": {
+          "type": "boolean"
+        }
+      },
+      "type": "object"
+    },
+    "tokenRef": {
+      "description": "A dotted reference into the token store, e.g. \"space.lg\".",
+      "pattern": "^^[a-z][A-Za-z0-9]*(\\.[A-Za-z0-9]+)+$$",
+      "type": "string"
+    }
+  },
+  "$id": "https://web-spark.dev/schema/motion-0.1.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "description": "Time, sequencing and state machines for a page, with the semantic intent each animation exists to serve.",
+  "properties": {
+    "$schema": {
+      "const": "https://web-spark.dev/schema/motion-0.1.json",
+      "description": "The schema this document claims to satisfy. Required, so a document cannot be validated against the wrong vocabulary by accident."
+    },
+    "animations": {
+      "items": {
+        "additionalProperties": false,
+        "properties": {
+          "duration": {
+            "anyOf": [
+              {
+                "pattern": "^^[a-z][A-Za-z0-9]*(\\.[A-Za-z0-9]+)+$$",
+                "type": "string"
+              },
+              {
+                "$ref": "#/$defs/duration"
+              }
+            ],
+            "description": "A token reference, or a literal. A literal is legal and reported as a lint."
+          },
+          "easing": {
+            "$ref": "#/$defs/easing"
+          },
+          "from": {
+            "additionalProperties": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/tokenRef"
+                },
+                {
+                  "$ref": "#/$defs/length"
+                },
+                {
+                  "$ref": "#/$defs/alpha"
+                },
+                {
+                  "$ref": "#/$defs/color"
+                },
+                {
+                  "pattern": "^-?\\d+(?:\\.\\d+)?(?:deg|turn|px|%)$",
+                  "type": "string"
+                }
+              ]
+            },
+            "description": "The properties to animate, and their values. This *is* the property list: it is never declared a third time.",
+            "propertyNames": {
+              "pattern": "^(?:opacity|translateX|translateY|scale|rotate|color|background)$"
+            },
+            "type": "object"
+          },
+          "id": {
+            "$ref": "#/$defs/id"
+          },
+          "impactFloor": {
+            "enum": [
+              "subtle",
+              "noticeable",
+              "intense"
+            ],
+            "type": "string"
+          },
+          "intent": {
+            "enum": [
+              "entrance",
+              "exit",
+              "emphasis",
+              "feedback",
+              "decorative"
+            ],
+            "type": "string"
+          },
+          "reducedMotion": {
+            "enum": [
+              "instant",
+              "fade",
+              "none"
+            ],
+            "type": "string"
+          },
+          "repeat": {
+            "anyOf": [
+              {
+                "maximum": 999,
+                "minimum": 0,
+                "type": "integer"
+              },
+              {
+                "const": "infinite"
+              }
+            ],
+            "description": "Extra plays. `0` is once, `\"infinite\"` never ends — one field, two spellings, and a loop worth a type."
+          },
+          "repeatDelay": {
+            "anyOf": [
+              {
+                "pattern": "^^[a-z][A-Za-z0-9]*(\\.[A-Za-z0-9]+)+$$",
+                "type": "string"
+              },
+              {
+                "$ref": "#/$defs/duration"
+              }
+            ],
+            "description": "A token reference, or a literal. A literal is legal and reported as a lint."
+          },
+          "stagger": {
+            "additionalProperties": false,
+            "properties": {
+              "axis": {
+                "description": "Only meaningful with a two-dimensional set; absent means \"tree order\".",
+                "enum": [
+                  "x",
+                  "y"
+                ],
+                "type": "string"
+              },
+              "each": {
+                "anyOf": [
+                  {
+                    "pattern": "^^[a-z][A-Za-z0-9]*(\\.[A-Za-z0-9]+)+$$",
+                    "type": "string"
+                  },
+                  {
+                    "$ref": "#/$defs/duration"
+                  }
+                ],
+                "description": "A token reference, or a literal. A literal is legal and reported as a lint."
+              },
+              "from": {
+                "enum": [
+                  "start",
+                  "center",
+                  "end",
+                  "edges"
+                ],
+                "type": "string"
+              }
+            },
+            "required": [
+              "each"
+            ],
+            "type": "object"
+          },
+          "target": {
+            "additionalProperties": false,
+            "properties": {
+              "each": {
+                "description": "Apply across this component's children — the only set a motion document may address, because the tree is known at build time.",
+                "enum": [
+                  "children"
+                ],
+                "type": "string"
+              },
+              "id": {
+                "$ref": "#/$defs/id",
+                "description": "A component id in the scene document. Not a CSS selector: a selector matches nodes the compiler has not decided about, and \"which elements does this animate\" must be answerable from the document."
+              }
+            },
+            "required": [
+              "id"
+            ],
+            "type": "object"
+          },
+          "to": {
+            "additionalProperties": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/tokenRef"
+                },
+                {
+                  "$ref": "#/$defs/length"
+                },
+                {
+                  "$ref": "#/$defs/alpha"
+                },
+                {
+                  "$ref": "#/$defs/color"
+                },
+                {
+                  "pattern": "^-?\\d+(?:\\.\\d+)?(?:deg|turn|px|%)$",
+                  "type": "string"
+                }
+              ]
+            },
+            "description": "The properties to animate, and their values. This *is* the property list: it is never declared a third time.",
+            "propertyNames": {
+              "pattern": "^(?:opacity|translateX|translateY|scale|rotate|color|background)$"
+            },
+            "type": "object"
+          },
+          "trigger": {
+            "additionalProperties": false,
+            "properties": {
+              "machine": {
+                "$ref": "#/$defs/id",
+                "description": "For `on: \"state\"`, the machine whose state change fires this."
+              },
+              "on": {
+                "enum": [
+                  "load",
+                  "visible",
+                  "state",
+                  "hover",
+                  "focus",
+                  "click",
+                  "scroll"
+                ],
+                "type": "string"
+              },
+              "state": {
+                "description": "The state that fires it. `open`, not \"when the menu is open\".",
+                "pattern": "^[a-z][a-z0-9]*$",
+                "type": "string"
+              }
+            },
+            "required": [
+              "on"
+            ],
+            "type": "object"
+          },
+          "yoyo": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "target"
+        ],
+        "type": "object"
+      },
+      "minItems": 1,
+      "type": "array"
+    },
+    "defaults": {
+      "$ref": "#/$defs/motionDefaults"
+    },
+    "machines": {
+      "additionalProperties": {
+        "additionalProperties": false,
+        "properties": {
+          "initial": {
+            "pattern": "^[a-z][a-z0-9]*$",
+            "type": "string"
+          },
+          "states": {
+            "additionalProperties": {
+              "additionalProperties": false,
+              "properties": {
+                "effects": {
+                  "description": "Animation or timeline ids to run on entry.",
+                  "items": {
+                    "$ref": "#/$defs/id"
+                  },
+                  "minItems": 1,
+                  "type": "array"
+                },
+                "on": {
+                  "additionalProperties": {
+                    "pattern": "^[a-z][a-z0-9]*$",
+                    "type": "string"
+                  },
+                  "type": "object"
+                }
+              },
+              "type": "object"
+            },
+            "propertyNames": {
+              "pattern": "^[a-z][a-z0-9]*$"
+            },
+            "type": "object"
+          }
+        },
+        "required": [
+          "initial",
+          "states"
+        ],
+        "type": "object"
+      },
+      "propertyNames": {
+        "pattern": "^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$"
+      },
+      "type": "object"
+    },
+    "meta": {
+      "additionalProperties": false,
+      "properties": {
+        "description": {
+          "description": "Free text for the humans who inherit this file.",
+          "maxLength": 400,
+          "type": "string"
+        },
+        "name": {
+          "description": "What this document calls itself. Appears in report provenance and in the studio tab.",
+          "maxLength": 120,
+          "minLength": 1,
+          "type": "string"
+        },
+        "version": {
+          "description": "The version of what this document describes — the brand, the kit. Not the format version, which is the root `version`.",
+          "pattern": "^\\d+\\.\\d+\\.\\d+$",
+          "type": "string"
+        }
+      },
+      "required": [
+        "name"
+      ],
+      "type": "object"
+    },
+    "timelines": {
+      "items": {
+        "additionalProperties": false,
+        "properties": {
+          "defaults": {
+            "$ref": "#/$defs/motionDefaults",
+            "description": "Applies to this timeline's items unless they say otherwise."
+          },
+          "id": {
+            "$ref": "#/$defs/id"
+          },
+          "intent": {
+            "enum": [
+              "entrance",
+              "exit",
+              "emphasis",
+              "feedback",
+              "decorative"
+            ],
+            "type": "string"
+          },
+          "items": {
+            "items": {
+              "anyOf": [
+                {
+                  "additionalProperties": false,
+                  "properties": {
+                    "at": {
+                      "pattern": "^(?:<|>|[+-]=\\d+(?:\\.\\d+)?(?:ms|s)?|label:[a-z][a-z0-9]*(?:-[a-z0-9]+)*)$",
+                      "type": "string"
+                    },
+                    "ref": {
+                      "$ref": "#/$defs/id"
+                    }
+                  },
+                  "required": [
+                    "ref"
+                  ],
+                  "type": "object"
+                },
+                {
+                  "additionalProperties": false,
+                  "properties": {
+                    "at": {
+                      "description": "Where this starts relative to the rest of the timeline. `<` = with the previous item; `>` = after it; `+=0.2s` = a gap; `label:name` = an anchor declared on the timeline.",
+                      "pattern": "^(?:<|>|[+-]=\\d+(?:\\.\\d+)?(?:ms|s)?|label:[a-z][a-z0-9]*(?:-[a-z0-9]+)*)$",
+                      "type": "string"
+                    },
+                    "duration": {
+                      "anyOf": [
+                        {
+                          "pattern": "^^[a-z][A-Za-z0-9]*(\\.[A-Za-z0-9]+)+$$",
+                          "type": "string"
+                        },
+                        {
+                          "$ref": "#/$defs/duration"
+                        }
+                      ],
+                      "description": "A token reference, or a literal. A literal is legal and reported as a lint."
+                    },
+                    "easing": {
+                      "$ref": "#/$defs/easing"
+                    },
+                    "from": {
+                      "additionalProperties": {
+                        "anyOf": [
+                          {
+                            "$ref": "#/$defs/tokenRef"
+                          },
+                          {
+                            "$ref": "#/$defs/length"
+                          },
+                          {
+                            "$ref": "#/$defs/alpha"
+                          },
+                          {
+                            "$ref": "#/$defs/color"
+                          },
+                          {
+                            "pattern": "^-?\\d+(?:\\.\\d+)?(?:deg|turn|px|%)$",
+                            "type": "string"
+                          }
+                        ]
+                      },
+                      "description": "The properties to animate, and their values. This *is* the property list: it is never declared a third time.",
+                      "propertyNames": {
+                        "pattern": "^(?:opacity|translateX|translateY|scale|rotate|color|background)$"
+                      },
+                      "type": "object"
+                    },
+                    "impactFloor": {
+                      "enum": [
+                        "subtle",
+                        "noticeable",
+                        "intense"
+                      ],
+                      "type": "string"
+                    },
+                    "intent": {
+                      "enum": [
+                        "entrance",
+                        "exit",
+                        "emphasis",
+                        "feedback",
+                        "decorative"
+                      ],
+                      "type": "string"
+                    },
+                    "reducedMotion": {
+                      "enum": [
+                        "instant",
+                        "fade",
+                        "none"
+                      ],
+                      "type": "string"
+                    },
+                    "repeat": {
+                      "anyOf": [
+                        {
+                          "maximum": 999,
+                          "minimum": 0,
+                          "type": "integer"
+                        },
+                        {
+                          "const": "infinite"
+                        }
+                      ],
+                      "description": "Extra plays. `0` is once, `\"infinite\"` never ends — one field, two spellings, and a loop worth a type."
+                    },
+                    "repeatDelay": {
+                      "anyOf": [
+                        {
+                          "pattern": "^^[a-z][A-Za-z0-9]*(\\.[A-Za-z0-9]+)+$$",
+                          "type": "string"
+                        },
+                        {
+                          "$ref": "#/$defs/duration"
+                        }
+                      ],
+                      "description": "A token reference, or a literal. A literal is legal and reported as a lint."
+                    },
+                    "stagger": {
+                      "additionalProperties": false,
+                      "properties": {
+                        "axis": {
+                          "description": "Only meaningful with a two-dimensional set; absent means \"tree order\".",
+                          "enum": [
+                            "x",
+                            "y"
+                          ],
+                          "type": "string"
+                        },
+                        "each": {
+                          "anyOf": [
+                            {
+                              "pattern": "^^[a-z][A-Za-z0-9]*(\\.[A-Za-z0-9]+)+$$",
+                              "type": "string"
+                            },
+                            {
+                              "$ref": "#/$defs/duration"
+                            }
+                          ],
+                          "description": "A token reference, or a literal. A literal is legal and reported as a lint."
+                        },
+                        "from": {
+                          "enum": [
+                            "start",
+                            "center",
+                            "end",
+                            "edges"
+                          ],
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "each"
+                      ],
+                      "type": "object"
+                    },
+                    "target": {
+                      "additionalProperties": false,
+                      "properties": {
+                        "each": {
+                          "description": "Apply across this component's children — the only set a motion document may address, because the tree is known at build time.",
+                          "enum": [
+                            "children"
+                          ],
+                          "type": "string"
+                        },
+                        "id": {
+                          "$ref": "#/$defs/id",
+                          "description": "A component id in the scene document. Not a CSS selector: a selector matches nodes the compiler has not decided about, and \"which elements does this animate\" must be answerable from the document."
+                        }
+                      },
+                      "required": [
+                        "id"
+                      ],
+                      "type": "object"
+                    },
+                    "to": {
+                      "additionalProperties": {
+                        "anyOf": [
+                          {
+                            "$ref": "#/$defs/tokenRef"
+                          },
+                          {
+                            "$ref": "#/$defs/length"
+                          },
+                          {
+                            "$ref": "#/$defs/alpha"
+                          },
+                          {
+                            "$ref": "#/$defs/color"
+                          },
+                          {
+                            "pattern": "^-?\\d+(?:\\.\\d+)?(?:deg|turn|px|%)$",
+                            "type": "string"
+                          }
+                        ]
+                      },
+                      "description": "The properties to animate, and their values. This *is* the property list: it is never declared a third time.",
+                      "propertyNames": {
+                        "pattern": "^(?:opacity|translateX|translateY|scale|rotate|color|background)$"
+                      },
+                      "type": "object"
+                    },
+                    "trigger": {
+                      "additionalProperties": false,
+                      "properties": {
+                        "machine": {
+                          "$ref": "#/$defs/id",
+                          "description": "For `on: \"state\"`, the machine whose state change fires this."
+                        },
+                        "on": {
+                          "enum": [
+                            "load",
+                            "visible",
+                            "state",
+                            "hover",
+                            "focus",
+                            "click",
+                            "scroll"
+                          ],
+                          "type": "string"
+                        },
+                        "state": {
+                          "description": "The state that fires it. `open`, not \"when the menu is open\".",
+                          "pattern": "^[a-z][a-z0-9]*$",
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "on"
+                      ],
+                      "type": "object"
+                    },
+                    "yoyo": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "target"
+                  ],
+                  "type": "object"
+                }
+              ]
+            },
+            "minItems": 1,
+            "type": "array"
+          },
+          "labels": {
+            "additionalProperties": {
+              "pattern": "^\\d+(?:\\.\\d+)?(?:ms|s)$",
+              "type": "string"
+            },
+            "propertyNames": {
+              "pattern": "^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$"
+            },
+            "type": "object"
+          },
+          "trigger": {
+            "additionalProperties": false,
+            "properties": {
+              "machine": {
+                "$ref": "#/$defs/id",
+                "description": "For `on: \"state\"`, the machine whose state change fires this."
+              },
+              "on": {
+                "enum": [
+                  "load",
+                  "visible",
+                  "state",
+                  "hover",
+                  "focus",
+                  "click",
+                  "scroll"
+                ],
+                "type": "string"
+              },
+              "state": {
+                "description": "The state that fires it. `open`, not \"when the menu is open\".",
+                "pattern": "^[a-z][a-z0-9]*$",
+                "type": "string"
+              }
+            },
+            "required": [
+              "on"
+            ],
+            "type": "object"
+          }
+        },
+        "required": [
+          "id",
+          "items"
+        ],
+        "type": "object"
+      },
+      "minItems": 1,
+      "type": "array"
+    },
+    "version": {
+      "const": "0.1",
+      "description": "The format version this document is written against. This build implements \"0.1\" and refuses every other."
+    }
+  },
+  "required": [
+    "$schema",
+    "meta",
+    "version"
+  ],
+  "title": "Motion document",
+  "type": "object"
+}

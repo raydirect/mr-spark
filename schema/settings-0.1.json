@@ -1,0 +1,363 @@
+{
+  "$comment": "GENERATED from src/formats/ — edit the format module, not this file. Regenerate with `npm run formats:generate`. Shape only: the semantic rules (SETTINGS001, SETTINGS002, SETTINGS003, SETTINGS004) are enforced by src/formats/settings.js and cannot travel with this file.",
+  "$defs": {
+    "alpha": {
+      "pattern": "^(?:0|1|0\\.[0-9]{1,2})$",
+      "type": "string"
+    },
+    "color": {
+      "pattern": "^#[0-9a-f]{6}$",
+      "type": "string"
+    },
+    "colorBlock": {
+      "additionalProperties": {
+        "anyOf": [
+          {
+            "$ref": "#/$defs/color"
+          },
+          {
+            "$ref": "#/$defs/colorBlock"
+          }
+        ]
+      },
+      "propertyNames": {
+        "pattern": "^[a-z0-9][A-Za-z0-9]*(?:[.-][A-Za-z0-9]+)*$"
+      },
+      "type": "object"
+    },
+    "colorPath": {
+      "pattern": "^[a-z][A-Za-z0-9]*(?:\\.[A-Za-z0-9]+)*$",
+      "type": "string"
+    },
+    "cssValue": {
+      "maxLength": 200,
+      "minLength": 1,
+      "pattern": "^[^;{}<>#]+$",
+      "type": "string"
+    },
+    "duration": {
+      "pattern": "^(?:(?:0|[1-9][0-9]*)(?:\\.[0-9]+)?)(?:ms|s)$",
+      "type": "string"
+    },
+    "length": {
+      "pattern": "^(?:0|(?:(?:0|[1-9][0-9]*)(?:\\.[0-9]+)?)(?:px|rem|em|%))$",
+      "type": "string"
+    },
+    "propertyValue": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/tokenRef"
+        },
+        {
+          "$ref": "#/$defs/length"
+        },
+        {
+          "$ref": "#/$defs/alpha"
+        },
+        {
+          "$ref": "#/$defs/duration"
+        },
+        {
+          "$ref": "#/$defs/cssValue"
+        }
+      ]
+    },
+    "themeName": {
+      "pattern": "^[a-z][a-z0-9]*$",
+      "type": "string"
+    },
+    "tokenRef": {
+      "description": "A dotted reference into the token store, e.g. \"space.lg\".",
+      "pattern": "^^[a-z][A-Za-z0-9]*(\\.[A-Za-z0-9]+)+$$",
+      "type": "string"
+    },
+    "valueBlock": {
+      "additionalProperties": {
+        "anyOf": [
+          {
+            "$ref": "#/$defs/propertyValue"
+          },
+          {
+            "$ref": "#/$defs/valueBlock"
+          }
+        ]
+      },
+      "propertyNames": {
+        "pattern": "^[a-z0-9][A-Za-z0-9]*(?:[.-][A-Za-z0-9]+)*$"
+      },
+      "type": "object"
+    }
+  },
+  "$id": "https://web-spark.dev/schema/settings-0.1.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "description": "Configuration as data: the token store, the contrast commitments, and the description of the panel that edits them.",
+  "properties": {
+    "$schema": {
+      "const": "https://web-spark.dev/schema/settings-0.1.json",
+      "description": "The schema this document claims to satisfy. Required, so a document cannot be validated against the wrong vocabulary by accident."
+    },
+    "color": {
+      "additionalProperties": {
+        "$ref": "#/$defs/colorBlock"
+      },
+      "description": "Theme name → colour block. Checked against `meta.themes` by SETTINGS001.",
+      "propertyNames": {
+        "pattern": "^[a-z][A-Za-z0-9]*$"
+      },
+      "type": "object"
+    },
+    "contrast": {
+      "additionalProperties": false,
+      "properties": {
+        "impactPairs": {
+          "description": "Non-text boundaries: rules, borders, severity bars.",
+          "items": {
+            "additionalProperties": false,
+            "properties": {
+              "bg": {
+                "$ref": "#/$defs/colorPath",
+                "description": "The background it sits on."
+              },
+              "fg": {
+                "$ref": "#/$defs/colorPath",
+                "description": "The foreground colour, theme-relative."
+              },
+              "min": {
+                "description": "The promise for this pair. Omit to inherit the bucket minimum from `contrast.minimum`.",
+                "maximum": 21,
+                "minimum": 1,
+                "type": "number"
+              }
+            },
+            "required": [
+              "bg",
+              "fg"
+            ],
+            "type": "object"
+          },
+          "type": "array"
+        },
+        "minimum": {
+          "additionalProperties": false,
+          "properties": {
+            "text": {
+              "description": "The default promise for a `pairs` entry: WCAG AA body text is 4.5.",
+              "maximum": 21,
+              "minimum": 1,
+              "type": "number"
+            },
+            "ui": {
+              "description": "The default promise for a boundary that carries meaning: WCAG non-text contrast is 3.",
+              "maximum": 21,
+              "minimum": 1,
+              "type": "number"
+            }
+          },
+          "required": [
+            "text",
+            "ui"
+          ],
+          "type": "object"
+        },
+        "pairs": {
+          "description": "Text-on-background commitments. A colour that appears nowhere here ships unchecked, so the list is required and not empty.",
+          "items": {
+            "additionalProperties": false,
+            "properties": {
+              "bg": {
+                "$ref": "#/$defs/colorPath",
+                "description": "The background it sits on."
+              },
+              "fg": {
+                "$ref": "#/$defs/colorPath",
+                "description": "The foreground colour, theme-relative."
+              },
+              "min": {
+                "description": "The promise for this pair. Omit to inherit the bucket minimum from `contrast.minimum`.",
+                "maximum": 21,
+                "minimum": 1,
+                "type": "number"
+              }
+            },
+            "required": [
+              "bg",
+              "fg"
+            ],
+            "type": "object"
+          },
+          "minItems": 1,
+          "type": "array"
+        }
+      },
+      "required": [
+        "minimum",
+        "pairs"
+      ],
+      "type": "object"
+    },
+    "controls": {
+      "items": {
+        "additionalProperties": false,
+        "properties": {
+          "group": {
+            "description": "Section heading in the panel.",
+            "maxLength": 60,
+            "minLength": 1,
+            "type": "string"
+          },
+          "label": {
+            "maxLength": 60,
+            "minLength": 1,
+            "type": "string"
+          },
+          "max": {
+            "type": "number"
+          },
+          "min": {
+            "type": "number"
+          },
+          "options": {
+            "items": {
+              "maxLength": 40,
+              "minLength": 1,
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "path": {
+            "$ref": "#/$defs/tokenRef",
+            "description": "The token this control writes, e.g. `color.link` or `space.lg`."
+          },
+          "step": {
+            "type": "number"
+          },
+          "type": {
+            "description": "The editor. `slider` needs `min` and `max`; the control type must suit the group it writes (SETTINGS003).",
+            "enum": [
+              "color",
+              "slider",
+              "select",
+              "toggle",
+              "text"
+            ],
+            "type": "string"
+          },
+          "writable": {
+            "description": "Defaults to false. A control is read-only until a brand says otherwise.",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "group",
+          "label",
+          "path",
+          "type"
+        ],
+        "type": "object"
+      },
+      "type": "array"
+    },
+    "layout": {
+      "$ref": "#/$defs/valueBlock"
+    },
+    "meta": {
+      "additionalProperties": false,
+      "properties": {
+        "description": {
+          "description": "Free text for the humans who inherit this file.",
+          "maxLength": 400,
+          "type": "string"
+        },
+        "name": {
+          "description": "What this document calls itself. Appears in report provenance and in the studio tab.",
+          "maxLength": 120,
+          "minLength": 1,
+          "type": "string"
+        },
+        "themes": {
+          "description": "Every theme the brand ships. Each one must define the same colour keys — a theme that \"inherits\" a colour is a report that renders one hex on another hex.",
+          "items": {
+            "$ref": "#/$defs/themeName"
+          },
+          "minItems": 1,
+          "type": "array"
+        },
+        "version": {
+          "description": "The version of what this document describes — the brand, the kit. Not the format version, which is the root `version`.",
+          "pattern": "^\\d+\\.\\d+\\.\\d+$",
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "themes"
+      ],
+      "type": "object"
+    },
+    "motion": {
+      "additionalProperties": {
+        "anyOf": [
+          {
+            "$ref": "#/$defs/duration"
+          },
+          {
+            "$ref": "#/$defs/valueBlock"
+          }
+        ]
+      },
+      "propertyNames": {
+        "pattern": "^[a-z0-9][A-Za-z0-9]*(?:[.-][A-Za-z0-9]+)*$"
+      },
+      "type": "object"
+    },
+    "radius": {
+      "additionalProperties": {
+        "anyOf": [
+          {
+            "$ref": "#/$defs/length"
+          },
+          {
+            "$ref": "#/$defs/valueBlock"
+          }
+        ]
+      },
+      "propertyNames": {
+        "pattern": "^[a-z0-9][A-Za-z0-9]*(?:[.-][A-Za-z0-9]+)*$"
+      },
+      "type": "object"
+    },
+    "space": {
+      "additionalProperties": {
+        "anyOf": [
+          {
+            "$ref": "#/$defs/length"
+          },
+          {
+            "$ref": "#/$defs/valueBlock"
+          }
+        ]
+      },
+      "propertyNames": {
+        "pattern": "^[a-z0-9][A-Za-z0-9]*(?:[.-][A-Za-z0-9]+)*$"
+      },
+      "type": "object"
+    },
+    "type": {
+      "$ref": "#/$defs/valueBlock"
+    },
+    "version": {
+      "const": "0.1",
+      "description": "The format version this document is written against. This build implements \"0.1\" and refuses every other."
+    }
+  },
+  "required": [
+    "$schema",
+    "color",
+    "contrast",
+    "meta",
+    "version"
+  ],
+  "title": "Settings document",
+  "type": "object"
+}
