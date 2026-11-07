@@ -134,8 +134,21 @@ test('serve, then verify: the bytes over the wire equal the bytes in the reposit
 test('verify reports an unreachable server instead of passing quietly', async () => {
   // The silence this guard exists for: a nightly parity job that cannot connect must not print a green
   // line, and it must name the address it tried.
-  const code = await main(['verify', '--base', 'http://127.0.0.1:1']);
+  const lines = [];
+  const write = process.stdout.write.bind(process.stdout);
+  process.stdout.write = (chunk) => { lines.push(String(chunk)); return true; };
+  let code;
+  try {
+    code = await main(['verify', '--base', 'http://127.0.0.1:1']);
+  } finally {
+    process.stdout.write = write;
+  }
   assert.equal(code, 1);
+  const out = lines.join('');
+  // The wording carries the diagnosis: a server that answers nothing is not a byte mismatch, and this
+  // line is what somebody reads at 06:20 when the schedule goes red.
+  assert.match(out, /did not answer/, out);
+  assert.doesNotMatch(out, /did not match/, 'nothing was served, so nothing mismatched');
 });
 
 test('urls mode can point at the loopback origin, for the hosts-file test', () => {
