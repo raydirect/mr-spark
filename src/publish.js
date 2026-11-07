@@ -99,8 +99,15 @@ export function resolveName(pathname) {
   return PUBLISHED.includes(name) ? name : null;
 }
 
-/** The paths that mean "show me what is here". */
-const INDEX_PATHS = ['/', '/schema', '/schema/'];
+/**
+ * The paths that mean "show me what is here".
+ *
+ * `/schema/index.html` is in the list because `bundle()` writes that file. Cloudflare Pages answers it and
+ * this server used to 404 it, which made one path mean two things depending on which of the two was
+ * running — and a check that probes it to ask "is this host routing at all" would have failed locally
+ * while passing in production. One tree, one set of answers, so the rehearsal and the deployment agree.
+ */
+const INDEX_PATHS = ['/', '/schema', '/schema/', '/schema/index.html'];
 
 /** The directory page, so a human who pastes the URL learns something instead of meeting a 404. */
 export function indexPage() {
@@ -333,16 +340,24 @@ export async function main(argv = process.argv.slice(2)) {
     for (const [name, why] of bad) process.stdout.write(`  ✗ ${name} — ${why}\n`);
     // "did not match" and "did not answer" are different problems, and the nightly message is the only
     // place either gets read. Calling a 403 a mismatch sends someone to diff bytes that were never served.
-    const silent = bad.filter(([, why]) => /unreachable|HTTP [3-9]\d\d/.test(why)).length;
+    //
+    // Every count in the summary is per *file*. One file answering with the wrong media type is three
+    // findings, and counting findings where the sentence says files printed "17 of 6 files did not
+    // verify" — which sends the reader looking for a seventh file instead of at the headers.
+    const silent = new Set(
+      bad.filter(([, why]) => /unreachable|HTTP [3-9]\d\d/.test(why)).map(([name]) => name),
+    );
+    const failed = new Set(bad.map(([name]) => name));
     const parts = [];
-    if (silent > 0) parts.push(`${silent} did not answer`);
-    if (bad.length - silent > 0) parts.push(`${bad.length - silent} did not match`);
+    if (silent.size > 0) parts.push(`${silent.size} did not answer`);
+    if (failed.size - silent.size > 0) parts.push(`${failed.size - silent.size} did not match`);
     const summary =
       bad.length === 0
         ? `  ✓ ${PUBLISHED.length} files at ${base} are byte-identical to schema/ in this checkout${
             args.get('bytes-only') ? ' (headers not checked)' : ', with the media types and cache policy §5 requires'
           }`
-        : `  ${bad.length} of ${PUBLISHED.length} files did not verify at ${base}: ${parts.join(', ')}`;
+        : `  ${failed.size} of ${PUBLISHED.length} files did not verify at ${base}: ${parts.join(', ')}` +
+          ` — ${bad.length} finding(s) across them`;
     process.stdout.write(`${summary}\n`);
     return bad.length ? 1 : 0;
   }

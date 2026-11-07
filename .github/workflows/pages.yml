@@ -43,9 +43,14 @@ defaults:
 
 jobs:
   deploy:
+    # Not on a timer. A schedule that publishes would put whatever `main` happens to hold onto a host
+    # whose files are promised immutable, so one bad commit plus a CDN's year-long cache is worse than no
+    # nightly deploy — and the nightly has nothing to gain from deploying: reading is `watch`'s job.
+    if: github.event_name != 'schedule'
     runs-on: ubuntu-latest
     outputs:
       url: ${{ steps.push.outputs.url }}
+      alias: ${{ steps.push.outputs.alias }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -84,26 +89,84 @@ jobs:
             echo "::error::wrangler did not print a deployment URL — see the log above"
             exit 1
           fi
+          # Which address gets checked is not a detail. A production deploy prints both a per-deployment
+          # URL and the alias, and `head -1` takes whichever appeared first — so the first version of this
+          # step might have checked an expiring preview of the right bytes instead of the address that is
+          # written into every document. The promise is the alias, so the alias is what gets verified;
+          # `url` is kept only to record what wrangler said.
           echo "url=$url" >> "$GITHUB_OUTPUT"
+          echo "alias=https://$PROJECT.pages.dev" >> "$GITHUB_OUTPUT"
 
-      # The contract is bytes *and* headers. `verify` fails on a wrong media type, a versioned file
-      # without `immutable`, or a missing CORS header, so this step is what proves Pages honoured
-      # `_headers` rather than trusting that it did.
-      - name: verify what the deployment actually answers
-        if: steps.push.outputs.url != ''
+      - name: wait for the alias to route
+        if: steps.push.outputs.alias != ''
+        env:
+          ALIAS: ${{ steps.push.outputs.alias }}
         run: |
-          set -euo pipefail
-          for i in 1 2 3 4 5 6; do
-            if node src/publish.js verify --base "${{ steps.push.outputs.url }}"; then exit 0; fi
-            echo "not answering yet (attempt $i) — waiting"; sleep 10
+          set -uo pipefail
+          # Nothing can be verified until the address answers at all, and the alias of a Pages project
+          # that has never been deployed takes minutes to route. It took longer than the 60s this step
+          # first allowed on the day this repository's host was created, which turned a correct deploy
+          # into a red build over no defect — so the waiting lives here, and it asks only for a 200 on a
+          # path that does not depend on `_headers`, because this phase is "is it routing", not "is it
+          # configured right". A published vocabulary file names it, derived from the generator rather than
+          # written out: the same path has to answer on `npm run schema:serve` as on Pages, or the check
+          # passes in production and fails at the desk of whoever is trying to reproduce it.
+          path=$(node -e "import('./src/publish.js').then((m) => console.log(m.expectedUrls().map((u) => new URL(u).pathname).sort()[0]))")
+          first=$(date +%s)
+          for i in $(seq 1 28); do
+            code=$(curl -sS -o /dev/null -w '%{http_code}' --max-time 20 "$ALIAS$path" 2>/dev/null) || code=000
+            if [ "$code" = 200 ]; then
+              echo "✓ $ALIAS$path answers 200 (attempt $i)"
+              exit 0
+            fi
+            echo "attempt $i: HTTP $code — waiting 15s for $ALIAS to route"
+            sleep 15
           done
-          echo "::error::deployment is up but does not serve schema/ as documented"
+          # How long it actually waited, computed rather than asserted: the number is the part of this
+          # sentence anyone would quote back, and a step that reports its own loop length as an elapsed
+          # time is wrong the first time someone shortens the loop to reproduce it.
+          printf '::error::%s%s never answered 200 in %ss (%d attempts, last HTTP %s) — the deploy succeeded, so Pages is not routing the alias\n' \
+            "$ALIAS" "$path" "$(( $(date +%s) - first ))" "$i" "$code"
+          exit 1
+
+      # The contract is bytes *and* headers: a wrong media type, a versioned file without `immutable`, or
+      # a missing CORS header each fail here, which is what proves Pages honoured `_headers` instead of
+      # being assumed to. No retry loop — a header that was never configured will not arrive late, and
+      # waiting on it only delays the red.
+      #
+      # The evidence goes into annotations as well as the log. A run's log body is served from a host
+      # outside the GitHub API, so it is readable from a browser and from nothing else, and a verdict of
+      # "does not serve schema/ as documented" with no headers underneath it has to be reproduced by hand
+      # before anyone can act on it. That is how long this took the first time.
+      - name: verify what the deployment actually answers
+        if: steps.push.outputs.alias != ''
+        env:
+          ALIAS: ${{ steps.push.outputs.alias }}
+        run: |
+          set -uo pipefail
+          if node src/publish.js verify --base "$ALIAS" | tee /tmp/verify.log; then
+            exit 0
+          fi
+          tail -n 1 /tmp/verify.log | sed 's/^ *//' | while IFS= read -r line; do
+            printf '::error::%s\n' "$line"
+          done
+          for name in $(node -e "import('./src/publish.js').then((m) => console.log(m.PUBLISHED.join(' ')))"); do
+            got=$(curl -sS -D - -o /dev/null --max-time 20 "$ALIAS/schema/$name" 2>/dev/null \
+              | tr -d '\r' | grep -iE '^(HTTP/|content-type|cache-control|access-control-allow-origin)' | tr '\n' ' ')
+            printf '::error::%s · %s\n' "$name" "${got:-no response}"
+          done
           exit 1
 
   watch:
     # Nightly, per docs/HOSTING.md §5.4: the address is a `const` inside other people's documents, so a
     # deployment that quietly stops matching is not a regression a pull request will ever catch.
-    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    #
+    # `needs: deploy` with `always()`, because the two jobs used to start side by side and `watch` went red
+    # checking an address `deploy` had not created yet — on the one day that mattered, the day the host
+    # first existed. A monitor that races what it monitors reports a broken promise that was never broken.
+    # `always()` because on a schedule there is no deploy to wait for, and that is the run that counts.
+    needs: deploy
+    if: always() && (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch')
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -120,9 +183,14 @@ jobs:
       # promise, and a broken answer is exactly the failure §5.4 exists to catch.
       - name: probe the live address
         run: |
-          code=$(curl -s -o /dev/null -w '%{http_code}' --max-time 25 \
-            "https://$PROJECT.pages.dev/schema/scene-0.1.json" || echo 'no response')
-          echo "GET https://$PROJECT.pages.dev/schema/scene-0.1.json → HTTP $code"
+          set -uo pipefail
+          # A path named by the generator, not written out here: a monitor pointed at a file that has
+          # stopped existing reports "it is gone" forever, which is indistinguishable from the failure it
+          # exists to catch.
+          path=$(node -e "import('./src/publish.js').then((m) => console.log(m.expectedUrls().map((u) => new URL(u).pathname).sort()[0]))")
+          code=$(curl -sS -o /dev/null -w '%{http_code}' --max-time 25 "https://$PROJECT.pages.dev$path" 2>/dev/null) || code=000
+          echo "GET https://$PROJECT.pages.dev$path → HTTP $code"
+          echo "::notice::probe: GET $path → HTTP $code"
 
       - name: verify the live address
         env:
@@ -130,9 +198,20 @@ jobs:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: |
           set -uo pipefail
-          if node src/publish.js verify --base "https://$PROJECT.pages.dev"; then
-            exit 0
-          fi
+          # Three attempts a minute apart. This is one network read at 06:20; a request that fails once
+          # and succeeds twenty seconds later is instability, and the URL rot §5.4 is watching for is not
+          # fixed by a retry — so the retry is here to keep the two apart, and to say which one happened.
+          for i in 1 2 3; do
+            if node src/publish.js verify --base "https://$PROJECT.pages.dev" | tee /tmp/verify.log; then
+              [ "$i" = 1 ] || echo "  …it answered on attempt $i — instability, not rot"
+              exit 0
+            fi
+            if [ "$i" != 3 ]; then
+              echo "attempt $i did not verify — retrying in 20s"
+              sed 's/^/    /' /tmp/verify.log
+              sleep 20
+            fi
+          done
           if [ -z "${CLOUDFLARE_API_TOKEN:-}" ] || [ -z "${CLOUDFLARE_ACCOUNT_ID:-}" ]; then
             echo "::warning::the address every document names does not answer yet, and this repository has"
             echo "::warning::no CLOUDFLARE_API_TOKEN / CLOUDFLARE_ACCOUNT_ID, so nothing has ever been published."
@@ -140,5 +219,8 @@ jobs:
             echo "::warning::not environment secrets — this workflow does not declare an environment."
             exit 0
           fi
+          tail -n 1 /tmp/verify.log | sed 's/^ *//' | while IFS= read -r line; do
+            printf '::error::%s\n' "$line"
+          done
           echo "::error::credentials are configured, so https://$PROJECT.pages.dev/schema/ is a promise the format makes — and it is not being kept."
           exit 1
