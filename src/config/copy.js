@@ -152,6 +152,49 @@ export const COPY = Object.freeze({
     skipToContent: 'Skip to content',
   },
 
+  // ---------------------------------------------------------------- document formats
+  //
+  // Validation messages live here for the same reason every other sentence does: a format whose
+  // error text is scattered through the validator cannot be reviewed, and an author's ability to fix
+  // a document depends on these lines more than on any schema.
+  format: {
+    root: 'the document root',
+    unknownKind: (kind) => `Unknown document format "${kind}". The formats are scene, motion and settings.`,
+    notAnObject: 'A document must be a JSON object at the top level.',
+    versionMismatch: (implemented, found) =>
+      `Format version mismatch: this build reads "${implemented}" and this document declares ${found === undefined ? 'nothing' : `"${found}"`}. Versions are refused, not guessed — a partially understood design document produces a confidently wrong page.`,
+    required: (path, expected) => `${path} is required (${expected}).`,
+    type: (path, expected, actual) => `${path} must be ${expected}, not ${actual}.`,
+    const: (path, expected, actual) => `${path} must be exactly ${JSON.stringify(expected)}${actual === 'absent' ? '' : `, not ${JSON.stringify(actual)}`}.`,
+    enum: (path, allowed, actual) =>
+      `${path} must be one of ${allowed.map((v) => `"${v}"`).join(' | ')}. Got ${actual === 'absent' ? 'nothing' : JSON.stringify(actual)}.`,
+    pattern: (path, pattern, actual) => `${path} is not in the expected form. Got ${JSON.stringify(actual)}, expected something matching /${pattern}/.`,
+    keyPattern: (path, pattern, actual) => `${path}: the key ${JSON.stringify(actual)} is not a legal name here (/${pattern}/).`,
+    minimum: (path, minimum, actual) => `${path} must be at least ${minimum}. Got ${actual}.`,
+    maximum: (path, maximum, actual) => `${path} must be at most ${maximum}. Got ${actual}.`,
+    minItems: (path, minItems, actual) => `${path} needs at least ${minItems} item(s); it has ${actual}.`,
+    minLength: (path, minLength, actual) => `${path} is too short (${JSON.stringify(actual)}); minimum ${minLength} characters.`,
+    maxLength: (path, maxLength, actual) => `${path} is too long; maximum ${maxLength} characters.`,
+    unknownKey: (path, allowed, actual) =>
+      `${path} is not a field of this document. ${allowed.length ? `The fields here are: ${allowed.join(', ')}.` : 'Nothing is allowed here.'} An unknown key is an error, not a hint — a typo that does nothing is how a design system rots.`,
+    tokenGroup: (path, groups, actual) => `${path} may not reference "${String(actual).split('.')[0]}". The groups a document may reference are: ${groups.join(', ')}.`,
+    unknownToken: (path, actual, nearest) =>
+      `${path}: "${actual}" is not a token the settings document declares.${nearest ? ` Did you mean "${nearest}"?` : ' Declare it in the settings document, or use a literal and accept the lint.'}`,
+    literalValue: (path, actual) =>
+      `${path}: ${JSON.stringify(actual)} is written literally. Legal, and a lint — a value that appears twice is a bug waiting to disagree with itself.`,
+    noBranch: (path, branches, actual, notes) =>
+      `${path} matches none of: ${branches.join(' | ')}. Got ${JSON.stringify(actual)}.${notes?.length ? ` ${notes.join(' ')}` : ''}`,
+    unknownDiscriminator: (path, discriminator, allowed, actual) =>
+      `${path}: ${JSON.stringify(actual)} is not a known ${discriminator}. The ${discriminator}s this document accepts are: ${allowed.map((v) => `"${v}"`).join(' | ')}.`,
+    branchChosen: (path, chosen) => `${path}: "${chosen}" decides which shape applies, so the errors below are read against that shape.`,
+    tokenUnresolved: (path, actual) =>
+      `${path}: "${actual}" is a token reference and no settings document was supplied, so it could not be resolved. Reported as undecided, never as valid.`,
+    check: (id, path, note) => `${path ? `${path}: ` : ''}${note} [${id}]`,
+    notice: (code, path, note) => `${path ? `${path}: ` : ''}${note}`,
+    summary: (kind, errors, notices, unresolved) =>
+      `${kind}: ${errors} error(s), ${notices} lint(s), ${unresolved} check(s) that could not be decided${unresolved ? ' — a settings document was not supplied' : ''}.`,
+  },
+
   // ---------------------------------------------------------------- CLI errors
   errors: {
     unknownArgument: (arg) => `Unknown argument: ${arg}`,
