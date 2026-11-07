@@ -219,6 +219,13 @@ $ spark check dist/index.html --ci --no-color
   ✓ gate · no new findings · 11 already known
 ```
 
+On GitHub Actions that is one `uses:` line, and this repository runs it on its own fixtures on every push:
+
+```yaml
+- uses: raydirect/mr-spark/.github/actions/spark-gate@<pinned-ref>
+  with: { target: dist/index.html }
+```
+
 A page with 400 findings does not get a red build on the day the gate is installed. Those 400 are the
 floor, written down in a file a reviewer can read, and the build stops the pull request that adds
 finding 401 — or that turns a `moderate` into a `serious` at something that was already there. What the
