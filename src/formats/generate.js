@@ -14,12 +14,14 @@ import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 
 import { serialize, toJsonSchema, toJsonSchemaDefs, toTypeScriptBundle } from './grammar.js';
-import { DEFS, VERSION } from './common.js';
+import { DEFS, VERSION, SCHEMA_HOST } from './common.js';
 import * as scene from './scene.js';
 import * as motion from './motion.js';
 import * as settings from './settings.js';
 
-export const SCHEMA_HOST = 'https://web-spark.dev/schema';
+// Owned by ./common.js — one literal for the address, because it is also the `$schema` const every
+// document must carry. Re-exported so `publish.js` and the tests keep one import path.
+export { SCHEMA_HOST };
 export const GENERATED_MARK = `GENERATED from src/formats/ — edit the format module, not this file. Regenerate with \`npm run formats:generate\`.`;
 
 const FORMATS = [

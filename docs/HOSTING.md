@@ -56,18 +56,22 @@ wrong?" — and the answer that costs nothing is the copy inside the package, wh
 exports `./schema/*` in the first place:
 
 ```json
-// .vscode/settings.json in a project that holds web-spark documents
+// .vscode/settings.json in a project that holds MR-Spark documents
 {
   "json.schemas": [
-    { "fileMatch": ["*.spark.scene.json"], "url": "./node_modules/webspark/schema/scene-0.1.json" },
-    { "fileMatch": ["*.spark.motion.json"], "url": "./node_modules/webspark/schema/motion-0.1.json" },
-    { "fileMatch": ["*.spark.settings.json"], "url": "./node_modules/webspark/schema/settings-0.1.json" }
+    { "fileMatch": ["*.spark.scene.json"], "url": "../<checkout>/schema/scene-0.1.json" },
+    { "fileMatch": ["*.spark.motion.json"], "url": "../<checkout>/schema/motion-0.1.json" },
+    { "fileMatch": ["*.spark.settings.json"], "url": "../<checkout>/schema/settings-0.1.json" }
   ]
 }
 ```
 
-Offline, instant, and version-locked to the install — which is *better* than the URL for local work, and
-the reason the URL is for people who did not install us rather than instead of it.
+Point it at a checkout, not at `node_modules`, until there is a package name we own: `webspark` on npm
+has been an unrelated blog engine since 2019, so the copy in `node_modules` is not installable by us
+and the name in this sentence will change with the rename (`docs/PHASE-PLAN.md`, open decisions).
+
+Offline, instant, and version-locked to the copy you have — which is *better* than the URL for local work,
+and the reason the URL is for people who did not install us rather than instead of it.
 
 ## 3. Test the real address on one machine
 

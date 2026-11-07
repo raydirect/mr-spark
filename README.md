@@ -126,7 +126,9 @@ Formats are specified in [docs/DOCUMENTS.md](docs/DOCUMENTS.md), authored agains
 [docs/SCENE.md](docs/SCENE.md), and enforced today by `src/formats/`:
 
 ```js
-import { validateDocument } from 'webspark/formats';
+// The bare specifier `webspark/formats` is what this will be once the package name is settled; it is
+// not installable today (see "Where it starts"). From a clone, import the module directly.
+import { validateDocument } from './src/formats/index.js';
 const result = validateDocument('scene', JSON.parse(await readFile('landing.spark.scene.json', 'utf8')));
 // → { valid, complete, errors, notices, unresolved, checksRun, kind }
 ```
@@ -187,7 +189,9 @@ And one cultural rule: **Spark passes its own MCP conformance rules in CI, perma
 ## Where it starts
 
 ```bash
-npx webspark check https://example.com
+# From a clone. There is no installable name yet: `webspark` on npm has been somebody else's
+# unrelated package since 2019, so `npx webspark` gets you their blog engine, not this.
+node bin/spark.js check https://example.com
 ```
 
 ```
