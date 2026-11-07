@@ -9,9 +9,11 @@ HTML and CSS and nothing else. `motion-0.1` adds time to it; `settings-0.1` give
 - File name: **`<name>.spark.scene.json`**
 - A complete, valid example: [`test/fixtures/docs/landing.spark.scene.json`](../test/fixtures/docs/landing.spark.scene.json)
 
-Nothing in this document is aspirational in one way worth stating up front: **`spark lower` and
-`spark emit` do not exist yet.** The format is frozen and enforced; the compiler that turns it into a
-page is the next pull request.
+This format compiles. `spark lower <name>.spark.scene.json` resolves the document set into the IR and
+`spark emit` writes `index.html`, `spark.css` and `tokens.json` — byte-identical across runs, and the
+emitted page passes `spark check` at the same bar a hand-written page has to clear (both asserted in CI).
+What the emitter deliberately refuses is in [`DOCUMENTS.md §4`](DOCUMENTS.md): a motion that needs
+something running at play time, and nothing else. A refusal writes no files.
 
 ---
 

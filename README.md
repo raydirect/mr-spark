@@ -7,14 +7,15 @@ shipped bundle — each should carry its own proof that it is accessible, fast, 
 machines, and resilient. Today none of them do. web-spark is the missing layer that makes that
 proof a property of the pipeline instead of an audit after the fact.
 
-> ⚠️ **Status: early code, honest labels.** The engine, `check`, the score, the report page and the
-> CI gate exist and are tested. So do the three **document formats**: `src/formats/` is the grammar
-> and the validator, `schema/` is its published projection, `npm run formats:check` proves the two
-> agree, and `test/formats.test.js` holds them to it. What does **not** exist is the compiler — no
-> command turns a valid document into a page yet (`lower` and `emit` are the next pull request) — and
-> there is no studio, no renderer and no motion runtime. Ask a question about *authoring a page
-> today* and the answer is that you cannot yet; ask one about *what a page must say* and the format
-> answers it in a validator error. The documents that carry the thinking:
+> ⚠️ **Status: early code, honest labels.** The engine, `check`, the score, the report page and the CI
+> gate exist and are tested. So do the three **document formats** — `src/formats/` is the grammar and the
+> validator, `schema/` is its published projection, `npm run formats:check` proves they agree — and the
+> spine between them and a page: `spark lower` turns a document set into the IR, `spark emit` writes
+> `index.html`, `spark.css` and `tokens.json`, byte-identical across runs, and CI audits that output with
+> our own checker at the bar a hand-written page has to clear. What does **not** exist is an editor: no
+> studio, no canvas, no renderer, and no runtime for motion that needs one (that refusal is `EMIT001`,
+> and a refusal writes no files). Author a page today by writing JSON; the tool proves it. The documents
+> that carry the thinking:
 > - [docs/VISION.md](docs/VISION.md) — the unified plan: one intermediate representation, five pillars
 > - [docs/SURFACES.md](docs/SURFACES.md) — why the product is the engine, and where it runs
 > - [docs/SHELL.md](docs/SHELL.md) — what hosts the authoring UI, and why it is not a native app
@@ -106,7 +107,7 @@ Read [docs/REVOLUTION.md](docs/REVOLUTION.md) for the whole thing. The shape:
 | Phase | What it delivers | Status |
 |---|---|---|
 | 0 | **Ground truth** — a verifier worth trusting: per-root-cause scoring ✅, suppression with printed reasons ✅, a three-page real corpus with frozen baselines ✅ | 🔨 in progress |
-| 1 | **Spine** — frozen `scene` / `motion` / `settings` document schemas ✅, `lower`, `emit`, byte-identical output | 🔨 formats + validator + published schemas done; compiler not started |
+| 1 | **Spine** — frozen `scene` / `motion` / `settings` document schemas ✅, `lower` ✅, `emit` ✅, byte-identical output ✅ | 🔨 one item open: `schema/` and the IR spec at a stable public URL |
 | 2 | **Gate** — `baseline`, regression-only `--ci`, SARIF, action, finding identity that survives generated ids | ⏳ |
 | 3 | **Studio** — a browser canvas where you author a page, with the verifier live on the canvas | ⏳ |
 | 4 | **Motion** — a motion document where reduced-motion is a checked property, not a wish | ⏳ |
@@ -129,6 +130,21 @@ import { validateDocument } from 'webspark/formats';
 const result = validateDocument('scene', JSON.parse(await readFile('landing.spark.scene.json', 'utf8')));
 // → { valid, complete, errors, notices, unresolved, checksRun, kind }
 ```
+
+Or compile a page and let the tool grade it:
+
+```console
+$ spark lower test/fixtures/docs/shop.spark.scene.json --out build/shop.ir.json
+  lowered 3 document(s) · 13 component(s) · 24 token(s) · 5 motion item(s)
+  0 error(s) · 1 lint(s) · 0 unresolved reference(s) · every semantic check ran against this set
+$ spark emit build/shop.ir.json --out build/
+  wrote build/index.html, build/spark.css, build/tokens.json · second run, byte-identical
+$ spark check build/index.html --no-color --fail-under 95
+  ACCESSIBLE  ≤ 100  ✓  no decided findings · 3 undecided
+```
+
+Those three commands are the whole product in miniature: a document says what the page is, the compiler
+writes it, and the verifier judges the *result*.
 
 The rule that makes this one product rather than six: **you cannot emit an artifact the verifier has
 not judged.** Today that rule binds the *document*; it starts binding the *page* when `lower` lands.
