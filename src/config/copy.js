@@ -16,7 +16,9 @@ export const COPY = Object.freeze({
 
   usage: {
     usage: 'Usage',
-    check: 'audit a page',
+    // The set is the point of the row: a directory is how a repo gets one verdict for one commit, and
+    // `report`/`lower`/`emit` stay single-document on purpose (they write one artifact).
+    check: 'audit a page, a directory of pages, or several paths',
     report: 'build a shareable HTML report',
     help: 'this text',
     version: 'version',
@@ -31,7 +33,7 @@ export const COPY = Object.freeze({
     port: 'report: port for --serve (default: 4321)',
     quiet: 'machine output: one tab-separated line per finding, no prose',
     config: 'path to spark.config.json (default: alongside the target)',
-    baseline: 'write the current findings to .spark-baseline.json',
+    baseline: 'write the current findings — for one page or a whole directory — to .spark-baseline.json',
     ci: 'fail only on findings the baseline does not already have',
     baselinePath: 'path to the baseline file (default: ./.spark-baseline.json, or "baseline" in spark.config.json)',
     strict: 'with --ci: findings from rules the baseline never saw also block',
@@ -71,6 +73,12 @@ export const COPY = Object.freeze({
      */
     baselineWritten: (file, findings, rules) =>
       `wrote ${file}: ${findings} finding(s) across ${rules} rule(s) are now the floor, not the failure`,
+    // The page count belongs in the sentence because a one-page baseline and a whole-repo baseline that
+    // both say "44 findings" look identical in a commit message, and are not the same agreement.
+    baselineWrittenPages: (file, findings, rules, pages) =>
+      `wrote ${file}: ${findings} finding(s) across ${rules} rule(s) on ${pages} page(s) are now the floor, not the failure`,
+    baselineEmptyPages: (file, pages) =>
+      `wrote ${file}: an empty baseline across ${pages} page(s) — nothing to fix today is not the same as nothing to gate tomorrow`,
     baselineEmpty: (file) =>
       `wrote ${file}: an empty baseline — this page has nothing to carry forward, and the gate will stop the ` +
       'first finding it ever sees',
@@ -139,6 +147,18 @@ export const COPY = Object.freeze({
     undecidedExplanation:
       'These checks are excluded from the score and are NOT violations. They are questions that got no answer, for one of two reasons, and the difference matters: an environment question is our blindness — computed contrast needs a canvas this run did not have — while a judgement question cannot be answered from markup at all, because it depends on the accessibility tree the browser builds or on what a person sees. A judgement question is usually worth going and looking at.',
     reportWritten: (path) => `report written to ${path}`,
+    /**
+     * A repo-wide run prints one row per page instead of one report per page. The numbers in a row are the
+     * numbers that page's own report prints, so a row and a report can never disagree — and a page nobody
+     * opened still gets its findings counted in the total below.
+     */
+    pageRow: (page, findings, elements, score) =>
+      `  ${page} · ${findings} finding${findings === 1 ? '' : 's'} · ${elements} elements · score ${score}`,
+    pagesTotal: (pages, findings) =>
+      `  ${pages} page${pages === 1 ? '' : 's'} · ${findings} finding${findings === 1 ? '' : 's'} in total · run \`spark check <page>\` for one page's report`,
+    // `--fail-under` is asked per page on purpose: a mean is how a 100-page site gets to ship one page at 12.
+    belowThreshold: (page, score, threshold) =>
+      `${page}: score ${score} is below the required ${threshold} — the other pages passing is not the question`,
     serving: (url) => `serving at ${url}  (Ctrl+C to stop)`,
   },
 
@@ -268,6 +288,45 @@ export const COPY = Object.freeze({
       `score spec changed since the baseline (${from} → ${to}): counts still compare, scores do not`,
     howToFix:
       'either fix them, or accept them deliberately with `spark baseline` and say why in the commit',
+    /**
+     * Multi-page runs. One line per page that moved, and a total line, because the question a build log
+     * asks is "is anything worse" and the question a human asks next is "where".
+     */
+    pagesSummary: (pages, blocking, escalated, resolved, unchanged) => {
+      const parts = [`${pages} page(s)`];
+      parts.push(blocking === 0 ? 'no new findings' : `${blocking} new`);
+      if (escalated) parts.push(`${escalated} worse`);
+      if (resolved) parts.push(`${resolved} fixed`);
+      parts.push(`${unchanged} already known`);
+      return `gate · ${parts.join(' · ')}`;
+    },
+    // "unchanged" is only true of a page the file knows. A page it never listed has nothing to be unchanged
+    // against, and printing that word over a page with 11 findings would be the most convincing lie in the log.
+    page: (page, blocking, escalated, resolved, adoptable, isNew) => {
+      const parts = [];
+      if (blocking) parts.push(`${blocking} new`);
+      if (escalated) parts.push(`${escalated} worse`);
+      if (resolved) parts.push(`${resolved} fixed`);
+      if (adoptable) parts.push(`${adoptable} to adopt`);
+      if (!parts.length && isNew) parts.push('new page, nothing to fix');
+      return `${page} · ${parts.length ? parts.join(' · ') : 'unchanged'}`;
+    },
+    newPages: (names) =>
+      `${names.length} page(s) are not in the baseline (${names.join(', ')}) — their findings are reported, ` +
+      'not blocking. Run `spark baseline` on the same set of pages to adopt them, or use --strict',
+    morePages: (n) => `… and ${n} more page(s) with changes; run \`spark check <page> --ci\` for one at a time`,
+    staleFormat: (version) =>
+      `this baseline was written as version 1, which describes one page — it is being read as a one-page ` +
+      `version ${version}. Run \`spark baseline\` on this set of pages to write the whole set down`,
+    // The sentence for a run and a baseline with nothing in common, which is never a pass and never a
+    // regression either: nothing was compared. It exits 2 for the same reason a missing baseline does.
+    noOverlap: (recorded, audited) =>
+      `the baseline records ${recorded} page(s) and this run audited ${audited} other page(s), so nothing ` +
+      'was compared — the two commands have to be given the same target, or a page was renamed in this ' +
+      'commit, in which case run `spark baseline` again and say so in the commit',
+    gonePages: (names) =>
+      `${names.length} page(s) in the baseline were not in this run (${names.join(', ')}) — nothing was fixed, ` +
+      'the pages were not audited',
   },
 
   // ---------------------------------------------------------------- CLI errors
@@ -285,8 +344,15 @@ export const COPY = Object.freeze({
     baselineNotJson: (cause) => `is not valid JSON (${cause})`,
     baselineShape: 'the baseline must be a JSON object',
     baselineUnknownKey: (key) => `unknown key "${key}"`,
-    baselineVersion: (found, wanted) => `unsupported baseline version ${found} (this build writes ${wanted})`,
+    baselineVersion: (found, readable, written) =>
+      `unsupported baseline version ${found} — this build reads ${readable} and writes ${written}`,
     baselineNoFindings: '"findings" must be an array',
+    baselineNoPages:
+      '"pages" must be a non-empty array — a baseline that lists no pages gates nothing, which is not the same as a pass',
+    baselinePageShape: 'every entry in "pages" must be an object',
+    baselinePageKey: '"page" must be a non-empty path, as a string',
+    baselineDuplicatePage: (page) => `duplicate page "${page}"`,
+    baselineEntryShape: 'must be an object',
     baselineEntry: (index) => `findings[${index}] must be an object`,
     baselineEntryKey: 'every entry needs a "key" of the form rule@digest',
     baselineEntryCount: '"count" must be an integer of at least 1',
@@ -294,6 +360,16 @@ export const COPY = Object.freeze({
     baselineKindMismatch: (was, now) =>
       `this baseline was written for a ${was} and you are checking a ${now}, which skips different rules — ` +
       'the comparison would find nothing to report and call that a pass. Re-run `spark baseline` on the same kind of input',
+    duplicatePage: (page) =>
+      `two arguments name the same page ("${page}") — pass the directory or the file, not both`,
+    noPages: (inputs) =>
+      `no HTML found under ${inputs}. A directory with no pages in it is not a passing audit, it is a run ` +
+      'that looked at nothing, so it does not exit 0',
+    // A second and third target are not folded into "and so on": the command that takes a set is a
+    // different command, and the answer to "I meant all of them" has to be a command line, not a shrug.
+    multiTarget: (command) =>
+      `${command} writes one artifact for one document — give it a single file or URL. The command that takes ` +
+      'a set is `spark check <dir>` (or several paths), which audits every page in it and gates them with one verdict',
     missingDependency: (name, where, cause) =>
       `Cannot load the "${name}" engine in ${where}. Run \`npm ci\` from the project root, then run this command again from that same directory. Underlying error: ${cause}`,
   },

@@ -85,6 +85,35 @@ jobs:
           grep -q "already in the baseline" .spark/summary.md
           grep -q "score spec" .spark/summary.md
           test -s .spark/bad.sarif
+      # The whole repo, in one step: every page under `fixtures/` against one baseline file, written seconds
+      # earlier from the same argument. What that proves is the plumbing a consumer copies — a directory
+      # expands to the same set for `baseline` and for `check`, a fragment page and a document page sit in one
+      # file without confusing the kind check, and one commit gets one verdict that says how many pages it
+      # covered. It is not a fixture-currency test: `npm test` pins those committed baselines byte for byte,
+      # which is the only way a stale one shows up as a red build naming a rule instead of a shrug.
+      - name: a repo-wide baseline is written from the directory it will gate
+        run: >-
+          node bin/spark.js baseline fixtures --baseline .spark/fixtures-baseline.json --no-color
+          | grep "page(s) are now the floor"
+      - name: the gate covers every page in the repo it was given
+        uses: ./.github/actions/spark-gate
+        with:
+          target: fixtures
+          baseline: .spark/fixtures-baseline.json
+          spark: node bin/spark.js
+          sarif: .spark/repo.sarif
+      # Asserted from the artefact, not from the log: a summary that says "3 pages" while the SARIF has two
+      # artifacts is the failure this feature could most plausibly produce, and it is silent in a green build.
+      - name: the step summary and the payload agree about the pages
+        run: |
+          grep -q "| pages |" .spark/summary.md
+          grep -q "worst page" .spark/summary.md
+          test -s .spark/repo.sarif
+          node -e "const fs = require('node:fs');
+          const run = JSON.parse(fs.readFileSync('.spark/repo.sarif', 'utf8')).runs[0];
+          if (run.artifacts.length < 5) throw new Error('the repo-wide run lost pages: ' + run.artifacts.length);
+          if (run.properties.sparkGate.pages !== run.artifacts.length) throw new Error('run and gate disagree about the page count');
+          if (!run.results.every((r) => r.partialFingerprints.sparkKey.includes('\u0000'))) throw new Error('a result is missing its page');"
       # Dogfooding: our own report must pass our own tool.
       - name: the generated report must pass its own audit
         run: |

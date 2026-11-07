@@ -213,31 +213,36 @@ node bin/spark.js check https://example.com
 Then in CI, gating only on *new* problems:
 
 ```bash
-$ spark baseline dist/index.html            # once; commit .spark-baseline.json
-$ spark check dist/index.html --ci --no-color
+$ spark baseline dist                        # once, for every page in it; commit .spark-baseline.json
+$ spark check dist --ci --no-color
 
-  ✓ gate · no new findings · 11 already known
+  ✓ gate · 2 page(s) · no new findings · 13 already known
 ```
+
+One page is the same two commands with one path, and prints the lines it has always printed.
 
 On GitHub Actions that is one `uses:` line, and this repository runs it on its own fixtures on every push:
 
 ```yaml
 - uses: raydirect/mr-spark/.github/actions/spark-gate@<pinned-ref>
-  with: { target: dist/index.html }
+  with: { target: dist }
 ```
 
-A page with 400 findings does not get a red build on the day the gate is installed. Those 400 are the
+A repo with 400 findings does not get a red build on the day the gate is installed. Those 400 are the
 floor, written down in a file a reviewer can read, and the build stops the pull request that adds
 finding 401 — or that turns a `moderate` into a `serious` at something that was already there. What the
 gate refuses to treat as a regression is the interesting part, and it is written down:
-[docs/GATE.md](docs/GATE.md) and [ADR 0005](docs/adr/0005-a-gate-on-regressions-keyed-by-structure.md).
+[docs/GATE.md](docs/GATE.md),
+[ADR 0005](docs/adr/0005-a-gate-on-regressions-keyed-by-structure.md) and
+[ADR 0007](docs/adr/0007-a-baseline-describes-a-set-of-pages.md) for the pages.
 
-A run with new findings says so and says what to do about it:
+A run with new findings says so, says which page, and says what to do about it:
 
 ```
-  ✗ gate · 1 new · 5 already known
-      +1 region at input (moderate)
-  1 finding(s) come from rules this baseline predates (label) — reported, not blocking. Run `spark baseline` to adopt them, or use --strict to block on them today.
+  ✗ gate · 2 page(s) · 2 new · 13 already known
+    index.html · 2 new
+      index.html · +1 image-alt at img[src$="extra.png"] (critical)
+      index.html · +1 region at img[src$="extra.png"] (moderate)
   either fix them, or accept them deliberately with `spark baseline` and say why in the commit
 ```
 

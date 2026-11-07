@@ -22,6 +22,7 @@ import { join } from 'node:path';
 import { USAGE } from '../src/cli.js';
 import { buildSarif, renderSarif } from '../src/reporters/sarif.js';
 import { compare, snapshot } from '../src/baseline.js';
+import { VERSION } from '../src/config/brand.js';
 import { summarize } from '../.github/actions/spark-gate/summary.mjs';
 
 const ACTION_DIR = '.github/actions/spark-gate';
@@ -207,8 +208,16 @@ const ir = (...findings) => ({
   provenance: { uri: 'file:///home/ada/page.html', source: 'file', kind: 'document' },
 });
 
-const sarifFor = (before, now, options = {}) => {
-  const diff = compare(snapshot({ ir: before, scores: {}, hash: 'h' }), now, options);
+/**
+ * The payload a CI run would have written, from two synthetic pages.
+ *
+ * `build` stamps which MR-Spark wrote the baseline. It is a knob because one of the gate's rules is about
+ * exactly that: a rule the file has never heard of is "ours to adopt" only when an older build wrote the
+ * file, and is a regression when this build did. Tests that want the first reading ask for `build: '0.1.0'`.
+ */
+const sarifFor = (before, now, { build = VERSION, ...options } = {}) => {
+  const base = snapshot({ ir: before, scores: {}, hash: 'h' });
+  const diff = compare({ ...base, engine: { ...base.engine, version: build } }, now, options);
   return renderSarif(buildSarif({ ir: now, scores: { accessible: 71 }, hash: 'h', diff }));
 };
 
@@ -230,14 +239,14 @@ test('a regression lists only what blocks, and separates what it refuses to char
     finding('color-contrast', '.hero', 'serious', { coverage: 'incomplete', undecidedKind: 'environment' }),
     finding('html-has-lang', 'html', 'serious', { suppressed: true, suppressionReason: 'tracked upstream' })
   );
-  const text = summarize(JSON.parse(sarifFor(before, now)));
+  const text = summarize(JSON.parse(sarifFor(before, now, { build: '0.1.0' })));
   assert.match(text, /✗ 1 new finding\(s\)/);
   assert.match(text, /\| new \| 1 \|/);
   // The bullet carries the delta, not the number of results at that anchor: two identical siblings are two
   // results and one new finding, and a summary that said "+2" would contradict the exit code.
   assert.match(text, /- `region` \+1 at `\.card` \(moderate\) · baseline had 1/);
   assert.doesNotMatch(text, /- `label`/, 'a finding from a rule the baseline predates is not listed as a regression');
-  assert.match(text, /1 finding\(s\) come from rules this baseline predates/);
+  assert.match(text, /1 finding\(s\) are reported but not blocking/);
   assert.match(text, /Not counted as regressions: 1 could not be decided automatically, 1 waived by configuration/);
   assert.match(text, /Either fix them, or run `spark baseline`/);
 });
@@ -245,7 +254,9 @@ test('a regression lists only what blocks, and separates what it refuses to char
 test('--strict moves a finding from "ours to adopt" to "yours to fix", and the summary follows', () => {
   const before = ir(finding('region', '.card'));
   const now = ir(finding('region', '.card'), finding('label', '#x', 'critical'));
-  const text = summarize(JSON.parse(sarifFor(before, now, { strict: true })));
+  const text = summarize(JSON.parse(sarifFor(before, now, { strict: true, build: '0.1.0' })));
+  // The same finding without `--strict`, from the same older baseline: adopted, not charged.
+  assert.match(summarize(JSON.parse(sarifFor(before, now, { build: '0.1.0' }))), /rules this baseline predates/, 'so the sentence this test is about is really about --strict');
   assert.match(text, /✗ 1 new finding\(s\)/);
   assert.match(text, /- `label` \+1 at `#x` \(critical\)/);
   assert.doesNotMatch(text, /rules this baseline predates/, 'nothing is left to adopt once the line is hard');

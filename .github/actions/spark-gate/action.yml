@@ -10,7 +10,12 @@ description: Fail only on findings a committed baseline does not already have; w
 
 inputs:
   target:
-    description: The page to audit — a file in the checkout, or a URL.
+    # One argument, but the argument may be a directory or a space-separated list: the CLI does the
+    # expanding, so `dist` here means the same set of pages as `dist` in `spark baseline dist` — which is
+    # the only reason a whole-repo baseline stays readable. Split on whitespace; a path with a space in it
+    # has to be gated by its directory instead. That is a real limit and it is written down rather than
+    # worked around with a second quoting layer in bash.
+    description: The page or pages to audit — a file, a directory (every page in it), a URL, or several separated by spaces.
     required: true
   baseline:
     description: The committed baseline file `spark baseline` wrote.
@@ -34,7 +39,7 @@ inputs:
 runs:
   using: composite
   steps:
-    - name: Gate the page on its baseline
+    - name: Gate the pages on their baseline
       shell: bash
       working-directory: ${{ inputs.working-directory }}
       env:
@@ -47,6 +52,11 @@ runs:
       run: |
         set -euo pipefail
         read -r -a cmd <<< "$SPARK"
+        read -r -a targets <<< "$SPARK_TARGET"
+        if [ "${#targets[@]}" -eq 0 ]; then
+          echo "::error::spark-gate: target is empty. A gate that audits nothing reports a pass, which is the one output it must never produce."
+          exit 2
+        fi
 
         case "$SPARK_STRICT" in
           true) SPARK_STRICT=true ;;
@@ -66,14 +76,14 @@ runs:
 
         # The verdict comes from this run — the human-shaped one, whose findings list belongs in the log.
         code=0
-        "${cmd[@]}" check "$SPARK_TARGET" --ci --no-color --baseline "$SPARK_BASELINE" ${extra[@]+"${extra[@]}"} || code=$?
+        "${cmd[@]}" check ${targets[@]+"${targets[@]}"} --ci --no-color --baseline "$SPARK_BASELINE" ${extra[@]+"${extra[@]}"} || code=$?
 
         if [ -n "$SPARK_SARIF" ]; then
           mkdir -p "$(dirname "$SPARK_SARIF")"
           # A second non-zero exit would add nothing to the verdict the line above already recorded, and
           # the payload is what a reviewer needs even when the build failed — that is the case where the
           # annotations matter most. Hence `|| true`.
-          "${cmd[@]}" check "$SPARK_TARGET" --ci --no-color --baseline "$SPARK_BASELINE" \
+          "${cmd[@]}" check ${targets[@]+"${targets[@]}"} --ci --no-color --baseline "$SPARK_BASELINE" \
             --format sarif --out "$SPARK_SARIF" ${extra[@]+"${extra[@]}"} >/dev/null || true
 
           # The step summary is rendered from the payload that was just produced, not from a second

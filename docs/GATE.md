@@ -14,6 +14,26 @@ spark baseline page.html          # writes .spark-baseline.json — commit it
 spark check page.html --ci        # exits 1 only on what the baseline does not already have
 ```
 
+Both take a set instead of a page, and that is what turns the gate from "this file" into "this repo":
+
+```bash
+spark baseline dist                       # every page under dist/, one file for all of them
+spark check dist --ci                     # one verdict, exit code for the lot
+spark check dist/a.html dist/b.html --ci   # or exactly the pages you choose
+```
+
+A directory is expanded to every `*.html`, `*.htm` and `*.xhtml` under it, sorted, skipping
+`node_modules` and any dot-directory. It is not a policy about what counts as project code — it is a
+refusal to fetch a thousand third-party pages because somebody passed `.` — and an ignore file is still
+open (§7).
+
+**One page's name in the file is its path from the directory the command ran in**, so `spark check
+dist/a.html` and `spark baseline dist` agree, from any subdirectory or not. Run both from the project
+root, which is also where `.spark-baseline.json` and `spark.config.json` are looked up. A run whose pages
+overlap the file on nothing — the usual cause is the commands being run from different directories, the
+second is a page renamed in this commit — exits `2` and says so, because a gate that compared nothing has
+not earned a green tick.
+
 Exit codes are the same three everywhere: `0` the run completed and the thresholds were met, `1` it
 completed and something was not met, `2` it could not run — which is what `--ci` returns when there is no
 baseline file, because "no regressions" and "never checked" are different sentences.
@@ -45,7 +65,7 @@ jobs:
       - run: npm install --no-save mr-spark
       - uses: raydirect/mr-spark/.github/actions/spark-gate@<pinned-ref>
         with:
-          target: dist/index.html
+          target: dist            # one page, a directory, or several paths separated by spaces
           baseline: .spark-baseline.json
       - uses: github/codeql-action/upload-sarif@v3
         if: always()
@@ -65,47 +85,103 @@ That last refusal is the important one: a CI job that generates its own floor ha
 fail, and `--ci` with no baseline file exits `2` with a message telling a human to run `spark baseline`
 once and commit the file.
 
-Non-GitHub CI gets the same thing in one line: `spark check dist/index.html --ci --no-color`, with
-`--format sarif --out .spark/spark-gate.sarif` if the payload is wanted.
+`target` is split on whitespace, so a path with a space in it cannot be named here — gate its directory
+instead. That is a real limit, and it is cheaper than a second layer of quoting inside a shell script that
+already has to survive untrusted input.
+
+Non-GitHub CI gets the same thing in one line: `spark check dist --ci --no-color`, with `--format sarif
+--out .spark/spark-gate.sarif` if the payload is wanted (`--out` creates the directory it writes into,
+which is why the workflow does not `mkdir -p` first).
 
 ## 3. What the file is
 
-From `test/fixtures/gate/bad.baseline.json`, our own known-bad fixture:
+From `test/fixtures/gate/bad.baseline.json`, our own known-bad fixture, with two of its ten entries shown.
+It is one page here, and that is the whole format: the top level names the engine that wrote it, and
+`pages[]` holds one section per page.
 
 ```json
 {
-  "baseline": 1,
-  "engine": { "name": "MR-Spark", "version": "0.2.0", "scoreSpec": "3.0.0", "irVersion": "0.1" },
-  "target": { "source": "file", "kind": "document", "file": "bad.html" },
-  "score": { "accessible": 50 },
-  "ir": "e10770a356ce…",
-  "rules": ["button-name", "html-has-lang", "image-alt", "link-name", "region"],
-  "anchors": { "total": 10, "byKind": { "id": 0, "named": 2, "shape": 7, "document": 1 }, "positional": 7 },
-  "findings": [
+  "baseline": 2,
+  "engine": {
+    "name": "MR-Spark",
+    "version": "0.2.0",
+    "scoreSpec": "3.0.0",
+    "irVersion": "0.1"
+  },
+  "pages": [
     {
-      "key": "button-name@74995c4fbec3",
-      "ruleId": "button-name",
-      "pillar": "accessible",
-      "anchor": "button",
-      "anchorKind": "shape",
-      "impact": "critical",
-      "count": 1
-    },
-    {
-      "key": "html-has-lang@d21a9d308317",
-      "ruleId": "html-has-lang",
-      "pillar": "accessible",
-      "anchor": "(document)",
-      "anchorKind": "document",
-      "impact": "serious",
-      "count": 1
+      "page": "fixtures/bad.html",
+      "source": "file",
+      "kind": "document",
+      "ir": "e10770a356ce5499ac09504118a32ff0c82d6baa96cbf425ab64044348de8c53",
+      "score": {
+        "accessible": 50
+      },
+      "rules": [
+        "button-name",
+        "html-has-lang",
+        "image-alt",
+        "link-name",
+        "region"
+      ],
+      "anchors": {
+        "total": 10,
+        "byKind": {
+          "id": 0,
+          "named": 2,
+          "shape": 7,
+          "document": 1
+        },
+        "positional": 7
+      },
+      "findings": [
+        {
+          "key": "button-name@74995c4fbec3",
+          "ruleId": "button-name",
+          "pillar": "accessible",
+          "anchor": "button",
+          "anchorKind": "shape",
+          "impact": "critical",
+          "count": 1
+        },
+        {
+          "key": "html-has-lang@d21a9d308317",
+          "ruleId": "html-has-lang",
+          "pillar": "accessible",
+          "anchor": "(document)",
+          "anchorKind": "document",
+          "impact": "serious",
+          "count": 1
+        }
+      ]
     }
   ]
 }
 ```
 
-Ten entries, eleven findings — one entry is `region × 2`, and the file's numbers are deliberately phrased the
-same way the report phrases them.
+Ten entries, eleven findings — one entry is `region × 2`, and the file's numbers are deliberately phrased
+the same way the report phrases them.
+
+A repo-wide file is the same shape with more sections, each keyed by its path from the project root:
+
+```json
+{
+  "pages": [
+    { "page": "dist/a.html", "…": "each page keeps its own kind, rules, anchors and findings" },
+    { "page": "dist/blog/b.html", "…": "and nothing is merged between them" }
+  ]
+}
+```
+
+**There is no score for a run of pages.** An average is how a hundred-page site gets to ship one page at
+12, and the only number a maintainer trusts is the one next to their own file. Where a run-level number is
+unavoidable — the SARIF run's `sparkScore`, the footnote on a step summary — it is the *worst* page, and
+the summary says "worst page" beside it rather than letting the reader guess.
+
+A `baseline: 1` file — this shape with one page's keys at the top level — is read and promoted, never
+rejected. A project that committed one recorded a valid decision, and refusing to read it would turn every
+such repository's gate red on the day the format widened. A repo-wide run against such a file prints one
+extra line saying the file describes a single page, because that is the fact limiting what it can catch.
 
 No timestamp, no absolute path, no machine identity — the same rules `schema/` follows, so two people
 generating a baseline from one commit get byte-identical files and `git diff` on the baseline means
@@ -118,7 +194,11 @@ baseline that pinned a score invites somebody to gate on the number instead of t
 |---|---|---|
 | Same anchor, more findings | **blocks** | `+1 region at .card` is the whole reason this exists |
 | Same anchor, worse impact (`moderate → serious`) | **blocks** | an escalation is a regression even when the count did not move |
-| A new finding from a rule the baseline never listed | reported, not blocking | shipping a rule must not turn every existing repo red; `--strict` opts in |
+| A new finding from a rule the file never listed, written by an **older build** | reported, not blocking | shipping a rule must not turn every existing repo red; `--strict` opts in |
+| The same, in a file written by **this** build | **blocks** | "a rule the baseline predates" is a claim about which build wrote the file, not about which findings a page had — a page that was clean for a rule this build knows grew a problem, and cannot buy immunity for its future |
+| A page the baseline never listed | reported, not blocking | a new page is not a regression in what was gated yesterday; `--strict` opts in, and the run names it |
+| A page in the file that this run did not audit | printed, and nothing else | deleting a page fixed nothing. Counting its findings as resolved would let a deletion look like an improvement |
+| A run whose pages overlap the file on nothing | `2`, with the reason | two spellings of the target, or a rename in this commit: nothing was compared, which is neither a pass nor a failure |
 | A finding that disappeared | reported as fixed | getting better never fails |
 | A suppressed finding | ignored by the gate, printed in the report | it is already waived with a reason in `spark.config.json`; a waiver does not also become gate policy |
 | An undecided check | excluded from the gate, printed everywhere | it measures *our* missing capability — a laptop with a canvas and a runner without one would disagree forever |
@@ -136,6 +216,28 @@ The sentence, on the terminal:
   1 finding(s) come from rules this baseline predates (label) — reported, not blocking. Run `spark baseline` to adopt them, or use --strict to block on them today.
   either fix them, or accept them deliberately with `spark baseline` and say why in the commit
 ```
+
+A repo-wide run says how many pages the verdict covers, names the pages that moved, and puts the page in
+front of every finding line — the same three sentences, one level up:
+
+```
+  ✗ gate · 2 page(s) · 2 new · 13 already known
+    index.html · 2 new
+      index.html · +1 image-alt at img[src$="extra.png"] (critical)
+      index.html · +1 region at img[src$="extra.png"] (moderate)
+  either fix them, or accept them deliberately with `spark baseline` and say why in the commit
+```
+
+and, when a directory was audited, one line per page above the verdict so a reader knows which file to open:
+
+```
+  index.html · 2 findings · 29 elements · score 77
+  dist/ugly.html · 11 findings · 25 elements · score 50
+  2 pages · 13 findings in total · run `spark check <page>` for one page's report
+```
+
+A one-page run prints what it has always printed — same lines, same order, same columns — so a workflow
+that grepped `gate · ` last release keeps working after the format widens.
 
 The last line is not decoration. The honest move when a page genuinely needs its new problem is to
 *adopt* it and say why in the commit message; the line has to be on screen at the moment that decision is
@@ -206,10 +308,17 @@ gets JSON, and a script reads the exit code, which never moves.
 
 ## 7. What this is not yet
 
-- **One target per run.** `spark baseline page.html` and `spark check page.html --ci` describe one page. A
-  repo-wide baseline covering a directory is not built, and `loadTarget` does not read directories; a
-  multi-page file is a format change (entries would need a document discriminator) and will get its own
-  ADR rather than being quietly widened.
+- **A directory walk has no ignore file.** `spark baseline dist` takes every HTML under `dist`, skipping
+  `node_modules` and dot-directories, and that is the whole policy. A build that emits pages into a folder
+  you do not want gated has to name its pages one at a time or move the folder. An ignore file is a config
+  decision — `spark.config.json` knows `suppress` and `baseline` and nothing else — and it is still open.
+- **The tool does not gate its own report.** A `spark-report.html` sitting in the directory you audited is
+  skipped by name, because a report made of findings would otherwise become a page whose findings depend on
+  the report: a loop with a green tick at the end. Point `--out` somewhere else and the file is your page,
+  audited like one.
+- **A subset run is a subset verdict.** `spark check dist/a.html --ci` against a repo-wide baseline gates
+  that page and says which pages of the file it did not look at; it does not stand in for the repo-wide
+  command, and CI should run the one command the baseline was written from.
 - **No `md` reporter.** `docs/PLAN.md` lists one for PR comments. The SARIF upload covers the Files tab
   today; a comment renderer is still open.
 - **The exit criterion is not met.** `docs/PLAN.md` asks for ten real repositories with a green gate and a
