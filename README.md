@@ -292,3 +292,14 @@ cannot do is in [docs/LIMITS.md](docs/LIMITS.md).
 
 Apache-2.0. The patent grant is deliberate: the intent is that the format and the score outlive
 this repository.
+
+Two parts of it are somebody else's, and are credited where they are used rather than here only: the
+named eases in `src/formats/eases.js` and `src/ease-bake.js` are Robert Penner's easing equations
+(MIT and BSD-3, © 2001 — `LICENSE-PENNER.txt` and `NOTICE` ship inside the package, and
+[docs/DOCUMENTS.md §2](docs/DOCUMENTS.md) says why the mathematics and the vocabulary are two different
+debts), and the accessibility rules belong to the engine we drive
+([docs/LIMITS.md](docs/LIMITS.md) keeps that boundary in the open).
+
+The address every document names in `$schema` is a promise, not a comment; serving it from your own
+machine, and what that does and does not prove, is
+[docs/HOSTING.md](docs/HOSTING.md) (`npm run schema:serve`).
