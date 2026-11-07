@@ -112,19 +112,33 @@ jobs:
           node-version: 20
       - run: npm ci --no-audit --no-fund
 
-      - name: is anything deployed at all?
-        id: probe
+      # The first version of this job tried to tell "not deployed yet" from "deployment is broken" by
+      # classifying the HTTP status, and got it wrong: Cloudflare answers an unclaimed `*.pages.dev` name
+      # with something of its own, not a plain 404, so a repository with nothing published yet went red.
+      # The honest signal is not the status code — it is whether this repository has ever been able to
+      # publish. No credentials means "nothing to verify yet"; credentials present means the address is a
+      # promise, and a broken answer is exactly the failure §5.4 exists to catch.
+      - name: probe the live address
         run: |
           code=$(curl -s -o /dev/null -w '%{http_code}' --max-time 25 \
-            "https://$PROJECT.pages.dev/schema/scene-0.1.json" || echo 000)
-          echo "code=$code" >> "$GITHUB_OUTPUT"
-          echo "probing https://$PROJECT.pages.dev/schema/scene-0.1.json → HTTP $code"
+            "https://$PROJECT.pages.dev/schema/scene-0.1.json" || echo 'no response')
+          echo "GET https://$PROJECT.pages.dev/schema/scene-0.1.json → HTTP $code"
 
       - name: verify the live address
-        if: steps.probe.outputs.code != '000' && steps.probe.outputs.code != '404'
-        run: node src/publish.js verify --base "https://$PROJECT.pages.dev"
-
-      - name: nothing published yet
-        if: steps.probe.outputs.code == '000' || steps.probe.outputs.code == '404'
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: |
-          echo "::warning::https://$PROJECT.pages.dev/schema/ does not answer — add the Cloudflare secrets and push to main, or run \`npm run schema:serve\` and verify locally"
+          set -uo pipefail
+          if node src/publish.js verify --base "https://$PROJECT.pages.dev"; then
+            exit 0
+          fi
+          if [ -z "${CLOUDFLARE_API_TOKEN:-}" ] || [ -z "${CLOUDFLARE_ACCOUNT_ID:-}" ]; then
+            echo "::warning::the address every document names does not answer yet, and this repository has"
+            echo "::warning::no CLOUDFLARE_API_TOKEN / CLOUDFLARE_ACCOUNT_ID, so nothing has ever been published."
+            echo "::warning::they must be *repository* secrets (Settings → Secrets and variables → Actions),"
+            echo "::warning::not environment secrets — this workflow does not declare an environment."
+            exit 0
+          fi
+          echo "::error::credentials are configured, so https://$PROJECT.pages.dev/schema/ is a promise the format makes — and it is not being kept."
+          exit 1

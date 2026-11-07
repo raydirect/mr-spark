@@ -331,12 +331,18 @@ export async function main(argv = process.argv.slice(2)) {
       }
     }
     for (const [name, why] of bad) process.stdout.write(`  ✗ ${name} — ${why}\n`);
+    // "did not match" and "did not answer" are different problems, and the nightly message is the only
+    // place either gets read. Calling a 403 a mismatch sends someone to diff bytes that were never served.
+    const silent = bad.filter(([, why]) => /unreachable|HTTP [3-9]\d\d/.test(why)).length;
+    const parts = [];
+    if (silent > 0) parts.push(`${silent} did not answer`);
+    if (bad.length - silent > 0) parts.push(`${bad.length - silent} did not match`);
     const summary =
       bad.length === 0
         ? `  ✓ ${PUBLISHED.length} files at ${base} are byte-identical to schema/ in this checkout${
             args.get('bytes-only') ? ' (headers not checked)' : ', with the media types and cache policy §5 requires'
           }`
-        : `  ${bad.length} of ${PUBLISHED.length} files do not match`;
+        : `  ${bad.length} of ${PUBLISHED.length} files did not verify at ${base}: ${parts.join(', ')}`;
     process.stdout.write(`${summary}\n`);
     return bad.length ? 1 : 0;
   }
