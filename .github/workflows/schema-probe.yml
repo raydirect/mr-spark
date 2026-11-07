@@ -12,7 +12,13 @@ name: schema-probe
 #   - the deployment is at a URL the workflow did not probe       -> an orchestration problem
 # The first answers 200 with the wrong media type; the second answers something that is not our file.
 
+# `workflow_dispatch` is kept for reruns once this exists on `main`, but GitHub only registers a
+# dispatchable workflow from the default branch, so on a branch the trigger has to be a push — and a
+# push that touches this file is the one push guaranteed to be about this file.
 on:
+  push:
+    paths:
+      - '.github/workflows/schema-probe.yml'
   workflow_dispatch:
 
 permissions:
