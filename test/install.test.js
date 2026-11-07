@@ -1,5 +1,9 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { join, resolve as resolvePath } from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { mkdtemp, rm } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
 
 import { checkInstall, installMessage, REQUIRED } from '../src/require.js';
 import { parseArgs } from '../src/cli.js';
@@ -32,13 +36,32 @@ test('a complete install passes', () => {
   assert.deepEqual(result.missing, []);
 });
 
-test('dependencies resolve from the package, not from the working directory', () => {
+test('dependencies resolve from the package, not from the working directory', async () => {
   // A user may audit a page anywhere on disk from any directory. Resolution must match Node's
   // own: relative to the package. An earlier version used process.cwd(), so running the tool
   // from another folder reported a broken install that was not broken.
+  //
+  // Asserted against the package root derived from *this test file's own URL*, not against a
+  // directory name: the earlier version matched /web-spark/, which passed in a checkout called
+  // `web-spark` and failed in a worktree, a CI runner under a different path, or anyone's clone
+  // they had renamed. The property is "the package, wherever it is", so the test says that.
+  const pkgRoot = resolvePath(fileURLToPath(new URL('..', import.meta.url)));
+
   const real = checkInstall();
-  assert.match(real.root, /web-spark/, 'the probe must target the package root, not cwd');
+  assert.equal(real.root, pkgRoot, 'the probe must target the package root, not cwd');
   assert.equal(real.ok, true, 'this repository has its dependencies installed');
+
+  // …and the same probe from a different directory returns the same root, which is the half a
+  // checkout at the repo root could never show.
+  const elsewhere = await mkdtemp(join(tmpdir(), 'spark-cwd-'));
+  const before = process.cwd();
+  try {
+    process.chdir(elsewhere);
+    assert.equal(checkInstall().root, pkgRoot, 'cwd must not move the answer');
+  } finally {
+    process.chdir(before);
+    await rm(elsewhere, { recursive: true, force: true });
+  }
 });
 
 test('injected probes mean the test never touches a real node_modules', () => {
