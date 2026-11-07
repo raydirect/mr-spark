@@ -28,6 +28,7 @@ import { walkComponents } from './formats/scene.js';
 import { resolveField, referencedIds } from './formats/motion.js';
 import { TOKEN_GROUPS } from './formats/common.js';
 import { createIR, stableStringify } from './ir.js';
+import { NAME } from './config/brand.js';
 
 /**
  * The cross-document rules. Like the format's own checks these carry ids, because a rule you cannot
@@ -228,7 +229,7 @@ export async function loadDocumentSet(entry, { readFile = fsReadFile, settingsPa
   const dir = dirname(entryPath);
   const kindOf = /\.(scene|motion|settings)\.json$/.exec(basename(entryPath))?.[1];
   if (!kindOf) {
-    throw new Error(`not a web-spark document: ${basename(entryPath)} — expected <name>${EXTENSIONS.scene}`);
+    throw new Error(`not an ${NAME} document: ${basename(entryPath)} — expected <name>${EXTENSIONS.scene}`);
   }
 
   const docs = {};

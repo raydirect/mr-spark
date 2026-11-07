@@ -1,5 +1,5 @@
-web-spark
-Copyright 2026 web-spark contributors
+MR-Spark
+Copyright 2026 Mohammad Rayhan and MR-Spark contributors
 
 This product includes mathematics and derived code from:
 
@@ -16,7 +16,7 @@ This product includes mathematics and derived code from:
 
   Not his: the *spellings*. `power1`-`power4`, the `.in`/`.out`/`.inOut` suffixes and the
   `back.out(s)` parameter form are the authoring vocabulary GSAP added on top of the same
-  curves; web-spark takes that vocabulary and, per docs/REVOLUTION.md §14, none of GSAP's
+  curves; MR-Spark takes that vocabulary and, per docs/REVOLUTION.md §14, none of GSAP's
   runtime, whose licence forbids the kind of tool this project is.
 
   Attribution verified, not asserted: test/ease-laws.test.js transcribes the v1.5 equations

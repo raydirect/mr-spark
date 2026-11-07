@@ -15,6 +15,7 @@ import { copy } from '../config/copy.js';
 import { band, tone } from '../config/thresholds.js';
 import { buildView, pillarSummary } from '../view-model.js';
 import { sortByImpact, isDecided, countsTowardScore } from '../vocabulary.js';
+import { NAME } from '../config/brand.js';
 
 const RESET = '\u001b[0m';
 const DIM = '\u001b[2m';
@@ -87,7 +88,7 @@ export function renderTerminal(
   }
 
   lines.push('');
-  lines.push(`  ${c(BOLD, 'web-spark')}  ${c(DIM, ir.provenance.uri ?? '')}`);
+  lines.push(`  ${c(BOLD, NAME)}  ${c(DIM, ir.provenance.uri ?? '')}`);
   if (view.kind === 'fragment') {
     lines.push(`  ${c(YELLOW, copy('state.fragmentNotice'))}`);
   }

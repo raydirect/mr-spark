@@ -18,6 +18,7 @@ import { DEFS, VERSION, SCHEMA_HOST } from './common.js';
 import * as scene from './scene.js';
 import * as motion from './motion.js';
 import * as settings from './settings.js';
+import { NAME } from '../config/brand.js';
 
 // Owned by ./common.js — one literal for the address, because it is also the `$schema` const every
 // document must carry. Re-exported so `publish.js` and the tests keep one import path.
@@ -51,7 +52,7 @@ export function render() {
     serialize(
       toJsonSchemaDefs(sharedDefs, {
         id: `${SCHEMA_HOST}/common-0.1.json`,
-        title: 'Shared vocabulary for web-spark documents',
+        title: `Shared vocabulary for ${NAME} documents`,
         description: 'Ids, lengths, durations, colours, token references and eases — defined once, referenced by all three formats.',
         comment: GENERATED_MARK,
       }),

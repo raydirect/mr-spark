@@ -178,5 +178,5 @@
   "$id": "https://web-spark.dev/schema/common-0.1.json",
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "description": "Ids, lengths, durations, colours, token references and eases — defined once, referenced by all three formats.",
-  "title": "Shared vocabulary for web-spark documents"
+  "title": "Shared vocabulary for MR-Spark documents"
 }

@@ -2,8 +2,8 @@
   "$comment": "GENERATED from src/formats/ — edit the format module, not this file. Regenerate with `npm run formats:generate`. A consumer can pin one release of the formats by hashing this manifest; the schema URLs inside a document are stable, the bytes behind them are not assumed to be.",
   "files": {
     "schema/common-0.1.json": {
-      "bytes": 4807,
-      "sha256": "84085138106f715e37d20c311f871323b712ef63c35aa5757abe98a9b59bdce7"
+      "bytes": 4806,
+      "sha256": "481fcee100cbba80e73dbda89e6955afcf8f453a15beb0ac8cbd5b2251df5716"
     },
     "schema/motion-0.1.json": {
       "bytes": 25566,
