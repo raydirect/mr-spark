@@ -19,6 +19,15 @@ jobs:
       # edited a generated file — regenerate and commit instead.
       - name: the published schemas match the grammar
         run: npm run formats:check
+      # The spine, end to end: a document set becomes a page, and the page has to survive the audit we
+      # sell. This is the one line in CI that proves the compiler and the verifier agree about reality.
+      - name: a document set emits a page that passes our own audit
+        run: |
+          node bin/spark.js emit test/fixtures/docs/shop.spark.scene.json --out "$RUNNER_TEMP/spine"
+          node bin/spark.js check "$RUNNER_TEMP/spine/index.html" --no-color --fail-under 95
+          node bin/spark.js emit test/fixtures/docs/shop.spark.scene.json --out "$RUNNER_TEMP/spine2"
+          diff -r "$RUNNER_TEMP/spine" "$RUNNER_TEMP/spine2"
+
       # We gate our own repository on our own tool. If this fails, nothing else matters.
       - name: audit the known-bad fixture (expected to fail the threshold)
         run: |

@@ -376,6 +376,52 @@ motion ────time─────────┘                           
 token value the settings document does not contain — the same rule as "no hex literal in a
 stylesheet" that we already enforce on our own report.
 
+### `lower`: five rules about the set, not the file
+
+`src/lower.js` is where three documents become one IR, and it is the only place four kinds of fact are
+computable: token values, cross-document identity, inherited `defaults`, and absolute timing.
+
+| Id | Rule |
+|---|---|
+| LOWER001 | A referenced settings document must exist, parse, and validate — a `$ref` to a file that is not there is an error naming the path, never an empty token table |
+| LOWER002 | A motion target names a component in the scene; `each: "children"` requires that the component has children |
+| LOWER003 | A token reference resolves in the store actually in scope; two tokens whose paths collapse to one CSS name is a token that silently loses |
+| LOWER004 | A `state` trigger names a machine and a state the motion document declares |
+| LOWER005 | A component id's CSS class is unique on the page |
+
+`defaults` resolve in one order — item, timeline, timeline defaults, document defaults — through
+`resolveField`, the same resolver the format's own checks import. A document that validates is
+therefore a document that emits; two resolvers is where "it passed the schema but the page is wrong"
+comes from.
+
+**Severity is computed, and an author may only raise it.** `assessMotionImpact` reads travel in px
+(>12 noticeable, >40 intense), scale delta (>0.02, >0.25), rotation in degrees (>2, >15), and
+looping: anything that repeats is at least `noticeable` because "still changing" is the burden, not
+"changed a lot", and a loop under 250 ms is `intense`. `impactFloor` can lift a level and can never
+lower one — a guarantee the graded party can dial down is not a guarantee.
+
+### `emit`: three rules about what CSS can honour
+
+| Id | Rule, and the alternative |
+|---|---|
+| EMIT001 | A `state`, `click` or `scroll` trigger, a machine with effects, or a state with no CSS selector needs something running at play time. Emit as `load`, `visible`, `hover` or `focus`, or leave the change as a scene state with no animation. The generated runtime is Phase 4 and this refusal leaves with it |
+| EMIT002 | `repeatDelay` has no CSS equivalent. Fold the pause into `duration` — padding it in would emit a different motion than the one authored |
+| EMIT003 | Every layout property, component type, breakpoint and a11y promise must have exactly one emission mapping; a `load` and a `visible` motion on one element is two claims on one CSS animation list |
+
+A refusal writes **nothing**. Not "the CSS without the motion", not "the HTML with a TODO": a page with
+a silently dropped animation is a wrong page, and shipping it would put this tool in the category of
+tools that approve things.
+
+Emission today, in full: `:root` and `[data-theme]` token blocks, one rule per component in property-name
+order, state pseudo-classes, `@media` blocks for `responsive` against declared breakpoints, `@keyframes`
+with `animation-delay` for timelines, `:nth-child` delays for a stagger, `transition` for hover and
+focus, `@supports (animation-timeline: view())` around anything that waits for the viewport, and one
+`@media (prefers-reduced-motion: reduce)` block last, and a provenance header naming the source
+documents, their versions and the IR hash — basenames only, so the same documents emit the same bytes in
+someone else's checkout. `sampled` eases arrive as `linear(…)` with at most
+`SAMPLE_MAX_KEYFRAMES` values — the curve sampled by the compiler, not a `cubic-bezier()` fitted to it.
+Nothing needs `!important`, because the order is the argument.
+
 ---
 
 ## 5. Versioning

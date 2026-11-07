@@ -7,12 +7,16 @@
  * exist — or miss one that does.
  */
 
-import { readFile, writeFile } from 'node:fs/promises';
-import { resolve, basename } from 'node:path';
+import { mkdir, readFile, writeFile } from 'node:fs/promises';
+import { basename, join, relative, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 
 import { analyze } from './engine.js';
+import { loadDocumentSet, lowerSet } from './lower.js';
+import { emit } from './emit.js';
+import { formatMessage } from './formats/index.js';
 import { scoreAll } from './score.js';
+import { contentHash, IR_VERSION } from './ir.js';
 import { renderTerminal, shouldColour } from './reporters/terminal.js';
 import { buildJsonReport, renderJson } from './reporters/json.js';
 import { renderReport } from './reporters/html.js';
@@ -26,6 +30,8 @@ import { copy } from './config/copy.js';
 const COMMANDS = {
   check: 'check',
   report: 'report',
+  lower: 'lower',
+  emit: 'emit',
 };
 
 /**
@@ -41,6 +47,7 @@ const OPTIONS = [
   { flag: '--port', key: 'port', takesValue: true, coerce: Number, validate: isPort, helpKey: 'port' },
   { flag: '--quiet', key: 'quiet', takesValue: false, value: true, helpKey: 'quiet' },
   { flag: '--config', key: 'config', takesValue: true, helpKey: 'config' },
+  { flag: '--settings', key: 'settings', takesValue: true, helpKey: 'settings' },
   { flag: '--help', key: 'help', takesValue: false, value: true, alias: '-h', helpKey: 'help' },
   { flag: '--version', key: 'version', takesValue: false, value: true, alias: '-v', helpKey: 'version' },
 ];
@@ -58,6 +65,8 @@ export function usage() {
   const rows = [
     ['check  <file.html|url>', copy('usage.check')],
     ['report <file.html|url>', copy('usage.report')],
+    ['lower  <name.spark.scene.json>', copy('usage.lower')],
+    ['emit   <name.spark.scene.json>', copy('usage.emit')],
   ];
   const optionRows = OPTIONS.map((option) => {
     const label = option.takesValue ? `${option.flag} <value>` : option.flag;
@@ -184,6 +193,144 @@ async function loadTarget(target) {
   return { html, uri: pathToFileURL(path).href, source: 'file' };
 }
 
+/**
+ * `lower` and `emit`, which share one flow: read the set, resolve it, then either hand back the IR or
+ * write the page. Reporting lives here because both commands owe the reader the same three sentences —
+ * what was read, whether anything was refused, and what bytes changed.
+ */
+async function runSpine(command, opts, { stdout, stderr }) {
+  // `spark emit page.ir.json` is the second half alone. The plan describes the pipeline as
+  // `lower` → IR → `emit`, and a design tool that already holds an IR should not have to re-lower the
+  // documents it no longer has.
+  if (command === COMMANDS.emit && /\.ir\.json$/.test(opts.target)) {
+    return emitFromIR(opts, { stdout, stderr });
+  }
+
+  let set;
+  try {
+    set = await loadDocumentSet(opts.target, { settingsPath: opts.settings ?? null });
+  } catch (error) {
+    stderr.write(`${copy('errorPrefix', error.message)}\n`);
+    return EXIT.couldNotRun;
+  }
+
+  if (!set.docs.scene && command === COMMANDS.emit) {
+    // A settings or motion document alone is a real IR and not a real page. Saying which half is
+    // missing is more useful than emitting an empty body.
+    stderr.write(`${copy('errorPrefix', copy('spine.irNoDocument'))}\n`);
+    return EXIT.couldNotRun;
+  }
+
+  const lowered = lowerSet(set);
+  const unresolved = Object.values(lowered.validated).reduce((total, result) => total + result.unresolved.length, 0);
+  const summary = copy(
+    'spine.lowered',
+    Object.keys(set.paths).length,
+    lowered.ir.document?.componentIds.length ?? 0,
+    lowered.table.size,
+    lowered.ir.motion?.items.length ?? 0,
+  );
+  const verdict = copy('spine.verdict', lowered.errors.length, lowered.notices.length, unresolved);
+  const judgement = lowered.complete ? copy('spine.complete') : copy('spine.incomplete');
+  stdout.write(`  ${summary}\n  ${verdict} · ${judgement}\n`);
+
+  for (const error of lowered.errors) {
+    stderr.write(`  \u2717 ${formatMessage(error)}\n`);
+  }
+  if (lowered.errors.length) return EXIT.couldNotRun;
+  for (const notice of lowered.notices) {
+    stdout.write(`  ~ ${formatMessage(notice)}\n`);
+  }
+
+  if (command === COMMANDS.lower) {
+    const json = `${JSON.stringify(lowered.ir, null, 2)}\n`;
+    if (opts.out) {
+      await writeFile(opts.out, json, 'utf8');
+      stdout.write(`  ${copy('spine.irWritten', opts.out)}\n`);
+    } else {
+      stdout.write(`${json}\n  ${copy('spine.irToStdout')}\n`);
+    }
+    return EXIT.ok;
+  }
+
+  const irHash = await contentHash(lowered.ir);
+  const first = emit(lowered.ir, { irHash });
+  const second = emit(lowered.ir, { irHash });
+  const deterministic = Object.keys(first.files).every((file) => first.files[file] === second.files[file]);
+  for (const refusal of first.refusals) {
+    stderr.write(`  \u2717 ${copy('spine.refusal', refusal.path, refusal.note)} [${refusal.code}]\n`);
+  }
+  for (const notice of first.notices) {
+    stdout.write(`  ~ ${copy('spine.refusal', notice.path, notice.note)}\n`);
+  }
+  if (first.refusals.length) {
+    stderr.write(`  ${copy('spine.nothingWritten')}\n`);
+    return EXIT.couldNotRun;
+  }
+  if (!deterministic) {
+    stderr.write('  \u2717 the second emit differed from the first: this build is not reproducible, which is a bug in the emitter\n');
+    return EXIT.couldNotRun;
+  }
+
+  const dir = opts.out ?? DEFAULTS.outDir;
+  await writePage(dir, first.files, stdout);
+  return EXIT.ok;
+}
+
+/**
+ * Emit from an IR that was lowered earlier, possibly by another process on another machine. There is no
+ * re-resolution here and no repair: the version must match, or the IR must carry a document, and either
+ * way the answer is a refusal rather than a page assembled from a guess.
+ */
+async function emitFromIR(opts, { stdout, stderr }) {
+  const path = resolve(opts.target);
+  let ir;
+  try {
+    ir = JSON.parse(await readFile(path, 'utf8'));
+  } catch (error) {
+    stderr.write(`${copy('errorPrefix', `${basename(path)} is not a readable IR: ${error.message}`)}\n`);
+    return EXIT.couldNotRun;
+  }
+  if (ir.ir !== IR_VERSION) {
+    stderr.write(`${copy('errorPrefix', copy('spine.irVersion', String(ir.ir ?? 'none'), IR_VERSION))}\n`);
+    return EXIT.couldNotRun;
+  }
+  if (!ir.document) {
+    stderr.write(`${copy('errorPrefix', copy('spine.irNoDocument'))}\n`);
+    return EXIT.couldNotRun;
+  }
+
+  const irHash = await contentHash(ir);
+  const first = emit(ir, { irHash });
+  const second = emit(ir, { irHash });
+  for (const refusal of first.refusals) {
+    stderr.write(`  \u2717 ${copy('spine.refusal', refusal.path, refusal.note)} [${refusal.code}]\n`);
+  }
+  if (first.refusals.length) {
+    stderr.write(`  ${copy('spine.nothingWritten')}\n`);
+    return EXIT.couldNotRun;
+  }
+  if (!Object.keys(first.files).every((file) => first.files[file] === second.files[file])) {
+    stderr.write('  \u2717 the second emit differed from the first: this build is not reproducible, which is a bug in the emitter\n');
+    return EXIT.couldNotRun;
+  }
+  await writePage(opts.out ?? DEFAULTS.outDir, first.files, stdout);
+  return EXIT.ok;
+}
+
+/** The one place bytes hit disk for the spine, so both commands share the same failure behaviour. */
+async function writePage(dir, files, stdout) {
+  await mkdir(dir, { recursive: true });
+  const written = [];
+  for (const [name, contents] of Object.entries(files)) {
+    const path = join(dir, name);
+    await writeFile(path, contents, 'utf8');
+    const shown = relative(process.cwd(), path);
+    written.push(shown.startsWith('..') ? path : shown);
+  }
+  stdout.write(`  ${copy('spine.wrote', written.join(', '))} · ${copy('spine.determinism')}\n`);
+}
+
 /** Returns a process exit code rather than calling process.exit, so it is testable. */
 export async function main(argv, { stdout = process.stdout, stderr = process.stderr, env = process.env } = {}) {
   let opts;
@@ -205,6 +352,12 @@ export async function main(argv, { stdout = process.stdout, stderr = process.std
   if (!opts.target) {
     stderr.write(`${copy('errorPrefix', copy('errors.noTarget'))}\n\n${USAGE}\n`);
     return EXIT.couldNotRun;
+  }
+
+  // The spine needs neither jsdom nor axe: it reads documents and writes documents. Running the
+  // engine-install check here would fail a compile because a *checker's* optional dependency is absent.
+  if (opts.command === COMMANDS.lower || opts.command === COMMANDS.emit) {
+    return runSpine(opts.command, opts, { stdout, stderr });
   }
 
   // Fail before doing any work if the install is incomplete, and say which directory is wrong.

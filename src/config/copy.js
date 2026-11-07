@@ -24,11 +24,14 @@ export const COPY = Object.freeze({
     format: 'check output format (default: terminal)',
     failUnder: 'exit 1 when conformance is below this score',
     noColor: 'disable ANSI colour',
-    out: 'report: write HTML here (default: ./spark-report.html)',
+    out: 'report: write HTML here (default: ./spark-report.html); emit: output directory (default: ./build); lower: IR file',
     serve: 'report: also serve it over HTTP',
     port: 'report: port for --serve (default: 4321)',
     quiet: 'machine output: one tab-separated line per finding, no prose',
     config: 'path to spark.config.json (default: alongside the target)',
+    lower: 'lower a document set to the IR (JSON)',
+    emit: 'lower a document set and write HTML + CSS',
+    settings: 'document set: resolve tokens against this settings document instead of the one the scene references',
     exitCodes: 'Exit codes',
     exitOk: 'audit completed, thresholds met',
     exitThreshold: 'audit completed, thresholds not met',
@@ -193,6 +196,31 @@ export const COPY = Object.freeze({
     notice: (code, path, note) => `${path ? `${path}: ` : ''}${note}`,
     summary: (kind, errors, notices, unresolved) =>
       `${kind}: ${errors} error(s), ${notices} lint(s), ${unresolved} check(s) that could not be decided${unresolved ? ' — a settings document was not supplied' : ''}.`,
+  },
+
+  // ---------------------------------------------------------------- lower / emit
+  /**
+   * The spine's own voice. `check` reports on a page; `lower` and `emit` report on a *document set*,
+   * and the sentences differ enough (errors vs. refusals, "nothing was written") that reusing the
+   * audit's copy would make the CLI say something false.
+   */
+  spine: {
+    lowered: (documents, components, tokens, motions) =>
+      `lowered ${documents} document(s) · ${components} component(s) · ${tokens} token(s) · ${motions} motion item(s)`,
+    verdict: (errors, lints, unresolved) =>
+      `${errors} error(s) · ${lints} lint(s) · ${unresolved} unresolved reference(s)`,
+    complete: 'every semantic check ran against this set',
+    incomplete: 'a check could not run, so this set is not judgeable yet',
+    wrote: (files) => `wrote ${files}`,
+    refusalHead: (count) => `emit refused: ${count} fact(s) this build cannot honour`,
+    refusal: (path, note) => `${path}: ${note}`,
+    nothingWritten: 'nothing was written: a page with a dropped motion is not a partial result, it is a wrong one',
+    irWritten: (file) => `IR written to ${file}`,
+    irToStdout: 'pass --out <file> to write the IR instead of printing it',
+    determinism: 'second run, byte-identical',
+    irVersion: (found, wanted) =>
+      `this IR was lowered by version ${found}; this build emits version ${wanted} — re-run \`spark lower\` rather than emit across versions`,
+    irNoDocument: 'this IR carries no document — it was lowered from a motion or settings file alone, so there is no page to emit',
   },
 
   // ---------------------------------------------------------------- CLI errors

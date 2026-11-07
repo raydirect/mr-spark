@@ -26,7 +26,7 @@ are the trust foundation; 3 is the first creative surface; 4–6 deepen by width
 | **0d** | one token store · one view model · real dark theme · verified contrast | ✅ merged |
 | **0e** | full rule set (100 of 105) · fragments vs documents · upper-bound scores | ✅ merged |
 | **0f** | **ground truth** — per-root-cause scoring · suppression with reasons · real-page corpus · re-audit | ⏳ **current** |
-| **1** | **spine** — frozen `scene`/`motion`/`settings` schemas · `lower` · `emit` · byte-identical output | 🟡 **half** — formats, validator and published `schema/` frozen for review ([ADR 0002](adr/0002-one-grammar-three-projections.md)); **no `lower`, no `emit`** |
+| **1** | **spine** — frozen `scene`/`motion`/`settings` schemas · `lower` · `emit` · byte-identical output | 🟡 **nearly** — formats + validator + published `schema/` ([ADR 0002](adr/0002-one-grammar-three-projections.md)), `lower`/`emit` with the emitted page audited in CI ([ADR 0003](adr/0003-emit-refuses-rather-than-degrades.md)); open: `schema/` + IR spec at a stable URL |
 | **2** | **gate** — `baseline` · regression-only `--ci` · SARIF · action · structural finding identity | ⏳ |
 | **3** | **studio** — browser canvas, inspector, live verifier, export, URL/HTML import | ⏳ |
 | **4** | **motion** — motion document, timeline, state graph, reduced-motion by construction | ⏳ |
@@ -111,12 +111,14 @@ A phase is only done when **all** of these hold:
 | Accessibility of our own output | `spark check report.html --fail-under 95` |
 | Reader without scripting | disable JS / read in a text browser |
 
-### Testable at the end of 1
+### Testable now that Phase 1's compiler has landed
 
 | What | How |
 |---|---|
-| A document becomes a page | `spark lower` then `spark emit` — HTML and CSS, byte-identical across two runs |
-| The IR is the only path | the emitted page contains no value that was not in a document or the token store |
+| A document set becomes a page | `spark emit test/fixtures/docs/shop.spark.scene.json --out /tmp/x` |
+| Byte-identical output | emit twice into two directories, `diff -r` them |
+| The page survives our own bar | `spark check /tmp/x/index.html --fail-under 95` |
+| Nothing invented in the CSS | no hex outside `:root`/`[data-theme]`, no `style=`, no `!important` — all asserted in `test/spine.test.js` |
 
 ### Testable at the end of 2
 
@@ -136,10 +138,9 @@ A phase is only done when **all** of these hold:
 
 ### Not testable yet — and we will not pretend otherwise
 
-A page. The formats accept or refuse a document, and nothing compiles one into HTML yet: `lower` and
-`emit` are the next pull request and are not in this repository. Motion behaviour beyond what
-`MOTION001`–`MOTION007` can see statically, the renderer, the three machine faces and the editor have
-no code. Any demo of them today would be a mock, and mocks are how projects lie.
+A canvas. A document set compiles to a page today and the page is auditable today, but there is no
+editor: the renderer, the studio, the three machine faces and the runtime that `EMIT001` refuses on have
+no code. Any demo of those today would be a mock, and mocks are how projects lie.
 
 ---
 
@@ -151,8 +152,8 @@ no code. Any demo of them today would be a mock, and mocks are how projects lie.
 | **Contrast is undecided without a canvas** in the browserless path | Our most common real finding is unavailable in the default runner | Keep honest; add the browser runner in Phase 1c/2. Scoped by `UNDECIDED.md`: that runner clears `environment` findings — contrast and nothing else — so `judgement` findings stay permanently undecided and must never be sold as pending work |
 | **First-run install** — `npx` pulls the optional engines, `--omit=optional` does not | A failed first command is a lost user | Verify from a packed tarball in CI; make the error message actionable |
 | **Report page is not yet a URL service** | Rung 1 is a link | Local `--serve` now; hosting is a Phase 2 decision, never a gate |
-| **A valid document is not yet a page** | Phase 1's exit criterion is byte-identical emission, and `lower()` has not been written, so every claim in `docs/` is a claim about a *document*, not about output | `lower`/`emit` land before any wording that suggests "build websites with this"; the status blocks in README and `docs/SCENE.md` say so in those words |
-| **Cross-document rules are not enforced yet** | A motion `target.id` must name a scene component, and `tokens.$ref` must resolve to a real file — both are knowable only when a set of documents is loaded together, which is `lower`'s job | Phase 1; until then the validator reports `unresolved` with `complete: false`, never a pass |
+| **`schema/` and the IR have no public URL yet** | The published `"$schema"` string in every document — `https://web-spark.dev/schema/scene-0.1.json` — is a name, not an address an editor can fetch | Host `schema/` (it is generated, versioned and content-hashed already) and publish the IR spec at v0; this is the last open row of Phase 1 |
+| **Motion that needs a runtime cannot be emitted** | `EMIT001`: `state`, `click` and `scroll` triggers and machines with effects are refused, so a document that uses them has no page | Phase 4 ships the ~3 KB generated runtime; until then the refusal is the answer, and it names the alternative in the message |
 | **Rules are inherited, not ours** | Coverage and messaging are the upstream engine's | Own the *score* and the *rationale*; never fork the engine |
 
 ---

@@ -1,0 +1,83 @@
+{
+  "$schema": "https://web-spark.dev/schema/motion-0.1.json",
+  "version": "0.1",
+  "$comment": "Every trigger this emitter can honour without a runtime, and one of each ease class: `ease-out` passes through as a CSS word, `power2.out` is baked into linear(), `steps(2, end)` is already CSS.",
+  "meta": { "name": "shop motion" },
+
+  "defaults": { "duration": "motion.base", "easing": "ease-out", "reducedMotion": "instant" },
+
+  "animations": [
+    {
+      "id": "cart-nudge",
+      "intent": "feedback",
+      "target": { "id": "masthead-cart" },
+      "trigger": { "on": "hover" },
+      "from": { "translateX": "0" },
+      "to": { "translateX": "3px" },
+      "duration": "motion.fast",
+      "easing": "steps(2, end)",
+      "reducedMotion": "none"
+    },
+    {
+      "id": "title-in",
+      "intent": "entrance",
+      "target": { "id": "masthead-title" },
+      "trigger": { "on": "load" },
+      "from": { "opacity": "0", "translateY": "10px" },
+      "to": { "opacity": "1", "translateY": "0" },
+      "duration": "motion.fast"
+    }
+  ],
+
+  "timelines": [
+    {
+      "id": "kit-breathe",
+      "intent": "decorative",
+      "trigger": { "on": "load" },
+      "items": [
+        {
+          "target": { "id": "order-image" },
+          "from": { "rotate": "0deg" },
+          "to": { "rotate": "1.5deg" },
+          "repeat": "infinite",
+          "yoyo": true,
+          "duration": "0.6s",
+          "easing": "ease-in-out"
+        }
+      ]
+    },
+    {
+      "id": "order-in",
+      "intent": "entrance",
+      "trigger": { "on": "visible" },
+      "defaults": { "easing": "power2.out" },
+      "labels": { "after-list": "0.15s" },
+      "items": [
+        {
+          "at": "<",
+          "target": { "id": "order-list", "each": "children" },
+          "stagger": { "each": "motion.fast", "from": "start" },
+          "from": { "opacity": "0", "translateY": "6px" },
+          "to": { "opacity": "1", "translateY": "0" }
+        },
+        {
+          "at": "label:after-list",
+          "target": { "id": "order-copy" },
+          "from": { "opacity": "0", "translateY": "4px" },
+          "to": { "opacity": "1", "translateY": "0" },
+          "reducedMotion": "fade"
+        }
+      ]
+    }
+  ],
+
+  "machines": {
+    "quantity": {
+      "initial": "one",
+      "states": {
+        "one": { "on": { "plus": "two" } },
+        "two": { "on": { "minus": "one" } }
+      }
+    }
+  }
+}
