@@ -20,6 +20,7 @@
     "./formats": "./src/formats/index.js",
     "./lower": "./src/lower.js",
     "./emit": "./src/emit.js",
+    "./ease-bake": "./src/ease-bake.js",
     "./schema/*": "./schema/*"
   },
   "files": [
@@ -28,6 +29,8 @@
     "schema",
     "docs",
     "LICENSE",
+    "LICENSE-PENNER.txt",
+    "NOTICE",
     "README.md"
   ],
   "scripts": {

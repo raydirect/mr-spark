@@ -1,0 +1,24 @@
+web-spark
+Copyright 2026 web-spark contributors
+
+This product includes mathematics and derived code from:
+
+  Easing Equations — Robert Penner, "Easing Equations v1.5", 1 May 2003
+  (https://robertpenner.com/easing/penner_easing_as1.txt), released under the MIT and
+  3-Clause BSD licences. The full notices are in LICENSE-PENNER.txt, which ships with
+  the package.
+
+  Where it appears: src/formats/eases.js names the closed ease table; src/ease-bake.js
+  implements the curves and samples them into CSS `linear()`. quad/cubic/quart/quint
+  (and their `power1`-`power4` aliases), sine, exponential, circular, elastic, back and
+  bounce are his, including the 1.525 in-out overshoot scale in `easeInOutBack`, the
+  7.5625/2.75 bounce segments, and the endpoint exactness his v1.3 changelog introduced.
+
+  Not his: the *spellings*. `power1`-`power4`, the `.in`/`.out`/`.inOut` suffixes and the
+  `back.out(s)` parameter form are the authoring vocabulary GSAP added on top of the same
+  curves; web-spark takes that vocabulary and, per docs/REVOLUTION.md §14, none of GSAP's
+  runtime, whose licence forbids the kind of tool this project is.
+
+  Attribution verified, not asserted: test/ease-laws.test.js transcribes the v1.5 equations
+  in their original (t, b, c, d) form and holds every name in the table to them at 257
+  points. That test is why the notices above are accurate rather than decorative.
