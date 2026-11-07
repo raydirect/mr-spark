@@ -509,6 +509,34 @@ test('an IR is a valid input to emit, and a stale one is refused', async () => {
   }
 });
 
+test('an emitted page never names the directory it was built in', async () => {
+  // Same documents, two absolute paths, one byte sequence. This is what the provenance header's
+  // basename rule exists to protect — and what a post-merge verification run in a second checkout
+  // proved by accident, so it is now a test rather than an anecdote. A leaked path would make
+  // "byte-identical" a claim about where you happened to run the compiler.
+  const dir = await mkdtemp(join(tmpdir(), 'spark-anywhere-'));
+  const emitFrom = async (entry) => {
+    const lowered = lowerSet(await loadDocumentSet(entry));
+    assert.equal(lowered.refusals ? lowered.refusals.length : 0, 0);
+    return emit(lowered.ir, { irHash: await contentHash(lowered.ir) });
+  };
+  try {
+    for (const file of ['shop.spark.scene.json', 'shop.spark.motion.json', 'brand.spark.settings.json']) {
+      await writeFile(join(dir, file), await readFile(join(FIXTURES, file), 'utf8'));
+    }
+    const here = await emitFrom(SHOP);
+    const elsewhere = await emitFrom(join(dir, 'shop.spark.scene.json'));
+    assert.deepEqual(Object.keys(elsewhere.files), Object.keys(here.files), 'same files, anywhere');
+    for (const name of Object.keys(here.files)) {
+      assert.equal(elsewhere.files[name], here.files[name], `${name} must not depend on where it was built`);
+    }
+    // Sorted by kind, so `motion` leads — assert the source is named, not the position it holds.
+    assert.match(here.files['index.html'], /scene shop\.spark\.scene\.json @0\.1/, 'and it still names its sources');
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
 test('the IR carries the versions of the documents it came from', async () => {
   const lowered = await lowerShop();
   assert.deepEqual(lowered.ir.provenance.versions, { scene: '0.1', motion: '0.1', settings: '0.1' });

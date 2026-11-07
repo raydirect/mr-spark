@@ -433,6 +433,10 @@ Nothing needs `!important`, because the order is the argument.
   best-effort parsing: a partially understood design document produces a confidently wrong page.
 - Every emitted artifact prints the document versions and the IR hash in its provenance block, for
   the same reason the report does — a page that cannot say what produced it is not auditable.
+- The hash ignores **where**. `provenance.collectedAt`, a document's absolute `uri`, and an asset's
+  `resolvedPath` are excluded from the content address, so two clones of the same documents hash the
+  same and the handle works as a CI cache key or a shareable `spark://ir/<sha256>`. The IR file keeps
+  all three, because a studio needs the paths to open the right document; the address must not.
 
 ---
 

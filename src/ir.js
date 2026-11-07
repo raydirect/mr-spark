@@ -65,16 +65,54 @@ export function stableStringify(value) {
 }
 
 /**
+ * Fields that record *where* something was read from, not *what* it says.
+ *
+ * They belong in an IR file — a studio needs the path to open the right document — and not in its
+ * content address. Absolute paths in the handle made two checkouts of byte-identical documents hash
+ * differently, which quietly destroys every use the handle has off one machine: a CI cache key, a
+ * shareable `spark://ir/<sha256>`, a studio's "has this changed since I opened it". Extending these
+ * lists is the price of keeping "content address" true instead of a fingerprint of one directory layout.
+ */
+const VOLATILE = {
+  provenance: ['collectedAt', 'uri', 'documents'],
+  assets: ['resolvedPath'],
+};
+
+/**
+ * A canonical view for hashing: same facts, no machine-local paths, at any depth.
+ *
+ * Keyed by the *property name that holds them* rather than a hardcoded walk, because collectors nest
+ * provenance and assets freely (the document block carries its own `assets`). A field is volatile
+ * wherever it appears under that name; that is what makes the name worth defining.
+ */
+function canonical(value, key = null) {
+  if (Array.isArray(value)) return value.map((item) => canonical(item, key));
+  if (!value || typeof value !== 'object') return value;
+  const drop = VOLATILE[key] ?? [];
+  const out = {};
+  for (const [name, child] of Object.entries(value)) {
+    if (drop.includes(name)) continue;
+    out[name] = canonical(child, name);
+  }
+  return out;
+}
+
+/**
  * The content address: SHA-256 over the IR with volatile provenance removed.
  *
- * Two runs over the same page must yield the same handle, or the handle is useless as a
- * cache key, a shareable id, or the "explicit handle" the MCP server hands back instead of a
- * session. So `collectedAt` is provenance, not content, and it is excluded.
+ * Two runs over the same page must yield the same handle, or the handle is useless as a cache key or a
+ * shareable id. `collectedAt` is provenance, not content, and neither a document's `uri` nor an asset's
+ * resolved path is a fact about the design.
  */
 export async function contentHash(ir) {
   const { provenance, ...content } = ir;
-  const { collectedAt, ...stableProvenance } = provenance ?? {};
-  return hashIR({ ...content, provenance: stableProvenance });
+  const { collectedAt, uri, documents, ...stableProvenance } = provenance ?? {};
+  // Sources stay in the handle by kind and basename — the same identity the emitted page prints in its
+  // header — so two clones agree while the handle still says *which* documents it came from.
+  const sources = Object.keys(documents ?? {})
+    .sort()
+    .map((kind) => `${kind}:${String(documents[kind]).split(/[\\/]/).pop()}`);
+  return hashIR(canonical({ ...content, provenance: { ...stableProvenance, sources } }));
 }
 
 /** SHA-256 of the canonical form. Used as the IR handle — never a session id. */

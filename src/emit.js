@@ -208,7 +208,7 @@ function tokensCss(tokens) {
 function provenanceHeader(ir, irHash, syntax) {
   const documents = ir.provenance?.documents ?? {};
   const versions = ir.provenance?.versions ?? {};
-  const file = (path) => String(path).split('/').pop();
+  const file = (path) => String(path).split(/[\\/]/).pop();
   const parts = Object.keys(documents)
     .sort()
     .map((kind) => `${kind} ${file(documents[kind])}${versions[kind] ? ` @${versions[kind]}` : ''}`);
