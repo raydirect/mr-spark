@@ -1,5 +1,5 @@
 {
-  "$schema": "https://web-spark.dev/schema/scene-0.1.json",
+  "$schema": "https://mr-spark.pages.dev/schema/scene-0.1.json",
   "version": "0.1",
   "$comment": "The spine fixture: small enough to read in one screen, wide enough that `emit` has to handle every mapping — landmarks, an asset, a responsive grid, all four interactive types, and a list whose children a stagger addresses.",
   "meta": { "name": "shop", "lang": "en", "title": "Spark Supply — order a kit" },

@@ -1,5 +1,5 @@
 {
-  "$schema": "https://web-spark.dev/schema/motion-0.1.json",
+  "$schema": "https://mr-spark.pages.dev/schema/motion-0.1.json",
   "version": "0.1",
   "$comment": "One entrance, one staggered list, one decorative loop the verifier is allowed to complain about. The referenced animation carries no trigger: the timeline owns when it plays.",
   "meta": { "name": "landing motion" },

@@ -20,7 +20,7 @@ What the code uses is *modules of pure functions over a plain-data document*, wi
 pushed to the edges. That is the right choice for this product, for reasons that are
 architectural rather than stylistic:
 
-| Using classes here would | Why it matters for web-spark specifically |
+| Using classes here would | Why it matters for MR-Spark specifically |
 |---|---|
 | Break the IR's content address | The IR must be plain JSON to be canonically stringified and SHA-256'd. Class instances carry prototypes, getters and hidden state — exactly what `stableStringify` cannot see. |
 | Break determinism | The engine must be a pure function of input → output. Stateless functions make that provable; instances with mutable fields make it something you merely hope for. |

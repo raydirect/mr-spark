@@ -1,9 +1,9 @@
-# What web-spark Still Cannot Do When It Is Finished
+# What MR-Spark Still Cannot Do When It Is Finished
 
 Every other document in this folder is about what we are building. This one is about what will
 still be true afterwards, so that nobody discovers it in a client's inbox.
 
-> **Read this before you trust a score.** A 100 from web-spark means *every check we could run, on
+> **Read this before you trust a score.** A 100 from MR-Spark means *every check we could run, on
 > this artifact, in this environment, passed*. It does not mean the page is accessible, fast, or
 > correct — those words are bigger than any checker.
 
@@ -139,7 +139,7 @@ built from platform specs. That is a real constraint: no Flip, no physics spring
 timeline scrubbing inside someone else's engine. Worth being precise about blame, though — springs
 are refused on our own terms too, because a spring's endpoint depends on how fast the element was
 already moving, and "how fast it was already moving" is a fact about a frame rather than a fact a
-document can hold. It is also a feature nobody else can claim. A page exported from web-spark
+document can hold. It is also a feature nobody else can claim. A page exported from MR-Spark
 carries no licence its author did not choose, and cannot be broken by someone else's
 terms-of-service update.
 
@@ -150,7 +150,7 @@ declared `repeat` — and bake at build time what their runtime does per frame. 
 ## 9. A format nobody speaks yet
 
 Publishing schemas is the easy half. A standard is its implementers: one implementation with a
-monopoly is a file extension. If web-spark is the only tool that can write `.spark.scene.json`, then
+monopoly is a file extension. If MR-Spark is the only tool that can write `.spark.scene.json`, then
 the format is a lock-in dressed as an open spec, and the "no proprietary document format" promise in
 `INSPIRATIONS.md` is broken by us rather than by a vendor.
 

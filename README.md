@@ -1,10 +1,10 @@
-# web-spark
+# MR-Spark
 
 **Every artifact proves itself.**
 
 A design document, a motion timeline, a settings file, a component tree, a rendered scene, a
 shipped bundle — each should carry its own proof that it is accessible, fast, safe, legible to
-machines, and resilient. Today none of them do. web-spark is the missing layer that makes that
+machines, and resilient. Today none of them do. MR-Spark is the missing layer that makes that
 proof a property of the pipeline instead of an audit after the fact.
 
 > ⚠️ **Status: early code, honest labels.** The engine, `check`, the score, the report page and the CI
@@ -40,7 +40,7 @@ On Windows 11 with PowerShell, see [docs/WINDOWS.md](docs/WINDOWS.md) for the ve
 accounts for `localhost`/IPv6, `$LASTEXITCODE` and the editor setup.
 
 ```bash
-git clone https://github.com/raydirect/web-spark.git
+git clone https://github.com/raydirect/web-spark.git   # being renamed to raydirect/mr-spark; until then this is the path that resolves
 cd web-spark
 npm ci
 node bin/spark.js check fixtures/bad.html
@@ -52,7 +52,7 @@ package-lock.json"*, you are not inside the clone: `Test-Path .\package-lock.jso
 `True`, and `git rev-parse --show-toplevel` should print the folder you cloned into.
 
 ```
-  web-spark  file:///…/fixtures/bad.html
+  MR-Spark  file:///…/fixtures/bad.html
 
   ACCESSIBLE   50  ✗  region ×6 · link-name ×2 · button-name ×1 · 4 undecided
   FAST            —  ·  not measured in this build
@@ -126,7 +126,9 @@ Formats are specified in [docs/DOCUMENTS.md](docs/DOCUMENTS.md), authored agains
 [docs/SCENE.md](docs/SCENE.md), and enforced today by `src/formats/`:
 
 ```js
-import { validateDocument } from 'webspark/formats';
+// `mr-spark/formats` is the specifier once a version is published (see "Where it starts"); until then,
+// from a clone, import the module directly.
+import { validateDocument } from './src/formats/index.js';
 const result = validateDocument('scene', JSON.parse(await readFile('landing.spark.scene.json', 'utf8')));
 // → { valid, complete, errors, notices, unresolved, checksRun, kind }
 ```
@@ -151,7 +153,7 @@ not judged.** Today that rule binds the *document*; it starts binding the *page*
 
 ## The one-sentence thesis
 
-> **web-spark is a conformance compiler for the web.** Many front-ends lower into one typed
+> **MR-Spark is a conformance compiler for the web.** Many front-ends lower into one typed
 > intermediate representation. It is analyzed against a published rule set, scored publicly,
 > and emitted back out as diagnostics, safe fixes, machine-facing manifests, and renderable
 > scenes.
@@ -187,11 +189,14 @@ And one cultural rule: **Spark passes its own MCP conformance rules in CI, perma
 ## Where it starts
 
 ```bash
-npx webspark check https://example.com
+# From a clone. `npx mr-spark` needs a published version: the package is named `mr-spark` and nothing
+# is on npm yet. (The name it had here before, `webspark`, has been somebody else's blog engine since
+# 2019 — docs/adr/0004-one-name-one-host.md.)
+node bin/spark.js check https://example.com
 ```
 
 ```
-  web-spark  https://example.com
+  MR-Spark  https://example.com
 
   ACCESSIBLE  38/100  ✗ 14 errors   image-alt ×3 · color-contrast ×9 (2.1:1) · label ×2
   FAST        55/100  ~ LCP 3.8s · 612 KB JS
@@ -205,7 +210,7 @@ npx webspark check https://example.com
 Then in CI, gating only on *new* problems:
 
 ```
-web-spark  72 → 78 (+6)   ✓ passed
+MR-Spark  72 → 78 (+6)   ✓ passed
   +2 accessible   fixed 4 contrast issues
   -3 fast         entry bundle +38 KB
 ```
@@ -260,7 +265,7 @@ cautionary tale of a dead animation ecosystem, is in
 
 ## Honest limits
 
-- Automated checks cover roughly **30% of WCAG success criteria**. web-spark will never claim a
+- Automated checks cover roughly **30% of WCAG success criteria**. MR-Spark will never claim a
   site is compliant, and the report says so in its own output.
 - Scores get gamed. Ours publishes its weights *and its curve*
   ([SCORE-SPEC.md](docs/SCORE-SPEC.md)) with a semantic version and a frozen calibration table
@@ -300,6 +305,8 @@ named eases in `src/formats/eases.js` and `src/ease-bake.js` are Robert Penner's
 debts), and the accessibility rules belong to the engine we drive
 ([docs/LIMITS.md](docs/LIMITS.md) keeps that boundary in the open).
 
-The address every document names in `$schema` is a promise, not a comment; serving it from your own
-machine, and what that does and does not prove, is
-[docs/HOSTING.md](docs/HOSTING.md) (`npm run schema:serve`).
+The address every document names in `$schema` is a promise, not a comment. It is a free Cloudflare Pages
+host today — `npm run schema:serve` to answer it from your own machine, `npm run schema:bundle` and the
+`pages` workflow to publish it, `schema:verify` to check bytes *and* headers either way. What each of those
+proves, and what a rented subdomain cannot, is [docs/HOSTING.md](docs/HOSTING.md); why the name and the
+address moved together is [ADR 0004](docs/adr/0004-one-name-one-host.md).

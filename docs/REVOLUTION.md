@@ -1,4 +1,4 @@
-# web-spark — The Revolution Plan
+# MR-Spark — The Revolution Plan
 
 > **One line:** the first web toolchain where every artifact proves itself — design, motion,
 > settings, pages and agent capabilities all lower into one typed intermediate representation,
@@ -19,7 +19,7 @@ disagree about *sequence*, this file wins; if they disagree about *purpose*, `VI
 
 A **creative toolchain** for the web, not a linter.
 
-| The thing a person does | In web-spark |
+| The thing a person does | In MR-Spark |
 |---|---|
 | Designs a page | Authors a **scene document** — components, layout, tokens, states. Typed, diffable JSON. |
 | Animates it | Authors a **motion document** — timelines and state machines with semantic intent per animation. |
@@ -347,7 +347,7 @@ Three claims, in increasing ambition. Each is falsifiable.
    instead of five tickets: *"this control is 2.9:1 from the token, animates a vestibular
    trigger, has no accessible name in the shipped DOM, and declares no agent tool."* **That
    sentence has never been checkable before.** It is the product.
-3. **Output is forever.** Standard HTML/CSS/JS, no proprietary runtime. If web-spark disappears,
+3. **Output is forever.** Standard HTML/CSS/JS, no proprietary runtime. If MR-Spark disappears,
    the pages still work, still validate, and still run. Every tool in the inspiration list fails
    this test, and one of them already took a decade of authored work down with it.
 

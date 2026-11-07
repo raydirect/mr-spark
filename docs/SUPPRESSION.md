@@ -2,7 +2,7 @@
 
 A gate that cannot be told "yes, this one is deliberate" gets switched off entirely.
 
-This document defines `spark.config.json`, the only configuration file web-spark reads. It exists
+This document defines `spark.config.json`, the only configuration file MR-Spark reads. It exists
 because of a real page: a newsletter signup with a honeypot field — an unlabelled text input,
 hidden from people, that only a bot fills. The verifier correctly reported `label` as a
 **critical** violation. The finding was true and it was useless. The alternatives were to switch

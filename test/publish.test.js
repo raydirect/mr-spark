@@ -11,10 +11,14 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
-import { readFileSync } from 'node:fs';import { once } from 'node:events';
+import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
+import { once } from 'node:events';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 
 import { PUBLISHED, resolveName, headersFor, expectedUrls, drift, indexPage, main } from '../src/publish.js';
 import { SCHEMA_HOST } from '../src/formats/generate.js';
+import { bundle, headerVerdict } from '../src/publish.js';
 import { VERSION } from '../src/formats/common.js';
 
 test('the published set is the generated set, and nothing else is reachable', () => {
@@ -144,3 +148,67 @@ test('urls mode can point at the loopback origin, for the hosts-file test', () =
 function readArtifact(path) {
   return readFileSync(new URL(`../${path}`, import.meta.url), 'utf8');
 }
+
+
+test('bundle writes the deployable tree, byte-identical to what the server answers', async () => {
+  // The point of a static host is that nothing runs, so the *files* are the interface. If `bundle` ever
+  // generated its own copy of a schema, or its `_headers` drifted from `headersFor`, Cloudflare Pages
+  // would serve one contract and `npm run schema:serve` another, and only one of them is tested per-PR.
+  const out = mkdtempSync(join(tmpdir(), 'mrspark-bundle-'));
+  try {
+    const written = bundle(out);
+    assert.deepEqual(
+      written.slice().sort(),
+      [...PUBLISHED.map((n) => `schema/${n}`), 'schema/index.html', '_headers'].sort(),
+      'one file per published artifact, the index page, and the header map',
+    );
+    for (const name of PUBLISHED) {
+      assert.equal(
+        readFileSync(join(out, 'schema', name), 'utf8'),
+        readArtifact(`schema/${name}`),
+        `${name} must be the committed bytes, not a re-render`,
+      );
+    }
+    const headers = readFileSync(join(out, '_headers'), 'utf8');
+    for (const name of PUBLISHED) {
+      const block = headers.split(`/schema/${name}\n`)[1];
+      assert.ok(block, `the bundle names ${name}`);
+      for (const [key, value] of Object.entries(headersFor(name))) {
+        assert.ok(block.includes(`  ${key}: ${value}`), `${name}'s _headers block must carry "${key}" as the server does`);
+      }
+    }
+    assert.match(headers, /\/\*\n  x-content-type-options: nosniff/, 'a catch-all block covers paths a client invents');
+  } finally {
+    rmSync(out, { recursive: true, force: true });
+  }
+});
+
+test('a deployed host that serves the right bytes the wrong way still fails verify', () => {
+  // This is the §5.3 contract turned into a function, because a schema can be byte-perfect and still
+  // be unusable: the wrong media type is a shrug from an editor, and a missing CORS header looks
+  // identical to a broken URL when the document is on `file:///`.
+  const headers = new Map(Object.entries(headersFor('scene-0.1.json')));
+  assert.deepEqual(headerVerdict('scene-0.1.json', { get: (k) => headers.get(k) ?? null }), []);
+
+  const lying = {
+    'content-type': 'application/json',
+    'cache-control': 'public, max-age=600',
+    'access-control-allow-origin': 'null',
+  };
+  const problems = headerVerdict('scene-0.1.json', { get: (k) => lying[k] ?? null });
+  assert.equal(problems.length, 3, problems.join(' | '));
+  assert.match(problems[0], /application\/schema\+json/);
+  assert.ok(problems.some((m) => m.includes('immutable')), 'a versioned file must be immutable');
+  assert.ok(problems.some((m) => m.includes('access-control-allow-origin')), 'and reachable cross-origin');
+
+  // A CDN adding `public`/`max-age` in front of `immutable` is not a defect, and must not fail a build.
+  const friendly = new Map(Object.entries(headersFor('scene-0.1.json')));
+  friendly.set('cache-control', 'public, max-age=31536000, immutable');
+  assert.deepEqual(headerVerdict('scene-0.1.json', { get: (k) => friendly.get(k) ?? null }), []);
+
+  // `index.json` is the mutable one: `no-store` is required *there*, and its absence is a finding.
+  assert.ok(
+    headerVerdict('index.json', { get: (k) => (k === 'content-type' ? 'application/json' : null) }).some((m) => m.includes('no-store')),
+    'the catalogue must not be cached, or a new version is invisible to clients that already looked',
+  );
+});

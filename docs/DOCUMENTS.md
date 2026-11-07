@@ -33,7 +33,7 @@ Structure, layout, states and assets. Compiles to HTML + CSS.
 
 ```jsonc
 {
-  "$schema": "https://web-spark.dev/schema/scene-0.1.json",
+  "$schema": "https://mr-spark.pages.dev/schema/scene-0.1.json",
   "version": "0.1",
   "meta": { "name": "landing", "lang": "en", "title": "Black Friday" },
 
@@ -117,7 +117,7 @@ Time, states, and — the part nobody else has — **semantic intent**.
 
 ```jsonc
 {
-  "$schema": "https://web-spark.dev/schema/motion-0.1.json",
+  "$schema": "https://mr-spark.pages.dev/schema/motion-0.1.json",
   "version": "0.1",
   "meta": { "name": "hero-motion" },
 
@@ -332,7 +332,7 @@ dogfood test is our own brand file validating as a settings document.
 
 ```jsonc
 {
-  "$schema": "https://web-spark.dev/schema/settings-0.1.json",
+  "$schema": "https://mr-spark.pages.dev/schema/settings-0.1.json",
   "version": "0.1",
   "meta": { "name": "brand", "version": "1.0.0", "themes": ["light", "dark"] },
 

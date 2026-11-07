@@ -174,9 +174,22 @@ export const DEFS = Object.freeze({
   }),
 });
 
+/**
+ * Where the schema set is published, without a trailing slash.
+ *
+ * One literal on purpose. This string is the `$id` of every schema, the target of every `$ref`
+ * between them, the `const` each format requires in `$schema`, and the route the publisher serves —
+ * so two copies of it are one fact with two owners, which is how a document ends up naming an
+ * address no server answers. `test/publish.test.js` holds those four together.
+ *
+ * Changing it is a format amendment, not a config change: documents already written name the old
+ * address, and they stay valid only while it keeps serving the bytes they expect. `docs/HOSTING.md` §5.
+ */
+export const SCHEMA_HOST = 'https://mr-spark.pages.dev/schema';
+
 /** Every document starts the same way, so the same two nodes describe the same two fields. */
 export function schemaUrl(format, version) {
-  return t.const(`https://web-spark.dev/schema/${format}-${version}.json`, {
+  return t.const(`${SCHEMA_HOST}/${format}-${version}.json`, {
     description: 'The schema this document claims to satisfy. Required, so a document cannot be validated against the wrong vocabulary by accident.',
   });
 }

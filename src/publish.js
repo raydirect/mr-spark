@@ -2,7 +2,7 @@
  * Serving `schema/` — the address that every document names.
  *
  * `$schema` is a required `const` in all three formats (`src/formats/common.js`), so the string
- * `https://web-spark.dev/schema/scene-0.1.json` is not a comment about where the schema lives: it is
+ * `https://mr-spark.pages.dev/schema/scene-0.1.json` is not a comment about where the schema lives: it is
  * part of what a valid document *is*, and every document ever written will carry it. An address that is
  * part of a format has to be reachable and permanent, which is why `docs/DOCUMENTS.md` treats it as
  * frozen. This file does not decide the permanent host — it makes the address *testable* today, on a
@@ -28,12 +28,14 @@
 import { createHash } from 'node:crypto';
 import { createServer } from 'node:http';
 import { createServer as createSecureServer } from 'node:https';
-import { readFileSync } from 'node:fs';
+import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { networkInterfaces } from 'node:os';
 import { fileURLToPath } from 'node:url';
 
 import { render, readCommitted, SCHEMA_HOST } from './formats/generate.js';
 import { VERSION } from './formats/common.js';
+import { NAME } from './config/brand.js';
 
 /**
  * The files the generator owns, as bare names. The server's whole surface, so a request cannot name
@@ -111,15 +113,15 @@ export function indexPage() {
 <html lang="en">
   <head>
     <meta charset="utf-8" />
-    <title>web-spark schema ${VERSION}</title>
+    <title>${NAME} schema ${VERSION}</title>
     <style>body{font:15px/1.6 ui-sans-serif,system-ui;max-width:46rem;padding:2rem;margin:auto}
       code{background:#f4f4f5;padding:.1em .3em}li{margin:.35em 0}</style>
   </head>
   <body>
-    <h1>web-spark schemas · format ${VERSION}</h1>
+    <h1>${NAME} schemas · format ${VERSION}</h1>
     <p>
       Generated from <code>src/formats/</code> — the committed files are artifacts, not sources. Every
-      web-spark document names one of these URLs in its required <code>$schema</code> field, so the
+      ${NAME} document names one of these URLs in its required <code>$schema</code> field, so the
       address is part of the format and does not move.
     </p>
     <ul>
@@ -138,6 +140,56 @@ export function indexPage() {
  * purpose rather than shelled out to, so the server's guarantee does not depend on a script someone ran
  * at some point.
  */
+/**
+ * The `_headers` file that Cloudflare Pages and Netlify both read from the deploy root.
+ *
+ * A static host is the right answer for a schema set precisely because there is nothing to run: no
+ * process to keep alive, no TLS to renew. The cost is that the media types and cache policy this
+ * project treats as interface (`docs/HOSTING.md` §5) have to be written down in a file instead of in
+ * code, which is how they get out of sync. So they are derived here, from `headersFor` — the same
+ * function the local publisher answers with — and `schema:verify --base <deployed>` checks the result
+ * over the wire. One definition, two hosts, one test that proves they agree.
+ */
+export function headersFile(names = PUBLISHED) {
+  const block = (path, headers) => [path, ...Object.entries(headers).map(([k, v]) => `  ${k}: ${v}`)].join('\n');
+  const blocks = [];
+  // The human-facing index is the only path that is allowed to change without a version bump, so it
+  // is cached like `index.json` and served as HTML.
+  blocks.push(block('/schema/index.html', {
+    'content-type': 'text/html; charset=utf-8',
+    'cache-control': 'no-store',
+    'access-control-allow-origin': '*',
+  }));
+  for (const name of names) blocks.push(block(`/schema/${name}`, headersFor(name)));
+  // Applies to everything, including paths a client invents. `nosniff` is the one header a static host
+  // should always send, and it does not conflict with the exact-path blocks above.
+  blocks.push(block('/*', { 'x-content-type-options': 'nosniff' }));
+  return `${blocks.join('\n\n')}\n`;
+}
+
+/**
+ * Write the deployable tree: `schema/…` exactly as committed, plus the index page and `_headers`.
+ *
+ * Nothing here is generated from a template — `drift()` has already run by the time this is called, so
+ * the bytes on disk are the bytes the generator claims. That is the whole property: `dist/` can be
+ * uploaded by hand from a laptop or by CI from a runner and be identical either way.
+ */
+export function bundle(outDir) {
+  const dir = join(outDir, 'schema');
+  mkdirSync(dir, { recursive: true });
+  const written = [];
+  for (const name of PUBLISHED) {
+    const body = readCommitted(`schema/${name}`) ?? '';
+    writeFileSync(join(dir, name), body);
+    written.push(`schema/${name}`);
+  }
+  writeFileSync(join(dir, 'index.html'), indexPage());
+  written.push('schema/index.html');
+  writeFileSync(join(outDir, '_headers'), headersFile());
+  written.push('_headers');
+  return written;
+}
+
 export function drift() {
   const files = render();
   return Object.entries(files)
@@ -203,7 +255,35 @@ export function lanAddresses() {
 
 async function fetchBytes(url) {
   const res = await fetch(url);
-  return { status: res.status, text: res.ok ? await res.text() : await res.text() };
+  return { status: res.status, text: await res.text(), headers: res.headers };
+}
+
+/**
+ * Does a deployed host keep the contract, or only serve the bytes?
+ *
+ * Deliberately a check of properties rather than exact strings: a CDN is allowed to add `public` and a
+ * `max-age` in front of `immutable`, and that is not a defect worth a red build. Dropping `immutable`,
+ * answering `application/json` where an editor probes for `application/schema+json`, or forgetting the
+ * CORS header all are: each one makes a schema that is byte-perfect in the repository fail for a
+ * stranger. See docs/HOSTING.md §5.3.
+ */
+export function headerVerdict(name, headers) {
+  const want = headersFor(name);
+  const problems = [];
+  const gotType = (headers.get('content-type') ?? '').split(';')[0].trim();
+  if (gotType !== want['content-type'].split(';')[0]) {
+    problems.push(`serves ${gotType || 'no content-type'}, documents expect ${want['content-type'].split(';')[0]}`);
+  }
+  const gotCache = headers.get('cache-control') ?? '';
+  for (const directive of ['immutable', 'no-store']) {
+    if (want['cache-control'].includes(directive) !== gotCache.includes(directive)) {
+      problems.push(`cache-control must say "${directive}" for this path (got "${gotCache || 'nothing'}")`);
+    }
+  }
+  if ((headers.get('access-control-allow-origin') ?? '') !== '*') {
+    problems.push('access-control-allow-origin must be * — editors validate documents on file:// and https://');
+  }
+  return problems;
 }
 
 export async function main(argv = process.argv.slice(2)) {
@@ -246,18 +326,34 @@ export async function main(argv = process.argv.slice(2)) {
       }
       if (res.status !== 200) bad.push([name, `HTTP ${res.status}`]);
       else if (res.text !== readCommitted(`schema/${name}`)) bad.push([name, 'bytes differ from the repository']);
+      else if (!args.get('bytes-only')) {
+        for (const problem of headerVerdict(name, res.headers)) bad.push([name, problem]);
+      }
     }
     for (const [name, why] of bad) process.stdout.write(`  ✗ ${name} — ${why}\n`);
     const summary =
       bad.length === 0
-        ? `  ✓ ${PUBLISHED.length} files at ${base} are byte-identical to schema/ in this checkout`
+        ? `  ✓ ${PUBLISHED.length} files at ${base} are byte-identical to schema/ in this checkout${
+            args.get('bytes-only') ? ' (headers not checked)' : ', with the media types and cache policy §5 requires'
+          }`
         : `  ${bad.length} of ${PUBLISHED.length} files do not match`;
     process.stdout.write(`${summary}\n`);
     return bad.length ? 1 : 0;
   }
 
+  if (mode === 'bundle') {
+    const out = String(args.get('out') ?? 'dist');
+    const written = bundle(out);
+    process.stdout.write(
+      `  wrote ${written.length} files under ${out}/ for a static host (Cloudflare Pages, Netlify, or any\n` +
+      `  directory a server can serve): the committed schema/ bytes, the index page, and _headers.\n` +
+      `  deploy it, then check what answers: node src/publish.js verify --base ${new URL(SCHEMA_HOST).origin}\n`,
+    );
+    return 0;
+  }
+
   if (mode !== 'serve') {
-    process.stderr.write(`spark: unknown publish mode "${mode}" — expected serve, verify or urls\n`);
+    process.stderr.write(`spark: unknown publish mode "${mode}" — expected serve, verify, urls or bundle\n`);
     return 2;
   }
 
