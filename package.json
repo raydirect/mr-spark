@@ -18,6 +18,8 @@
     "./tokens": "./src/config/tokens.js",
     "./tokens.json": "./src/config/tokens.json",
     "./formats": "./src/formats/index.js",
+    "./lower": "./src/lower.js",
+    "./emit": "./src/emit.js",
     "./schema/*": "./schema/*"
   },
   "files": [
