@@ -1,6 +1,6 @@
 # MCP Is a Load-Bearing Wall
 
-MCP (the Model Context Protocol) is not a feature of web-spark. It is the layer the whole
+MCP (the Model Context Protocol) is not a feature of MR-Spark. It is the layer the whole
 architecture is threaded through, in **four distinct directions**. This document specifies
 each one, because conflating them is the mistake most projects will make.
 
@@ -46,7 +46,7 @@ Facts that constrain the design, because they are recent and sharp:
   **87% to 54%** as context fills with tool definitions.
 
 That last bullet pair is the whole opportunity. **MCP artifacts are the newest class of web
-artifact with no proof attached to them** — which is exactly the defect web-spark exists to fix.
+artifact with no proof attached to them** — which is exactly the defect MR-Spark exists to fix.
 
 ---
 

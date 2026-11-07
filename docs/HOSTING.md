@@ -1,14 +1,16 @@
 # Publishing `schema/` — and what a laptop can prove
 
-`$schema` is a required `const` in all three formats, so `https://web-spark.dev/schema/scene-0.1.json`
-is not a comment about where the schemas live. It is part of what a valid document *is*: every document
-ever written will carry that string, and `npm run formats:check` pins the bytes it points at. Which
-means the address has two properties we do not currently have — it must **answer**, and it must keep
-answering **the same bytes** for as long as documents in the wild name it.
+`$schema` is a required `const` in all three formats, so
+`https://mr-spark.pages.dev/schema/scene-0.1.json` is not a comment about where the schemas live. It is
+part of what a valid document *is*: every document ever written will carry that string, and
+`npm run formats:check` pins the bytes it points at. Which means the address has two properties — it must
+**answer**, and it must keep answering **the same bytes and the same headers** for as long as documents in
+the wild name it. The host is a free Cloudflare Pages project, chosen in
+[ADR 0004](adr/0004-one-name-one-host.md): it answers today, and nobody has to buy anything to test it.
 
-This document is about the first property, tested on one machine, with the second one written down so
-nobody mistakes the former for the latter. The tool is `src/publish.js`; the npm scripts are
-`schema:serve`, `schema:verify`, and `node src/publish.js urls`.
+This document is about testing that promise, on one machine or against the deployment, with the permanent
+rules written down so nobody mistakes the former for the latter. The tool is `src/publish.js`; the npm
+scripts are `schema:serve`, `schema:verify`, `schema:bundle`, and `node src/publish.js urls`.
 
 ## What this proves, and what it does not
 
@@ -66,55 +68,71 @@ exports `./schema/*` in the first place:
 }
 ```
 
-Point it at a checkout, not at `node_modules`, until there is a package name we own: `webspark` on npm
-has been an unrelated blog engine since 2019, so the copy in `node_modules` is not installable by us
-and the name in this sentence will change with the rename (`docs/PHASE-PLAN.md`, open decisions).
+The package is `mr-spark` now, and it is not on npm yet — publishing needs the maintainer's account and
+a version to publish (the name it had before, `webspark`, has belonged to an unrelated blog engine since
+2019, which is why the checkout is the only honest path today). Once it is published, this becomes
+`"./node_modules/mr-spark/schema/scene-0.1.json"` and the sentence above stops applying.
 
 Offline, instant, and version-locked to the copy you have — which is *better* than the URL for local work,
 and the reason the URL is for people who did not install us rather than instead of it.
 
-## 3. Test the real address on one machine
+## 3. Test the address over TLS
 
-The address is `https://`, so plain HTTP on a port proves routing and not the promise. To have your own
-machine answer the actual URL:
+The const is an `https://` URL, so plain HTTP on a port proves routing and not the promise. Two ways to
+get an HTTPS answer, in the order you should reach for them.
+
+**Ask the deployment.** `npm run schema:bundle` writes `dist/` — the committed `schema/` bytes, the index
+page, and a `_headers` file with the media types and cache policy — and CI pushes it to Cloudflare Pages
+(`.github/workflows/pages.yml`), which has a real certificate on `https://mr-spark.pages.dev`. Verifying
+against that is the whole point of the deploy:
 
 ```powershell
-# 1. Resolve the name to this machine. Needs an elevated editor; the hosts file is owned by SYSTEM.
-#    C:\Windows\System32\drivers\etc\hosts
-127.0.0.1   web-spark.dev
-
-# 2. A certificate your OS will trust. `mkcert -install` writes a local root CA into the
-#    trust stores — that is the step that makes the browser and the editor stop objecting.
-choco install mkcert
-mkcert -install
-mkcert web-spark.dev
-
-# 3. Serve over TLS. Port 443 needs an elevated shell on Windows (or `sudo` on macOS/Linux).
-node src/publish.js serve --cert web-spark.dev.pem --key web-spark.dev-key.pem
-
-# 4. Verify, telling Node where the CA lives — do NOT disable certificate checking to make this pass.
-$env:NODE_EXTRA_CA_CERTS = "$(mkcert -CAROOT)\rootCA.pem"
-node src/publish.js verify --base https://web-spark.dev
+npm run schema:verify -- --base https://mr-spark.pages.dev
 ```
 
-`NODE_EXTRA_CA_CERTS` is the whole trick, and it matters: a verification step that runs with
-`NODE_TLS_REJECT_UNAUTHORIZED=0` would pass against a man-in-the-middle as happily as against your own
-laptop, which is the same reasoning that makes us refuse `--no-verify` patterns elsewhere.
+`verify` compares bytes *and* headers. It fails on `application/json` where an editor probes for
+`application/schema+json`, on a versioned file without `immutable`, and on a missing
+`access-control-allow-origin`, because each of those is a schema that looks perfect in the repository and
+does nothing in a stranger's editor.
 
-**Two costs, both worth knowing before you get used to the setup.** While that hosts line exists, *this
-machine* cannot reach a real `web-spark.dev` — there is no other one today, but there will be, and the
-entry is easy to forget. And every other device on the network still resolves the name publicly, so a
-colleague's editor gets nothing: that is the boundary, not a bug to fix with `netsh`.
+**Or pretend, on a name that is not the real one.** For practising, or before the first deploy:
+
+```powershell
+# 1. Resolve a local-only name. Needs an elevated editor; the hosts file is owned by SYSTEM.
+#    C:\Windows\System32\drivers\etc\hosts
+127.0.0.1   mr-spark.test
+
+# 2. A certificate your OS will trust. `mkcert -install` writes a local root CA into the trust stores,
+#    which is the step that makes the browser and the editor stop objecting.
+choco install mkcert
+mkcert -install
+mkcert mr-spark.test
+
+# 3. Serve over TLS. Port 443 needs an elevated shell on Windows (or `sudo` on macOS/Linux).
+node src/publish.js serve --cert mr-spark.test.pem --key mr-spark.test-key.pem
+
+# 4. Verify, telling Node where the CA lives — never disable certificate checking to make this pass.
+$env:NODE_EXTRA_CA_CERTS = "$(mkcert -CAROOT)\rootCA.pem"
+node src/publish.js verify --base https://mr-spark.test
+```
+
+`NODE_EXTRA_CA_CERTS` is the trick, and it matters: a verification step running with
+`NODE_TLS_REJECT_UNAUTHORIZED=0` passes against a man-in-the-middle as happily as against your own
+laptop, which is the same reasoning behind refusing `--no-verify` patterns elsewhere.
+
+**Do not put `mr-spark.pages.dev` in the hosts file.** Pointing the real address at `127.0.0.1` was
+harmless while nothing lived at it; after the first deploy it means this machine silently grades its own
+cache instead of the published one, and the entry is easy to forget. Use `.test`.
 
 ## 4. From another device, if you only need it reachable
 
 ```powershell
-netsh advfirewall firewall add rule name="web-spark schema" dir=in action=allow protocol=TCP localport=8788
+netsh advfirewall firewall add rule name="MR-Spark schema" dir=in action=allow protocol=TCP localport=8788
 ```
 
 Then `curl http://192.168.1.20:8788/schema/scene-0.1.json` from anything on the Wi-Fi. Use this to check
 the bytes and the headers; do not use it to claim the format's address works, because no document can
-name that URL — it is a `const`, and the const says `https://web-spark.dev/…`.
+name that URL — it is a `const`, and the const says `https://mr-spark.pages.dev/schema/…`.
 
 ## 5. The rules the permanent host has to satisfy
 
@@ -130,14 +148,19 @@ Decided now, so whoever sets it up (or buys the domain) is not inventing policy 
    JSON-Schema-aware editor probes for), `application/json` for the catalogue, `text/plain` for
    `types-0.1.d.ts`, and `access-control-allow-origin: *`, without which an editor validating a document
    on `file:///` fails in a way that looks like a broken schema.
-4. **A nightly job runs `schema:verify --base https://web-spark.dev` against the live host**, and its
-   failure is a release blocker. Deliberately not per-PR: `check.yml` answers requests to nobody, and a
-   CI that depends on the network is a CI that fails on the network.
+4. **A nightly job runs `schema:verify --base https://mr-spark.pages.dev` against the live host**, and
+   its failure is a release blocker. That is the `watch` job in `.github/workflows/pages.yml`.
+   Deliberately not per-PR: `check.yml` answers requests to nobody, and a CI that depends on the network
+   is a CI that fails on the network. It checks headers as well as bytes, because on a static host the
+   headers are the only place the media-type contract lives.
 5. **Moving the host is a format amendment,** not an ops task. `SCHEMA_HOST` appears in each schema's
    `$id`, in every `$ref` between them, and in the required `$schema` const of every document. If the
-   domain has to change, it changes in `src/formats/common.js` + `generate.js`, `formats:generate`
-   rewrites `schema/`, and the corpus of existing documents is migrated — which is exactly the kind of
-   cost that should be paid once, before the first stranger writes a document, not after.
+   domain has to change, it changes in `src/formats/common.js`, `formats:generate` rewrites `schema/`, and
+   every document that names the old address is rewritten with it. This has been done once, on 2026-11-07,
+   and the bill was: one line of code, six regenerated artifacts, six authored documents
+   (`src/config/tokens.json` and the five fixtures), and eleven prose mentions across seven files. That is
+   what "pay it before the first stranger writes a document" buys — the same work, with no migration
+   guide, because there is nobody to migrate.
 
 ## 6. So: is a laptop enough?
 
@@ -146,7 +169,10 @@ one that answers, on a machine you control, with a check that fails on drift, is
 affairs from a name in a string. What a laptop cannot be is the answer anyone else relies on: it is not
 reachable, not durable, and not neutral territory between two people debugging a document.
 
-Which is the argument for the cheap half now (this server, this document, this check) and the expensive
-half as a five-minute decision rather than a project: **who owns `web-spark.dev`, and is it registered?**
-Until it is, step 3 above is theatre for an audience of one, and the honest label on this whole file is
-"how to test the address", not "how to host the schemas".
+Which is the argument for the cheap half now: a host that answers, on infrastructure nobody has to keep
+alive, checked by a command that fails on drift. `https://mr-spark.pages.dev` is that host, and the
+deploy is a workflow rather than a project. What is *not* settled is permanence: a free `pages.dev`
+subdomain belongs to a Cloudflare project name, which can be renamed, deleted, or lost to a ToS change.
+So the honest label on this file is "how to publish the schemas to a host we are renting for free", and
+the remaining decision is the one that makes §5.1 true for a decade: buy a domain, then move the const
+once, deliberately, as an amendment.

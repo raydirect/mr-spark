@@ -1,4 +1,4 @@
-# Running web-spark on Windows
+# Running MR-Spark on Windows
 
 Verified against Node 22 on Windows 11 with PowerShell. If you follow this and something fails,
 that is a bug worth reporting — see the end.
@@ -6,8 +6,8 @@ that is a bug worth reporting — see the end.
 ## 0. The one-line version
 
 ```powershell
-git clone https://github.com/raydirect/web-spark.git
-cd web-spark
+git clone https://github.com/raydirect/mr-spark.git
+cd mr-spark
 npm ci
 node bin/spark.js check fixtures/bad.html
 ```
@@ -18,9 +18,9 @@ in use, and the error is `The process cannot access the file because it is being
 process`. Then, from `D:\Ray`:
 
 ```powershell
-Move-Item web-spark web-spark-mine     # only if web-spark is your own folder of pages
-git clone https://github.com/raydirect/web-spark.git
-Move-Item .\web-spark-mine\html-bak .\web-spark\html-bak
+Move-Item mr-spark mr-spark-mine     # only if mr-spark is your own folder of pages
+git clone https://github.com/raydirect/mr-spark.git
+Move-Item .\mr-spark-mine\html-bak .\mr-spark\html-bak
 ```
 
 Or skip all of it: clone beside the folder and pass the page path to the tool, which takes an
@@ -45,14 +45,14 @@ You should see `ACCESSIBLE 53 ✗`, then `CONFORMANCE 53 poor (1/5 pillars measu
 checkout of this repository. Check, in this order:
 
 ```powershell
-Get-Location                       # should be your clone, e.g. D:\Ray\web-spark
+Get-Location                       # should be your clone, e.g. D:\Ray\mr-spark
 Test-Path .\package-lock.json      # must print True
 git rev-parse --show-toplevel      # must print a path, not "fatal: not a git repository"
 ```
 
 If `git rev-parse` prints **`fatal: not a git repository`**, the folder is not a clone at all —
 it is just a folder. That is the most common cause, and it is easy to miss because the path
-*looks* right. You may have created `D:\Ray\web-spark` yourself and put files in it. Clone into
+*looks* right. You may have created `D:\Ray\mr-spark` yourself and put files in it. Clone into
 it properly (see step 1 above), or clone elsewhere and copy your files into `html-bak\`.
 
 If it *is* a clone but `Test-Path` still prints `False`, the clone predates the lockfile, which
@@ -106,7 +106,7 @@ spark check fixtures/bad.html
 spark --help
 ```
 
-To undo: `npm unlink -g webspark` (or remove the shim from your npm prefix, which
+To undo: `npm unlink -g mr-spark` (or remove the shim from your npm prefix, which
 `npm prefix -g` will tell you).
 
 ## 4. Test the project itself

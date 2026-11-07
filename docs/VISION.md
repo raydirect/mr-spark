@@ -1,4 +1,4 @@
-# web-spark — The Unified Plan
+# MR-Spark — The Unified Plan
 
 > **Every artifact proves itself.**
 >
@@ -36,7 +36,7 @@ checked.** That is the product.
 
 ## 2. The thesis, stated once
 
-> **web-spark is a conformance compiler for the web.**
+> **MR-Spark is a conformance compiler for the web.**
 > Many front-ends produce one typed intermediate representation. That IR is analyzed against a
 > published rule set, given a public score, and emitted back out as diagnostics, safe fixes,
 > agent-facing manifests, and renderable scenes.

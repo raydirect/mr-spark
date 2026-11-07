@@ -21,7 +21,7 @@ something running at play time, and nothing else. A refusal writes no files.
 
 ```jsonc
 {
-  "$schema": "https://web-spark.dev/schema/scene-0.1.json",
+  "$schema": "https://mr-spark.pages.dev/schema/scene-0.1.json",
   "version": "0.1",
   "meta": { "name": "landing", "lang": "en", "title": "Black Friday" },
   "tokens": { "$ref": "./brand.spark.settings.json" },

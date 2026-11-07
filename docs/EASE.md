@@ -1,6 +1,6 @@
 # "Super Easy, Everywhere": The Reduced-Friction Model
 
-**Decision document.** The question: what makes web-spark usable *easily* by people all over the
+**Decision document.** The question: what makes MR-Spark usable *easily* by people all over the
 world? Past decisions fixed *what* the product is and *where truth lives*. This one fixes the
 **activation path** — the distance between hearing about it and receiving a true answer.
 

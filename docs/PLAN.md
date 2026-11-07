@@ -1,4 +1,4 @@
-# web-spark — The Plan
+# MR-Spark — The Plan
 
 > **One line:** a single command that tells you whether your web page is actually good —
 > accessible, fast, safe, and usable by humans and AI agents — and stops you from merging
@@ -79,11 +79,11 @@ the report** — the layer that is missing.
 ### The five-minute first win
 
 ```bash
-npx @webspark/cli check https://example.com
+npx mr-spark check https://example.com
 ```
 
 ```
-  web-spark  https://example.com
+  MR-Spark  https://example.com
 
   ACCESSIBILITY   38/100   ✗  14 errors
     ✗ image-alt       3 elements    <img src="/hero.png">
@@ -102,13 +102,13 @@ npx @webspark/cli check https://example.com
 And in CI, with no browser and no config:
 
 ```yaml
-- uses: webspark/check-action@v1
+- uses: mr-spark/check-action@v1
 ```
 
 Then the PR gets one comment with the delta:
 
 ```
-web-spark  72 → 78 (+6)   ✓ passed
+MR-Spark  72 → 78 (+6)   ✓ passed
   +2  accessibility   fixed 4 contrast issues
   -3  performance     entry bundle +38 KB (charting library)
 ```
@@ -210,7 +210,7 @@ punchline:
 | `spark baseline` | write `.spark-baseline.json` | M1 |
 | `spark check --ci` | fail only on new/regressed | M1 |
 | `spark report --format sarif\|json\|md` | CI-native output | M1 |
-| `webspark/check-action@v1` | PR comment + check run + delta | M1 |
+| `mr-spark/check-action@v1` | PR comment + check run + delta | M1 |
 | `spark budget --max-js/--max-lcp/--min-score` | hard ceilings | M2 |
 | `spark check --url` | browser runner (rendered DOM, contrast, agent tools) | M2 |
 | `spark agent` | a11y-tree report + WebMCP tool inventory | M2 |
@@ -221,7 +221,7 @@ Config (`spark.config.json`) — flat, ~10 keys, no plugin system in v1:
 
 ```json
 {
-  "$schema": "https://webspark.dev/schema/1.json",
+  "$schema": "https://mr-spark.pages.dev/schema/scene-0.1.json",
   "paths": ["app/**/*.tsx", "src/**/*.html"],
   "baseline": ".spark-baseline.json",
   "enforce": { "minScore": 70, "maxJsBytes": 250000, "maxLcpMs": 2500 },
@@ -252,7 +252,7 @@ something other than our own opinion.
 
 ### Phase 1 — The gate (2–3 weeks)
 - `baseline`, `--ci` regression semantics, SARIF, and the GitHub Action with PR comments.
-- Self-audit: web-spark's own repo runs web-spark on its docs site, in CI, from day one.
+- Self-audit: MR-Spark's own repo runs MR-Spark on its docs site, in CI, from day one.
 - **Exit:** 10 real repos (pulled from `good-first-issue` projects we contribute the Action
   to) have a green gate with a committed baseline, and at least 3 merges were blocked by a
   real accessibility regression.
@@ -330,10 +330,12 @@ Leading indicators, in order of what actually matters:
 2. **Wedge audience** — (a) agency/freelancer devs who must satisfy EAA now and feel the pain
    today; (b) OSS maintainers (star-friendly, low budget); (c) teams with audit deadlines
    (money, but slower to reach). I'd start with (a) for urgency and (b) for distribution.
-3. **The name.** `web-spark` is fine and now the repo, but the CLI/package name matters for
-   discovery. Candidates: `spark`, `webspark`, `conformance`, `sightline`, `proof`. I'd avoid
-   `spark` alone (collisions — it is already a well-known name in another ecosystem); `webspark` reads clearly as
-   "the web's conformance tool."
+3. **The name.** *Resolved 2026-11-07, and the resolution is what the earlier draft got wrong.* The
+   product is **MR-Spark** (the author's initials, in the name rather than in a footer), the npm package is
+   `mr-spark`, and the CLI stays `spark`. The candidate `webspark` above was never
+   available to us — that name has belonged to an unrelated Node blog engine since 2019 — and every
+   `npx webspark` line in this repository was therefore pointing at a stranger's package until the rename.
+   `docs/adr/0004-one-name-one-host.md` records the rename and the schema host that had to move with it.
 4. **How hard we lean on the agent angle.** It's the best narrative and the newest capability,
    and it's also the easiest thing to over-promise. My instinct: ship it as a *reporting*
    capability in Phase 2, never as an "AI fixes your a11y" claim until we have recorded
