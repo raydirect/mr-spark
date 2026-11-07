@@ -11,6 +11,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
+import { createServer } from 'node:http';
 import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { once } from 'node:events';
 import { tmpdir } from 'node:os';
@@ -20,6 +21,26 @@ import { PUBLISHED, resolveName, headersFor, expectedUrls, drift, indexPage, mai
 import { SCHEMA_HOST } from '../src/formats/generate.js';
 import { bundle, headerVerdict } from '../src/publish.js';
 import { VERSION } from '../src/formats/common.js';
+
+/**
+ * Run `src/publish.js` as a child and hand back its exit code plus combined output.
+ *
+ * Capturing with a `process.stdout.write` patch is the trap this exists to avoid: the test runner writes
+ * this file's own results to that same stream, so anything a concurrent async test prints while the patch
+ * is on is eaten — five tests in this file disappeared from the tally that way, reporting a green run with
+ * a fraction of the tests in it. A subprocess has no such shared channel, and `verify` in CI is a
+ * subprocess, so this also tests the surface that actually gets called.
+ */
+function runPublisher(args) {
+  return new Promise((resolve) => {
+    const child = spawn(process.execPath, ['src/publish.js', ...args], { cwd: new URL('..', import.meta.url).pathname });
+    let out = '';
+    child.stdout.on('data', (chunk) => { out += String(chunk); });
+    child.stderr.on('data', (chunk) => { out += String(chunk); });
+    child.once('error', (error) => resolve({ code: `spawn failed: ${error.message}`, out }));
+    child.once('exit', (code) => resolve({ code, out }));
+  });
+}
 
 test('the published set is the generated set, and nothing else is reachable', () => {
   assert.deepEqual(PUBLISHED, [...PUBLISHED].sort(), 'the route table is deterministic, like the bytes it serves');
@@ -125,6 +146,13 @@ test('serve, then verify: the bytes over the wire equal the bytes in the reposit
 
     const landing = await fetch(`${url}/`);
     assert.match(landing.headers.get('content-type'), /text\/html/);
+
+    // `bundle()` writes `schema/index.html`, so a static host answers that path and this server has to as
+    // well — the day the CI wait step probed it, `serve` 404'd and Pages served it, which is a check that
+    // passes in production and fails at the desk of whoever is trying to reproduce the failure.
+    const onDisk = await fetch(`${url}/schema/index.html`);
+    assert.equal(onDisk.status, 200, 'the path the bundle writes answers on the server that bundles it');
+    assert.match(onDisk.headers.get('content-type'), /text\/html/);
   } finally {
     child.kill('SIGTERM');
     if (child.exitCode === null) await once(child, 'exit');
@@ -134,17 +162,8 @@ test('serve, then verify: the bytes over the wire equal the bytes in the reposit
 test('verify reports an unreachable server instead of passing quietly', async () => {
   // The silence this guard exists for: a nightly parity job that cannot connect must not print a green
   // line, and it must name the address it tried.
-  const lines = [];
-  const write = process.stdout.write.bind(process.stdout);
-  process.stdout.write = (chunk) => { lines.push(String(chunk)); return true; };
-  let code;
-  try {
-    code = await main(['verify', '--base', 'http://127.0.0.1:1']);
-  } finally {
-    process.stdout.write = write;
-  }
+  const { code, out } = await runPublisher(['verify', '--base', 'http://127.0.0.1:1']);
   assert.equal(code, 1);
-  const out = lines.join('');
   // The wording carries the diagnosis: a server that answers nothing is not a byte mismatch, and this
   // line is what somebody reads at 06:20 when the schedule goes red.
   assert.match(out, /did not answer/, out);
@@ -224,4 +243,39 @@ test('a deployed host that serves the right bytes the wrong way still fails veri
     headerVerdict('index.json', { get: (k) => (k === 'content-type' ? 'application/json' : null) }).some((m) => m.includes('no-store')),
     'the catalogue must not be cached, or a new version is invisible to clients that already looked',
   );
+});
+
+test('verify counts files, not findings', async () => {
+  // A host that serves the right bytes with the wrong headers produces several findings for one file. The
+  // summary has to count files, because the first version of it counted findings and CI printed
+  // "17 of 6 files did not verify" — a sentence whose only effect is to send the reader looking for a
+  // seventh file. The finding count stays on the line, because that is the work to do.
+  const server = createServer((req, res) => {
+    const name = decodeURIComponent(req.url.split('?')[0]).replace(/^\/schema\//, '');
+    res.writeHead(200, { 'content-type': 'application/json' });
+    res.end(PUBLISHED.includes(name) ? readArtifact(`schema/${name}`) : 'not a published file');
+  });
+  server.listen(0, '127.0.0.1');
+  await once(server, 'listening');
+  let code;
+  let out;
+  try {
+    ({ code, out } = await runPublisher(['verify', '--base', `http://127.0.0.1:${server.address().port}`]));
+  } finally {
+    server.close();
+  }
+
+  assert.equal(code, 1, out);
+  const reported = / (\d+) of (\d+) files did not verify/.exec(out);
+  assert.ok(reported, out);
+  assert.equal(Number(reported[2]), PUBLISHED.length, 'the denominator is the published set');
+  assert.equal(Number(reported[1]), PUBLISHED.length, 'every file answers wrongly, so six files — not seventeen');
+  const findings = (out.match(/✗/g) ?? []).length;
+  assert.ok(
+    findings > PUBLISHED.length,
+    `${findings} findings across ${PUBLISHED.length} files is the imbalance this test exists for`,
+  );
+  assert.ok(out.includes(`${findings} finding(s) across them`), 'the finding count is still reported, separately');
+  assert.match(out, /did not match/, 'a wrong header is a mismatch, not silence — nothing here failed to answer');
+  assert.doesNotMatch(out, /did not answer/, 'every path answered 200');
 });
