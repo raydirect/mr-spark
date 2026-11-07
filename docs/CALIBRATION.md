@@ -1,8 +1,14 @@
 # Calibration against real pages
 
-Fixture scores are a closed loop: the fixture was built from the failure classes the tool
-detects, so it scoring badly is not evidence of anything. These are real pages, and what their
-first scores said.
+> **Read this first.** The table below is a **snapshot taken on 2026-11-05** under score spec
+> **2.0.0** and a **70-rule** selection. It is kept because the reasoning in it is what produced
+> two of the last three changes to the tool, and because deleting a number that turned out to be
+> wrong is how a project forgets it was ever wrong. It is **not** the current score of those
+> pages. Current baselines live in `test/corpus.test.js` and are explained in `docs/CORPUS.md`.
+>
+> Three of the four pages described here are **not in this repository** — they live on the
+> author's machine and cannot be copied out. What is reproduced here is the reasoning, not the
+> bytes. That gap is the reason `fixtures/real/` exists.
 
 ## Four real pages, one run
 
@@ -56,3 +62,17 @@ did not happen; the tool now prints `≤100` and states how many checks were und
    usefulness.
 4. **Re-score these four pages after PR #15** and after the browser runner, and compare. That is
    the only calibration that means anything: same pages, better instrument.
+
+## What happened next (status, 2026-11-07)
+
+| Item above | State |
+|---|---|
+| 1. The `aria-prohibited-attr` decided-vs-undecided flip | **still open.** No page in the corpus reports it, so nothing tests it. |
+| 2. A suppression mechanism | **done** — `spark.config.json`, reasons required and printed on every surface (`docs/SUPPRESSION.md`). The honeypot case is `test/fixtures/honeypot.html`. |
+| 3. The browser runner | **not started.** Every score in the repository is still an upper bound. |
+| 4. Re-score the four pages | **not possible**: the pages are not in the repository. Replaced by `fixtures/real/`, three pages written to the same shape with frozen baselines. |
+
+Two claims in this document did not survive contact: the *88 findings, score 19* case is a **2.0.0**
+artefact and now prices at **71** (spec 3.0.0, §3.5 of `SCORE-SPEC.md`); and the two scores of
+**100** were a coverage result, which is why the tool now prints `≤100` and why `ceramics.html`
+in the corpus exists to keep that glyph from disappearing.

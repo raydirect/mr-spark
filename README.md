@@ -96,7 +96,7 @@ Read [docs/REVOLUTION.md](docs/REVOLUTION.md) for the whole thing. The shape:
 
 | Phase | What it delivers | Status |
 |---|---|---|
-| 0 | **Ground truth** — a verifier worth trusting: per-root-cause scoring ✅, suppression with printed reasons ✅, a corpus of real pages 🔨 | 🔨 in progress |
+| 0 | **Ground truth** — a verifier worth trusting: per-root-cause scoring ✅, suppression with printed reasons ✅, a three-page real corpus with frozen baselines ✅ | 🔨 in progress |
 | 1 | **Spine** — frozen `scene` / `motion` / `settings` document schemas, `lower`, `emit`, byte-identical output | ⏳ |
 | 2 | **Gate** — `baseline`, regression-only `--ci`, SARIF, action, finding identity that survives generated ids | ⏳ |
 | 3 | **Studio** — a browser canvas where you author a page, with the verifier live on the canvas | ⏳ |
@@ -232,6 +232,15 @@ cautionary tale of a dead animation ecosystem, is in
   ([SCORE-SPEC.md](docs/SCORE-SPEC.md)) with a semantic version and a frozen calibration table
   that is enforced by tests; pillars are never merged into one grade that hides a failure; and
   the raw findings always ship alongside the number.
+- **A score is an upper bound** whenever a check could not be decided — contrast cannot be
+  measured without a canvas — and the tool prints `≤`, not a bare number, whenever that is true.
+- **Suppression is a documented, printed waiver**, not a hidden ignore list: every suppressed
+  finding stays in the report with its stated reason and is priced at zero
+  ([SUPPRESSION.md](docs/SUPPRESSION.md)). A page where everything is waived scores 100 and says
+  so on the same line as the number.
+- **The calibration corpus is three pages**, written to the right shape but by one author. It
+  catches regressions; it does not establish that the score is right
+  ([CORPUS.md](docs/CORPUS.md)).
 - Phase 1 is a CLI, a CI gate, and an MCP server. Design, motion and rendering are a published
   roadmap, not a shipped claim.
 - We audit MCP servers but cannot certify them. A clean `MCP*` report means the definition layer

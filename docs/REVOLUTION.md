@@ -228,8 +228,12 @@ later phase reports confident nonsense.
 - **Suppression with printed reasons** — `spark.config.json`, justified ignores, report shows
   "N suppressed" with reasons. A gate with no legitimate way to say "deliberate" gets disabled.
 - Resolve the decided-vs-undecided inconsistency seen on real pages.
-- **Corpus in the repo**: the real pages that scored wrongly become fixtures. This is the
-  standing prerequisite in `PHASE-PLAN.md §1` and it has already been skipped once.
+- ~~**Corpus in the repo**~~ — done, with a caveat that has to be stated plainly. The four pages
+  live on one machine and cannot be copied out of it, so what is committed is a **three-page
+  corpus written to the same shape** (`fixtures/real/`, baselines in `test/corpus.test.js`,
+  reasoning in `docs/CORPUS.md`). It is a regression guard, not the original sample. The two pages
+  still missing are the marketplace page (the 88-finding case) and the black-friday page (the
+  `aria-prohibited-attr` flip).
 - Re-audit published numbers; bump score spec if anything moves.
 
 **Exit:** the four real demo pages score believably, the corpus is committed, and no score in the
@@ -465,7 +469,8 @@ In order, each as its own pull request:
 
 1. Score the same defect once per root cause; stop charging 88 findings for one missing landmark.
 2. ~~Suppression with printed reasons (`spark.config.json`)~~ — done. See `docs/SUPPRESSION.md`.
-3. Commit the real-page corpus and re-audit published numbers.
+3. ~~Commit the real-page corpus~~ — done via `fixtures/real/` (`docs/CORPUS.md`).
+   **Re-audit published numbers** — partly done; `CALIBRATION.md` still carries 2.0.0 numbers.
 4. Freeze `schema/scene-0.1.json` + TypeScript types; write `docs/SCENE.md`.
 5. `spark lower` + `spark emit` for a static scene → byte-identical HTML/CSS.
 6. One worked example page in the repository, authored as a document.
