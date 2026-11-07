@@ -83,3 +83,39 @@ those moves has to be explained.
   is entirely absent from the numbers.
 
 Those four gaps are the honest boundary of what "we have a corpus" means today.
+
+## What four uploaded demo pages taught us, and why none of them are fixtures
+
+Five HTML files were once dropped into this repository from the outside: four saved pages from the
+*Canvas* ThemeForest template set (`demo-marketplace`, `demo-black-friday-deals`,
+`demo-honey-subscription`, `demo-volunteer`, each carrying its `envato.market` affiliate link) and one
+saved DOM dump of a Primer component screen (`001.html`). They were removed. The reason is not
+prudishness: **committed, they would be someone's commercial work inside an Apache-2.0 repository**, and
+the patent grant in our `LICENSE` would be a promise we have no standing to make about their markup.
+
+Rule 1 also rules them out on method — *write it as a page, not as a test* — and the reverse applies: a
+page must be ours to be a corpus page. But they were measured first, and four things came out of it:
+
+| Page | Score | Decided | What it showed |
+|---|---|---|---|
+| `demo-marketplace` | 65 | 88 (`region` ×84, `heading-order` ×4) | The 3.0.0 pricing claim, at the scale no fixture of ours reaches. 84 findings from one habit cost 16.15 damage on a synthetic equivalent; per-element pricing would have ended the page. |
+| `demo-black-friday-deals` | 76 | 4 (`aria-prohibited-attr` ×4) | **The first time that rule fired on a page we had not built.** Gap 3 above, confirmed as real by an unrelated document — template markup putting `aria-*` on `div`s with no role. |
+| `demo-volunteer` | 80 | 1 (`label`) | One unlabelled control costs 10.0 damage on an otherwise clean page. A single finding is a *fifth* of the distance from 100 to 70, and that ratio is a claim about how the tool reads to a client. |
+| `demo-honey-subscription` | 86 | 4 (`region` ×3, `heading-order` ×1) | A well-built page with a section habit is a high-80s page. Nothing surprising, which is itself the point: the score now reads as expected. |
+
+And the finding that matters most for gap 4, which the uploads looked like they closed and did not:
+**every one of the four has zero inline `<style>` and five external stylesheets.** In the browserless
+path the tool therefore sees no colours at all — `color-contrast` stays undecided, and a score of 65 is a
+statement about landmarks and headings, not about a page a person can read. That is why the corpus's next
+page is specified as:
+
+> **one page with its CSS inside the file**, and a contrast problem in it we did not put there.
+
+A page saved as "Webpage, Complete" does not qualify — the CSS has to end up in the document, pasted or
+inlined, because the measurement we want is the one the *default* runner can make. Old client work is the
+best source precisely because nobody optimised it for a checker.
+
+The measured consequence of the pricing rows above is pinned by a test rather than remembered in prose:
+`corpus: pricing stays sub-linear at the scale a real listing page reaches` generates catalogues of 1,
+84 and 200 sellers and asserts both directions — repetition costs something, and it does not compound
+linearly. That is a probe, not a corpus page, and it says so in its own comment.
