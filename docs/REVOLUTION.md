@@ -464,7 +464,7 @@ because an answer nobody recorded becomes a rumour within a month.
 | 1 | First surface to open — canvas or document | **Both.** |
 | 2 | Arbitrary HTML/CSS escapes in v1 | **No escapes — but every refusal owes a workaround.** |
 | 3 | Desktop shell in v1 | **No.** |
-| 4 | Motion vocabulary | **Take the authoring model from GSAP; never take its runtime.** |
+| 4 | Motion vocabulary | **Take the curves from Penner, the spellings from GSAP; never take GSAP's runtime.** |
 | 5 | Third-party code-authored documents | **Read anything that validates; write only our own.** |
 
 ### 14.1 "Both", said plainly
@@ -522,6 +522,13 @@ we take from the best-known animation library, and the one thing we can't:
 down a tree, named eases (`power2.out`, `back.out(1.7)`), `stagger` with `from: "center"`, and
 `repeat`/`yoyo` as *document fields*. The last one matters more than it looks: a loop the verifier
 cannot see in the document is a vestibular hazard it cannot price.
+
+Worth separating, because the two debts are not the same kind of thing. The **eases themselves** are
+Robert Penner's equations — `Easing Equations v1.5`, 2003, MIT and BSD-3 — which is why they are in our
+source at all, why `LICENSE-PENNER.txt` and `NOTICE` ship inside the tarball, and why
+`test/ease-laws.test.js` exists: a name in our table is only as honest as the curve behind it, and GSAP's
+docs are a description of someone else's mathematics. The **vocabulary** is GSAP's contribution, and that
+part is worth taking.
 
 **Refused** — the runtime itself. GSAP's Standard "No Charge" licence (effective 2025-04-30)
 defines "Competitive Products" as *software that enables users to create, edit, or manage

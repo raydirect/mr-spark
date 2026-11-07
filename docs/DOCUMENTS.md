@@ -248,7 +248,7 @@ knows them:
 |---|---|---|
 | `bezier` | A CSS timing function exists for it, so it emits as one word and nothing else | `linear`, `ease-out`, `steps(4, end)` |
 | `sampled` | Compiler bakes the curve into a keyframe list at build time — deterministic, no runtime | `power2.out`, `circ.inOut`, `bounce.out`, `back.out(1.7)` |
-| `unlisted` | Not in the table at all, so the document is **invalid**. The error names the nearest supported ease rather than quietly substituting one | springs, `rough`/noise, anything that needs velocity carried between frames |
+| `unlisted` | Not in the table at all, so the document is **invalid**. The error names the nearest supported ease rather than quietly substituting one | `rough`/noise, and any spring that can be *interrupted* — see below |
 
 The line between the two classes is drawn where CSS's own vocabulary ends, not where a `cubic-bezier()`
 could be *fitted*. `power2.out` has published control points — `(0.33, 1, 0.68, 1)` is close — but a fit
@@ -261,11 +261,46 @@ That is why `emission` lives in the format instead of being a caller's choice.
 
 `sampled` is why an ease that CSS cannot express is not an argument for a JS runtime: the compiler
 can do at build time what a library does per frame, once, and leave nothing behind to license,
-load, or break. `unlisted` is the honest boundary on that trick — sampling works for curves that
-are a pure function of progress, and springs are not: where a spring ends up depends on how fast
-the element was already moving, which is a fact about the frame, not about the document. Interruptible
-spring motion is the feature most likely to be asked for and the one this format will not have in
-v1; it needs a runtime that owns state, which is exactly what we are trying not to ship.
+load, or break. `unlisted` is the honest boundary on that trick — sampling works for any curve that
+is a pure function of progress. A spring whose full response is named up front (`bounces`, `decay`,
+an initial velocity of zero) is such a function, and bakes like anything else; a spring that is
+*interrupted and retargeted mid-flight* is not, because where it goes next depends on how fast the
+element was already moving, which is a fact about the frame and not about the document. The second
+kind is the one this format will not have in v1: it needs a runtime that owns state, which is exactly
+what we are trying not to ship. The first kind is a candidate for a format amendment, not a runtime —
+see `docs/PHASE-PLAN.md` §9.
+
+#### Where the curves come from, and how that is checked
+
+The *names* are the authoring vocabulary designers already have; the *mathematics* is Robert Penner's
+`Easing Equations v1.5` (1 May 2003), which he has released under the MIT and 3-Clause BSD licences
+(`LICENSE-PENNER.txt`, `NOTICE`, both shipped in the package). `power1`–`power4` as spellings came
+later, from GSAP, which put its names on his curves — and GSAP's runtime licence is a separate matter
+that this project has already refused (docs/REVOLUTION.md §14).
+
+Attribution like that is a sentence in a file, so it is checked rather than asserted:
+`test/ease-laws.test.js` transcribes v1.5 in its own `(t, b, c, d)` spelling and holds every name in
+the table to it at 257 points, plus the total laws a curve owes — endpoints exact, `in` is the
+reflection of `out`, `inOut` crosses (0.5, 0.5), monotone families never go backwards, `back.out(0)` is
+`cubic.out`, the aliases are aliases. That test found three bugs the rest of the suite could not see,
+which is the argument for its existence:
+
+1. **`power2.out` was the accelerating curve.** The table stores each family as its **out** form and
+   derives `in` and `inOut` from it, and the polynomial rows had been written as `p ** n` — Penner's
+   `in`. So the single most-used ease in UI design emitted a snap-in that stopped hard; `power2.in` got
+   the settle. Neither a schema nor an endpoint test can tell, and `inOut` is symmetric, so it passed
+   everything. The invariant is now stated where it lives: *the closed form a family stores is the out
+   curve, never the in curve*.
+2. **`back.inOut` had half the overshoot.** Penner's `easeInOutBack` scales `s` by **1.525** so the
+   in-out gesture matches the in and out ones; the generic derivation halves it. Our sampled peak was
+   1.049 where the published curve peaks at 1.100 — 5% of travel, on a name that means 10%.
+3. **`elastic`'s amplitude was a phase shift, not a multiplier.** `elastic.out(1, 0.3)` — the value
+   every example copies — is identical either way; `elastic.out(3, 0.3)` overshot 1.56 instead of 2.68.
+   A test that checks a parameter is *used* passes; only a test that checks what it *means* fails.
+
+The one place our derivation is deliberately *not* Penner's line-for-line: `elastic` stores both its own
+`in` and `out`, because its decay is one-sided in time, and the reflection that is exact for every other
+family moves its swing to the wrong end of the duration when the amplitude is above 1.
 
 ### Emission
 

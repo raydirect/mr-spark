@@ -15,6 +15,21 @@ jobs:
       - run: npm ci --no-audit --no-fund
       - name: unit tests
         run: npm test
+      # A test can check the manifest; only this checks the artifact a stranger receives. Penner's MIT
+      # and BSD texts both require the notice in "all copies or substantial portions", and Apache-2.0
+      # §4(d) requires the same of NOTICE — so a package that omits them is a licence breach every test
+      # in this repository would pass.
+      - name: the packed tarball carries the licences it owes
+        run: |
+          set -euo pipefail
+          npm pack --pack-destination "$RUNNER_TEMP" >/dev/null
+          tgz=$(ls "$RUNNER_TEMP"/*.tgz | head -1)
+          tar -tzf "$tgz" | grep -E '^package/(LICENSE|LICENSE-PENNER\.txt|NOTICE)$' > "$RUNNER_TEMP/found" || true
+          if [ "$(wc -l < "$RUNNER_TEMP/found")" -ne 3 ]; then
+            echo "the package must ship LICENSE, LICENSE-PENNER.txt and NOTICE; found:"
+            cat "$RUNNER_TEMP/found"
+            exit 1
+          fi
       # schema/ is a projection of src/formats/, not a second definition. If this fails, someone
       # edited a generated file — regenerate and commit instead.
       - name: the published schemas match the grammar

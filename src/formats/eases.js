@@ -7,6 +7,12 @@
  * the compiler bakes the curve into keyframes at build time; anything not in the table is refused
  * rather than approximated.
  *
+ * Every curve these names denote is Robert Penner's — `Easing Equations v1.5`, 1 May 2003, MIT and
+ * BSD-3 (`LICENSE-PENNER.txt`, and see `NOTICE`). The spellings are the vocabulary GSAP layered on top
+ * of his equations, which is why this file is about names and `src/ease-bake.js` is about mathematics.
+ * `test/ease-laws.test.js` holds the names in this table to his published equations, and the three bugs
+ * it found are recorded in docs/DOCUMENTS.md §2.
+ *
  * The honest consequence, and the one people argue about: `power2.out` is `sampled`, not `bezier`.
  * A `cubic-bezier(0.215, 0.61, 0.355, 1)` is the *published approximation* of an ease-out-cubic,
  * not the curve itself. Substituting it silently would make the emitted page differ from the
