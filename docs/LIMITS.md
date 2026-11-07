@@ -102,6 +102,14 @@ priced repetition per root cause (spec 3.0.0) precisely because the naive curve 
 loud thing twice*. That slowed gaming down. It did not stop it, and a formula that stopped it would
 have to be secret, which would destroy the property that makes it worth anything.
 
+The corpus found a second one, sharper because it requires no edits to the markup's content at all.
+`region` prices *runs* of orphaned content, not elements: six unlandmarked cards inside one wrapper div
+are one finding, and the same six cards as sibling divs are seven — identical text, scores 91 and 82. So
+`<div class="page">` around somebody's soup buys nine points without anybody wrapping anything in a
+`main`. That is the correct output for a rule whose message is one instruction, and it is not a
+comparable number across pages. It is pinned by `corpus: region prices runs of orphaned content, not
+elements` and explained in `docs/CORPUS.md`.
+
 **What we do instead:** the score is a summary, not a goal — the findings are the product and every
 one of them prints its rule, its reason and its source. Suppression writes a reason into the report
 (`SUPPRESSION.md`), so a waived page says 100 *and* lists every waiver, with its expiry date, on the

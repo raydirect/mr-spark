@@ -272,7 +272,7 @@ cautionary tale of a dead animation ecosystem, is in
   finding stays in the report with its stated reason and is priced at zero
   ([SUPPRESSION.md](docs/SUPPRESSION.md)). A page where everything is waived scores 100 and says
   so on the same line as the number.
-- **The calibration corpus is three pages**, written to the right shape but by one author. It
+- **The calibration corpus is five pages**, all written by the same person who wrote the tool. It
   catches regressions; it does not establish that the score is right
   ([CORPUS.md](docs/CORPUS.md)).
 - Phase 1 is a CLI, a CI gate, and an MCP server. Design, motion and rendering are a published

@@ -70,7 +70,7 @@ did not happen; the tool now prints `≤100` and states how many checks were und
 | 1. The `aria-prohibited-attr` decided-vs-undecided flip | **resolved** — it was not a flip. Two different elements produced two different verdicts, and the tool was blaming "this environment" for a question no environment can answer from markup. See `docs/UNDECIDED.md`; pinned by `test/undecided.test.js`. |
 | 2. A suppression mechanism | **done** — `spark.config.json`, reasons required and printed on every surface (`docs/SUPPRESSION.md`). The honeypot case is `test/fixtures/honeypot.html`. |
 | 3. The browser runner | **not started.** Every score in the repository is still an upper bound. |
-| 4. Re-score the four pages | **not possible**: the pages are not in the repository. Replaced by `fixtures/real/`, three pages written to the same shape with frozen baselines. |
+| 4. Re-score the four pages | **not possible**: the pages are not in the repository. Replaced by `fixtures/real/`, five pages written as pages first with frozen baselines — three unstyled, two with their CSS inline. Still all one author, so still regression cover, not calibration. |
 
 Two claims in this document did not survive contact: the *88 findings, score 19* case is a **2.0.0**
 artefact and now prices at **71** (spec 3.0.0, §3.5 of `SCORE-SPEC.md`); and the two scores of
