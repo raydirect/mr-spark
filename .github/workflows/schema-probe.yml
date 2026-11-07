@@ -1,0 +1,70 @@
+name: schema-probe
+
+# TEMPORARY DIAGNOSTIC. Delete it as soon as `pages.yml` is green on its own.
+#
+# `pages.yml` #4 failed at "verify what the deployment actually answers", and the run log body is
+# served from a blob host this sandbox cannot reach, so the evidence has to leave the log. Everything
+# this job learns is written as an annotation, which is readable through the repository's check-runs
+# API — and an annotation carries only what the step puts in it, so nothing here prints a credential.
+#
+# Two hypotheses, and the run has to tell them apart rather than guess:
+#   - the deployment is real but Pages did not honour `_headers`  -> a publishing problem
+#   - the deployment is at a URL the workflow did not probe       -> an orchestration problem
+# The first answers 200 with the wrong media type; the second answers something that is not our file.
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  PROJECT: mr-spark
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - name: ask the live host what it serves
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          set -uo pipefail
+          note() { printf '::notice::%s\n' "$*"; }
+
+          probe() {
+            base="$1"; label="$2"
+            code=$(curl -sS -D /tmp/h -o /tmp/b -w '%{http_code}' --max-time 25 \
+              "$base/schema/scene-0.1.json" 2>/tmp/e) || {
+              note "[$label] curl failed: $(tr -d '\r\n' < /tmp/e)"
+              return 0
+            }
+            note "[$label] $base/schema/scene-0.1.json -> HTTP $code"
+            note "[$label] headers: $(tr -d '\r' < /tmp/h | tr '\n' '|' | cut -c1-900)"
+            note "[$label] body starts: $(head -c 110 /tmp/b | tr '\r\n' '  ')"
+            note "[$label] body bytes: $(wc -c < /tmp/b) · sha256 $(sha256sum < /tmp/b | cut -c1-12)"
+          }
+
+          probe "https://$PROJECT.pages.dev" alias
+
+          if [ -z "${CLOUDFLARE_API_TOKEN:-}" ] || [ -z "${CLOUDFLARE_ACCOUNT_ID:-}" ]; then
+            note "[project] no credentials in this run, so the deployment record is not readable"
+            exit 0
+          fi
+
+          api=$(curl -sS --max-time 25 -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" \
+            "https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/pages/projects/$PROJECT" \
+            -o /tmp/api -w '%{http_code}') || api=curl-failed
+          note "[project] Pages API -> HTTP $api"
+          # Never the response body: it is large and only these fields matter.
+          jq -r '"[project] subdomain=" + (.result.subdomain // "?") +
+                 " · production_branch=" + (.result.production_branch // "?") +
+                 " · canonical=" + (.result.canonical_deployment.url // .result.latest_deployments[0].url // "?")' \
+            /tmp/api 2>/dev/null | while IFS= read -r line; do note "$line"; done
+          hash=$(jq -r '.result.canonical_deployment.url // .result.latest_deployments[0].url // empty' /tmp/api 2>/dev/null)
+          if [ -n "${hash:-}" ] && [ "$hash" != "https://$PROJECT.pages.dev" ]; then
+            probe "$hash" deployment
+          else
+            note "[project] the canonical deployment is the alias itself"
+          fi
