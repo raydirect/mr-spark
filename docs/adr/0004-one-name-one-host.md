@@ -97,14 +97,19 @@ setup "a host we are renting for free", and the domain purchase stays an open ro
 `docs/PHASE-PLAN.md` §9 — with the note that moving the const again is an amendment, so the right time to
 buy the domain is before anyone outside the repository depends on the address.
 
-**The repository rename is the owner's command, not this branch's.** `raydirect/web-spark` →
-`raydirect/mr-spark` was attempted and refused: renaming needs `administration:write`, and the automation
-token behind this work returns `403 Resource not accessible by integration`. So `gh repo rename
-mr-spark --repo raydirect/web-spark` is on the owner's list, and `package.json.repository`, `homepage` and
-the clone lines in `README`/`docs/WINDOWS.md` deliberately still say `web-spark`. That is not laziness about
-a hyphen: a clone instruction that 404s is the same defect this change exists to remove — `npx webspark`
-pointing at somebody else's package. After the rename, GitHub redirects the old path, so both names work and
-the docs need no edit; before it, only the old one is real.
+**The repository rename is the owner's command, not this branch's — and they ran it on 2026-11-07.**
+`raydirect/web-spark` → `raydirect/mr-spark` was attempted from here and refused: renaming needs
+`administration:write`, and the automation token behind this work returns `403 Resource not accessible by
+integration`. So the rename went on the owner's list, and `package.json.repository`, `homepage` and the
+clone lines in `README`/`docs/WINDOWS.md` deliberately kept saying `web-spark` until it happened. That was
+not fussing about a hyphen: a clone instruction that 404s is the same defect this change exists to remove —
+`npx webspark` pointing at somebody else's package. The rule that came out of it is worth keeping, because
+it generalises: **a rename is not finished when the code says the new name; it is finished when nothing in
+the repository says the old one *and* nothing points at a new name that does not exist yet.** The two-day
+window between those states is why the doc strings moved in a second pass rather than the first. The old
+path redirects (`gh api repos/raydirect/web-spark` answers `raydirect/mr-spark`), so instructions written
+before the rename keep working, and any clone on the maintainer's own machine can update its remote at
+leisure.
 
 `test/install.test.js` already refuses to assert anything about the checkout directory's name — an earlier
 version matched `/web-spark/`, passed in this clone, and failed in every worktree — which is why nothing in
