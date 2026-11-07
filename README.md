@@ -8,8 +8,13 @@ machines, and resilient. Today none of them do. web-spark is the missing layer t
 proof a property of the pipeline instead of an audit after the fact.
 
 > ⚠️ **Status: early code, honest labels.** The engine, `check`, the score, the report page and the
-> CI gate exist and are tested. The compiler, document formats, studio, motion format and renderer
-> do not. The documents that carry the thinking:
+> CI gate exist and are tested. So do the three **document formats**: `src/formats/` is the grammar
+> and the validator, `schema/` is its published projection, `npm run formats:check` proves the two
+> agree, and `test/formats.test.js` holds them to it. What does **not** exist is the compiler — no
+> command turns a valid document into a page yet (`lower` and `emit` are the next pull request) — and
+> there is no studio, no renderer and no motion runtime. Ask a question about *authoring a page
+> today* and the answer is that you cannot yet; ask one about *what a page must say* and the format
+> answers it in a validator error. The documents that carry the thinking:
 > - [docs/VISION.md](docs/VISION.md) — the unified plan: one intermediate representation, five pillars
 > - [docs/SURFACES.md](docs/SURFACES.md) — why the product is the engine, and where it runs
 > - [docs/SHELL.md](docs/SHELL.md) — what hosts the authoring UI, and why it is not a native app
@@ -19,6 +24,8 @@ proof a property of the pipeline instead of an audit after the fact.
 > - [docs/INSPIRATIONS.md](docs/INSPIRATIONS.md) — 100 influences as *borrow this / avoid that*, brand-free
 > - **[docs/REVOLUTION.md](docs/REVOLUTION.md) — the directive plan: what we are building, in what order, and why**
 > - [docs/DOCUMENTS.md](docs/DOCUMENTS.md) — the three document formats and their rules
+> - [docs/SCENE.md](docs/SCENE.md) — the component vocabulary, worked example, and what a page says
+> - [docs/adr/](docs/adr/) — the decisions that constrain every other decision
 > - [docs/LEGIBLE.md](docs/LEGIBLE.md) — discoverability, agent readiness, and what cannot be checked
 > - [docs/COVERAGE.md](docs/COVERAGE.md) — exactly what a run can and cannot see
 > - [docs/UNDECIDED.md](docs/UNDECIDED.md) — checks that need a capability vs. checks no environment can answer
@@ -99,7 +106,7 @@ Read [docs/REVOLUTION.md](docs/REVOLUTION.md) for the whole thing. The shape:
 | Phase | What it delivers | Status |
 |---|---|---|
 | 0 | **Ground truth** — a verifier worth trusting: per-root-cause scoring ✅, suppression with printed reasons ✅, a three-page real corpus with frozen baselines ✅ | 🔨 in progress |
-| 1 | **Spine** — frozen `scene` / `motion` / `settings` document schemas, `lower`, `emit`, byte-identical output | ⏳ |
+| 1 | **Spine** — frozen `scene` / `motion` / `settings` document schemas ✅, `lower`, `emit`, byte-identical output | 🔨 formats + validator + published schemas done; compiler not started |
 | 2 | **Gate** — `baseline`, regression-only `--ci`, SARIF, action, finding identity that survives generated ids | ⏳ |
 | 3 | **Studio** — a browser canvas where you author a page, with the verifier live on the canvas | ⏳ |
 | 4 | **Motion** — a motion document where reduced-motion is a checked property, not a wish | ⏳ |
@@ -114,8 +121,17 @@ Three documents, one compiler, one verifier:
 | **Motion** | timelines, state machines, semantic intent | CSS / WAAPI / a 3 KB runtime |
 | **Settings** | tokens and configuration | CSS custom properties + JSON |
 
-Formats are specified in [docs/DOCUMENTS.md](docs/DOCUMENTS.md). The rule that makes this one
-product rather than six: **you cannot emit an artifact the verifier has not judged.**
+Formats are specified in [docs/DOCUMENTS.md](docs/DOCUMENTS.md), authored against in
+[docs/SCENE.md](docs/SCENE.md), and enforced today by `src/formats/`:
+
+```js
+import { validateDocument } from 'webspark/formats';
+const result = validateDocument('scene', JSON.parse(await readFile('landing.spark.scene.json', 'utf8')));
+// → { valid, complete, errors, notices, unresolved, checksRun, kind }
+```
+
+The rule that makes this one product rather than six: **you cannot emit an artifact the verifier has
+not judged.** Today that rule binds the *document*; it starts binding the *page* when `lower` lands.
 
 ## The one-sentence thesis
 

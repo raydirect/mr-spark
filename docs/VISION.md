@@ -297,7 +297,8 @@ account system — no rung of the ladder may require one, permanently.
 > been answered, and the authoritative record is [REVOLUTION.md §14](REVOLUTION.md). The questions
 > are kept here unchanged because the reasoning behind them is quoted elsewhere in this file.
 > Disposition, in order: **1** adopted — the compiler framing is the thesis. **2** yes —
-> `SCORE-SPEC.md` is published and versioned, `schema/` lands with Phase 1. **3** superseded: the
+> `SCORE-SPEC.md` is published and versioned, and `schema/` landed with the Phase 1 format freeze of
+> 2026-11-07: the published schemas are generated from `src/formats/` and pinned byte-for-byte in CI. **3** superseded: the
 > pillar order is now the phase sequence in `REVOLUTION.md §7`, and Author/Studio sits at Phase 3
 > rather than last. **4** carried, unchanged — a WASM accelerator stays out of the critical path.
 > **5** adopted as written; the names appear in published docs. **6** yes, MCP is load-bearing.
