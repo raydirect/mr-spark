@@ -76,11 +76,18 @@ runs:
           "${cmd[@]}" check "$SPARK_TARGET" --ci --no-color --baseline "$SPARK_BASELINE" \
             --format sarif --out "$SPARK_SARIF" ${extra[@]+"${extra[@]}"} >/dev/null || true
 
-          # The step summary is written from the payload that was just produced, not from a second
-          # opinion: one number, one source. And it can never fail the build, because the build is already
-          # decided above.
-          if [ -f "$SPARK_SARIF" ] && [ -n "${GITHUB_STEP_SUMMARY:-}" ]; then
-            node "$GITHUB_ACTION_PATH/summary.mjs" "$SPARK_SARIF" >> "$GITHUB_STEP_SUMMARY" || true
+          # The step summary is rendered from the payload that was just produced, not from a second
+          # opinion: one number, one source. `tee` keeps a copy beside it because `$GITHUB_STEP_SUMMARY` is
+          # a *per-step* file — a later step cannot read back what this step wrote, so a workflow that wants
+          # to assert or archive the summary needs a path in the workspace. And the whole thing is `|| true`:
+          # a summary must never be the reason a build fails, since the verdict is already recorded.
+          if [ -f "$SPARK_SARIF" ]; then
+            summary="$(dirname "$SPARK_SARIF")/summary.md"
+            node "$GITHUB_ACTION_PATH/summary.mjs" "$SPARK_SARIF" > "$summary" || true
+            cat "$summary"
+            if [ -n "${GITHUB_STEP_SUMMARY:-}" ]; then
+              cat "$summary" >> "$GITHUB_STEP_SUMMARY" || true
+            fi
           fi
 
           # Only when the payload exists: pointing at a file that was never written (no baseline, so the

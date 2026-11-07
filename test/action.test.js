@@ -154,7 +154,11 @@ test('our own CI uses the action, so a broken action.yml is a red build here fir
   assert.match(workflow, /name: the gate is green on the pages we ship as examples/);
   // `summary.mjs` runs under `|| true` — correctly, it must never break a build — so CI asserts it landed
   // instead. Otherwise a summary that quietly stopped existing would be invisible for a year.
-  assert.match(workflow, /grep -q "MR-Spark gate ✓ no new findings" "\$GITHUB_STEP_SUMMARY"/);
+  assert.match(workflow, /grep "MR-Spark gate ✓ no new findings" \.spark\/summary\.md/);
+  // The copy beside the payload, because `$GITHUB_STEP_SUMMARY` is a per-step file: a later step that
+  // grepped it would be reading an empty file and calling that a failure — which is how this came up.
+  assert.doesNotMatch(workflow, /grep.*\$GITHUB_STEP_SUMMARY/);
+  assert.match(script, /summary="\$\(dirname "\$SPARK_SARIF"\)\/summary\.md"/);
   // One run with the payload and one without, on purpose: `sarif: ''` is the path a consumer is most
   // likely to type, and a branch nothing exercises is a branch that rots.
   assert.match(workflow, /sarif: ''/);

@@ -192,8 +192,11 @@ comes from the upload rather than from a second copy of the logic. GitHub Action
 The step summary is the payload's own arithmetic, not a second opinion: the action reads the SARIF it just
 wrote (`runs[0].properties.sparkGate`) and prints the same numbers the exit code was decided from, so a
 green summary and a red build cannot coexist. It runs under `|| true`, because a summary must never be the
-thing that breaks a build — and `check.yml` greps for the line it expects, so "silently stopped working" is
-caught here rather than discovered by a client.
+thing that breaks a build.
+
+The markdown goes to `$GITHUB_STEP_SUMMARY` *and* to `summary.md` beside the payload — `GITHUB_STEP_SUMMARY`
+is per-step, so it is empty for the step after the one that wrote it, and a workflow that wants to assert on
+the summary or upload it needs a workspace path (`docs/adr/0006` records the red build that found this).
 
 The upload snippet is in §2. The `if: always()` in it matters: `--ci` exits 1 when something regressed, and
 an upload step that only runs on success would hide exactly the findings the annotation exists to point at.

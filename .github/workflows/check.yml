@@ -77,12 +77,13 @@ jobs:
           spark: node bin/spark.js
           sarif: .spark/bad.sarif
       # `summary.mjs` runs under `|| true`, because a step summary must never be the thing that breaks a
-      # build — which is exactly why the dogfooding run checks that it produced something.
+      # build — which is exactly why the dogfooding run checks it produced something. It reads the copy
+      # beside the payload, not `$GITHUB_STEP_SUMMARY`: that path is per-step, so from here it is empty.
       - name: the step summary was written from that payload
         run: |
-          grep -q "MR-Spark gate ✓ no new findings" "$GITHUB_STEP_SUMMARY"
-          grep -q "already in the baseline" "$GITHUB_STEP_SUMMARY"
-          grep -q "score spec" "$GITHUB_STEP_SUMMARY"
+          grep "MR-Spark gate ✓ no new findings" .spark/summary.md
+          grep -q "already in the baseline" .spark/summary.md
+          grep -q "score spec" .spark/summary.md
           test -s .spark/bad.sarif
       # Dogfooding: our own report must pass our own tool.
       - name: the generated report must pass its own audit

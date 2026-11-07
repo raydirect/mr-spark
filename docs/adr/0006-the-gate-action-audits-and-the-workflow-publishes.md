@@ -49,8 +49,14 @@ because the thing it names is *which build judges me*, and that is authored by t
 **The step summary is rendered from the payload, by `summary.mjs` next to the action.** It reads
 `runs[0].properties.sparkGate` from the SARIF the action just wrote and prints the same numbers the exit
 code was decided from — one arithmetic, one source. It runs under `|| true`, because a summary that can
-fail a build is a summary nobody allows, and `check.yml` greps the summary for the line it expects so
-"silently stopped working" is caught on our CI rather than noticed by a client a year later.
+fail a build is a summary nobody allows.
+
+It writes the markdown twice, to `$(dirname sarif)/summary.md` and to `$GITHUB_STEP_SUMMARY`. That is not
+redundancy for its own sake: `$GITHUB_STEP_SUMMARY` is a **per-step** file, empty by the time the next step
+runs, so a workflow that wants to assert on the summary or archive it needs a path in the workspace. Our own
+first version of the dogfood step did exactly that — grepped `$GITHUB_STEP_SUMMARY` from a later step, and
+went red on a run that had produced a perfectly good summary. The copy is now the asserted artifact, and
+`test/action.test.js` refuses a `grep` of the step variable in `check.yml`, so the mistake is not re-made.
 
 **The delta table is computed once, in `compare()`.** Adding this consumer exposed the risk of doing it
 otherwise: the summary first grouped SARIF *results* by anchor and reported "+2 findings at `.card`" under
@@ -101,3 +107,6 @@ goes red. That is the reason the action is dogfooded instead of only documented.
   read as that feature landing: a PR comment from a bot is still unbuilt.
 - `spark`'s "split on spaces" contract means a CLI path containing a space needs a wrapper; documented in
   the input description rather than solved by a second parser.
+- `.spark/summary.md` is a workspace file a consumer may want in an artifact. It is not in `package.json`'s
+  `files` list, and `.spark/` is gitignored — a payload that gets committed next to a baseline is a payload
+  that gets reviewed instead of the baseline.
