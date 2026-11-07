@@ -44,6 +44,7 @@
     "formats:generate": "node src/formats/generate.js",
     "formats:check": "node src/formats/generate.js --check",
     "schema:serve": "node src/publish.js serve",
+    "schema:bundle": "node src/publish.js bundle --out dist",
     "schema:verify": "node src/publish.js verify"
   },
   "dependencies": {

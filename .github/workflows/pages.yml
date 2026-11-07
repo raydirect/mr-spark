@@ -1,0 +1,130 @@
+name: pages
+
+# The schema host is part of the format: `SCHEMA_HOST` is each schema's `$id`, the target of every
+# `$ref` between them, and the `const` every document must repeat in `$schema`. That makes publishing
+# it a build step with consequences, not an ops detail, so it gets its own workflow instead of a step
+# inside `check.yml`: that one has to keep running offline, in a fork, with no secrets.
+#
+# Two jobs. `deploy` bundles `schema/` for a static host and publishes it — Cloudflare Pages, because
+# `_headers` can carry the media types and cache policy that `docs/HOSTING.md` §5.3 makes part of the
+# interface, which GitHub Pages cannot. `watch` is the nightly byte-and-header diff against the live
+# address, the only thing that notices URL rot in a project whose pull requests never touch the network.
+#
+# Needs two repository secrets: `CLOUDFLARE_API_TOKEN` (scoped to Workers Pages: Edit) and
+# `CLOUDFLARE_ACCOUNT_ID`. Without them `deploy` skips with a notice, so this file can be merged before
+# anyone has an account. That is deliberate: a permanently red build on a repository that has not been
+# set up yet teaches everyone to ignore red builds, and §5.4 needs a check people still read.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'schema/**'
+      - 'src/formats/**'
+      - 'src/publish.js'
+      - 'src/config/brand.js'
+      - '.github/workflows/pages.yml'
+  schedule:
+    - cron: '20 6 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  # The Pages project name. The production alias is `https://<PROJECT>.pages.dev`, which is the host
+  # `SCHEMA_HOST` in `src/formats/common.js` has to agree with — if this line changes, that one changes
+  # in the same commit, and every document that names the old address goes with it (docs/HOSTING.md §5.5).
+  PROJECT: mr-spark
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    outputs:
+      url: ${{ steps.push.outputs.url }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm ci --no-audit --no-fund
+
+      # Refuse before uploading anything, rather than after: a static host has no process to check the
+      # bytes at request time, so `schema/` being stale would be published and then cached as immutable
+      # by every CDN between here and a stranger's editor.
+      - name: schema/ is the projection of src/formats/
+        run: npm run formats:check
+
+      - name: bundle for a static host
+        run: |
+          npm run schema:bundle
+          find dist -type f | sort
+
+      - name: deploy to Cloudflare Pages
+        id: push
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          set -euo pipefail
+          if [ -z "${CLOUDFLARE_API_TOKEN:-}" ] || [ -z "${CLOUDFLARE_ACCOUNT_ID:-}" ]; then
+            echo "::notice::CLOUDFLARE_API_TOKEN / CLOUDFLARE_ACCOUNT_ID are not set — bundle verified, nothing published"
+            exit 0
+          fi
+          # Idempotent: fails if the project exists, which is the normal case after the first run.
+          npx --yes wrangler@3 pages project create "$PROJECT" --production-branch main || true
+          npx --yes wrangler@3 pages deploy dist --project-name "$PROJECT" \
+            --branch "${GITHUB_REF_NAME}" --commit-dirty=true 2>&1 | tee /tmp/wrangler.log
+          url=$(grep -oE 'https://[A-Za-z0-9._-]+pages\.dev' /tmp/wrangler.log | head -1)
+          if [ -z "$url" ]; then
+            echo "::error::wrangler did not print a deployment URL — see the log above"
+            exit 1
+          fi
+          echo "url=$url" >> "$GITHUB_OUTPUT"
+
+      # The contract is bytes *and* headers. `verify` fails on a wrong media type, a versioned file
+      # without `immutable`, or a missing CORS header, so this step is what proves Pages honoured
+      # `_headers` rather than trusting that it did.
+      - name: verify what the deployment actually answers
+        if: steps.push.outputs.url != ''
+        run: |
+          set -euo pipefail
+          for i in 1 2 3 4 5 6; do
+            if node src/publish.js verify --base "${{ steps.push.outputs.url }}"; then exit 0; fi
+            echo "not answering yet (attempt $i) — waiting"; sleep 10
+          done
+          echo "::error::deployment is up but does not serve schema/ as documented"
+          exit 1
+
+  watch:
+    # Nightly, per docs/HOSTING.md §5.4: the address is a `const` inside other people's documents, so a
+    # deployment that quietly stops matching is not a regression a pull request will ever catch.
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm ci --no-audit --no-fund
+
+      - name: is anything deployed at all?
+        id: probe
+        run: |
+          code=$(curl -s -o /dev/null -w '%{http_code}' --max-time 25 \
+            "https://$PROJECT.pages.dev/schema/scene-0.1.json" || echo 000)
+          echo "code=$code" >> "$GITHUB_OUTPUT"
+          echo "probing https://$PROJECT.pages.dev/schema/scene-0.1.json → HTTP $code"
+
+      - name: verify the live address
+        if: steps.probe.outputs.code != '000' && steps.probe.outputs.code != '404'
+        run: node src/publish.js verify --base "https://$PROJECT.pages.dev"
+
+      - name: nothing published yet
+        if: steps.probe.outputs.code == '000' || steps.probe.outputs.code == '404'
+        run: |
+          echo "::warning::https://$PROJECT.pages.dev/schema/ does not answer — add the Cloudflare secrets and push to main, or run \`npm run schema:serve\` and verify locally"
