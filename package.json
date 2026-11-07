@@ -16,11 +16,14 @@
     "./score": "./src/score.js",
     "./view-model": "./src/view-model.js",
     "./tokens": "./src/config/tokens.js",
-    "./tokens.json": "./src/config/tokens.json"
+    "./tokens.json": "./src/config/tokens.json",
+    "./formats": "./src/formats/index.js",
+    "./schema/*": "./schema/*"
   },
   "files": [
     "bin",
     "src",
+    "schema",
     "docs",
     "LICENSE",
     "README.md"
@@ -28,7 +31,9 @@
   "scripts": {
     "test": "node --test test/*.test.js",
     "check:self": "node bin/spark.js check fixtures/bad.html",
-    "tokens": "node -e \"import('./src/reporters/styles.js').then(m=>process.stdout.write(m.renderStyles()))\""
+    "tokens": "node -e \"import('./src/reporters/styles.js').then(m=>process.stdout.write(m.renderStyles()))\"",
+    "formats:generate": "node src/formats/generate.js",
+    "formats:check": "node src/formats/generate.js --check"
   },
   "dependencies": {
     "axe-core": "^4.10.2",

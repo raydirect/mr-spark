@@ -15,6 +15,10 @@ jobs:
       - run: npm ci --no-audit --no-fund
       - name: unit tests
         run: npm test
+      # schema/ is a projection of src/formats/, not a second definition. If this fails, someone
+      # edited a generated file — regenerate and commit instead.
+      - name: the published schemas match the grammar
+        run: npm run formats:check
       # We gate our own repository on our own tool. If this fails, nothing else matters.
       - name: audit the known-bad fixture (expected to fail the threshold)
         run: |
