@@ -38,7 +38,9 @@
     "check:self": "node bin/spark.js check fixtures/bad.html",
     "tokens": "node -e \"import('./src/reporters/styles.js').then(m=>process.stdout.write(m.renderStyles()))\"",
     "formats:generate": "node src/formats/generate.js",
-    "formats:check": "node src/formats/generate.js --check"
+    "formats:check": "node src/formats/generate.js --check",
+    "schema:serve": "node src/publish.js serve",
+    "schema:verify": "node src/publish.js verify"
   },
   "dependencies": {
     "axe-core": "^4.10.2",

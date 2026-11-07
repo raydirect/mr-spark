@@ -157,7 +157,20 @@ PowerShell — nothing here needs Git Bash or WSL.
 audit whatever you are editing without typing a path. The launch configuration passes
 `${file}` as the target.
 
-## 8. If something breaks
+## 8. Serving the schemas from this machine
+
+```powershell
+npm run schema:serve                                   # http://127.0.0.1:8788/schema/ + your LAN address
+npm run schema:verify -- --base http://127.0.0.1:8788  # every byte must match schema/ in this checkout
+```
+
+The server refuses to start if `schema/` disagrees with `src/formats/`, which is `npm run
+formats:check` expressed as a refusal to publish. Two Windows-specific notes, both in
+[docs/HOSTING.md](docs/HOSTING.md): port 443 needs an elevated shell (only for the `mkcert` path that
+tests the real `https://` address), and `C:\Windows\System32\drivers\etc\hosts` is owned by SYSTEM, so
+the editor has to be run as Administrator to edit it.
+
+## 9. If something breaks
 
 Please include:
 
