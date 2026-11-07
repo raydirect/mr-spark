@@ -124,7 +124,14 @@ export function renderTerminal(
       const decided = isDecided(finding);
       // A suppressed finding stays in the list — the page still contains it — but it wears the
       // mark of something a person decided about, not the mark of an open violation.
-      const mark = finding.suppressed ? c(GRAY, '–') : decided ? c(RED, '✗') : c(YELLOW, '?');
+      const mark = finding.suppressed
+        ? c(GRAY, '–')
+        : decided
+          ? c(RED, '✗')
+          : // `?` is a question markup cannot answer (`judgement`); `~` is our own blindness
+            // (`environment`). Different marks because one is a pointer to something worth
+            // looking at and the other is a limitation of the run.
+            c(YELLOW, finding.undecidedKind === 'environment' ? '~' : '?');
       // Rule ids exceed the column width often (aria-valid-attr-value is 21 characters), and
       // padEnd does not truncate, so a long id ran straight into the impact column. Truncate
       // with an ellipsis and keep the gutter, rather than let two columns collide.
@@ -156,7 +163,10 @@ export function renderTerminal(
 
   const undecidedCount = ir.findings.filter((finding) => !isDecided(finding)).length;
   if (undecidedCount > 0) {
-    lines.push(`    ${c(GRAY, copy('state.undecidedFooter', undecidedCount))}`);
+    const kinds = view.undecidedByKind;
+    lines.push(
+      `    ${c(GRAY, copy('state.undecidedFooter', undecidedCount, kinds.environment, kinds.judgement))}`
+    );
   }
 
   // Suppressions are printed in full, not summarised. A waiver that only exists as a count is

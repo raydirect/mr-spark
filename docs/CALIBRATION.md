@@ -67,7 +67,7 @@ did not happen; the tool now prints `≤100` and states how many checks were und
 
 | Item above | State |
 |---|---|
-| 1. The `aria-prohibited-attr` decided-vs-undecided flip | **still open.** No page in the corpus reports it, so nothing tests it. |
+| 1. The `aria-prohibited-attr` decided-vs-undecided flip | **resolved** — it was not a flip. Two different elements produced two different verdicts, and the tool was blaming "this environment" for a question no environment can answer from markup. See `docs/UNDECIDED.md`; pinned by `test/undecided.test.js`. |
 | 2. A suppression mechanism | **done** — `spark.config.json`, reasons required and printed on every surface (`docs/SUPPRESSION.md`). The honeypot case is `test/fixtures/honeypot.html`. |
 | 3. The browser runner | **not started.** Every score in the repository is still an upper bound. |
 | 4. Re-score the four pages | **not possible**: the pages are not in the repository. Replaced by `fixtures/real/`, three pages written to the same shape with frozen baselines. |

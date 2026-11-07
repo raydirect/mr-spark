@@ -227,7 +227,10 @@ later phase reports confident nonsense.
   88 findings and a score of 19 on a real page).
 - **Suppression with printed reasons** — `spark.config.json`, justified ignores, report shows
   "N suppressed" with reasons. A gate with no legitimate way to say "deliberate" gets disabled.
-- Resolve the decided-vs-undecided inconsistency seen on real pages.
+- ~~Resolve the decided-vs-undecided inconsistency~~ — resolved, and it was two problems: the rule
+  was stable, the tool's *words* were not. Undecided checks now say whether they need a capability
+  this run lacked (`environment`) or cannot be answered from markup by any environment
+  (`judgement`). `docs/UNDECIDED.md`.
 - ~~**Corpus in the repo**~~ — done, with a caveat that has to be stated plainly. The four pages
   live on one machine and cannot be copied out of it, so what is committed is a **three-page
   corpus written to the same shape** (`fixtures/real/`, baselines in `test/corpus.test.js`,

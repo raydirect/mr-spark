@@ -75,8 +75,10 @@ those moves has to be explained.
 - It contains **no JavaScript-driven page**. Everything here is static markup, so nothing exercises
   the shipped-DOM problem — a component runtime that renders its real UI after load is invisible to
   every number on this page.
-- **`aria-prohibited-attr` does not appear in any of them**, so the decided-vs-undecided flip
-  recorded in `CALIBRATION.md` is still unexplained and still untested.
+- **`aria-prohibited-attr` does not appear in any of them.** The contradiction it caused is now
+  explained (`docs/UNDECIDED.md`) and pinned by a purpose-built probe in
+  `test/undecided.test.js`, but no *page* exercises it. A page carrying a labelled `div` belongs in
+  this folder.
 - Nothing here has **contrast that can be measured**, so the most common real-world failure class
   is entirely absent from the numbers.
 

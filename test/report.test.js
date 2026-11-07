@@ -97,7 +97,9 @@ test('listed plus hidden always equals the total, so the count cannot be invente
   const { renderTerminal } = await import('../src/reporters/terminal.js');
   const out = renderTerminal({ ir, scores, hash }, { color: false });
   // The legend line also starts with "? " — it explains the marker, it is not a finding.
-  const listed = (out.match(/^\s+[✗?] (?!=\s)/gm) ?? []).length;
+  // Marks: ✗ violation, ? undecidable from markup, ~ needs a capability this run lacked,
+  // – suppressed. All four are findings, so all four count.
+  const listed = (out.match(/^\s+[✗?~–] (?!=\s)/gm) ?? []).length;
   const hidden = Number(out.match(/… (\d+) more finding/)?.[1] ?? 0);
   assert.equal(listed + hidden, ir.findings.length);
 });
@@ -109,8 +111,10 @@ test('undecided checks stay in the list, marked with a question rather than a cr
   const { renderTerminal } = await import('../src/reporters/terminal.js');
   const out = renderTerminal({ ir, scores, hash }, { color: false });
   assert.ok(!/not decided here:/.test(out), 'undecided findings are no longer a separate footnote');
-  assert.match(out, /\? color-contrast/, 'the undecided check must appear in the list, as a question');
-  assert.match(out, /could not be decided in this environment/);
+  // Contrast needs a canvas, so it is `environment`, marked `~`: the page may well be fine and
+  // this run simply cannot see it. A `?` would claim the question is unanswerable in principle.
+  assert.match(out, /~ color-contrast/, 'the undecided check must appear in the list, marked as ours');
+  assert.match(out, /need a capability this run did not have/);
 });
 
 test('an unmeasured pillar never claims it found nothing', async () => {

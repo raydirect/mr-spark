@@ -26,6 +26,25 @@ export const COVERAGE = Object.freeze({
   incomplete: 'incomplete',
 });
 
+/**
+ * Why a check was not decided. Two different questions wear the same `incomplete` coverage, and
+ * conflating them was a real defect: a static-DOM analysis reported `aria-label on a div` as
+ * "this environment has no canvas", which is false and made every undecided count untrustworthy.
+ *
+ * `environment` — the answer needs a capability this run did not have. Computed contrast needs a
+ *   canvas. The page might be perfectly accessible; we simply cannot see it.
+ * `judgement`   — the answer needs a rendering surface or a human eye. "Is this label well
+ *   supported on this element" and "is this element visible" cannot be answered from markup at all,
+ *   in any environment, because they depend on the browser's accessibility tree and on layout.
+ *
+ * The distinction matters downstream: a `judgement` finding usually points at a real problem that
+ * the author can go and look at, while an `environment` finding is our blindness, not theirs.
+ */
+export const UNDECIDED = Object.freeze({
+  environment: 'environment',
+  judgement: 'judgement',
+});
+
 /** Pillars, in the order they are reported. */
 export const PILLARS = ['accessible', 'fast', 'safe', 'legible', 'resilient'];
 
@@ -123,6 +142,11 @@ export function addFinding(ir, finding) {
     coverage: finding.coverage ?? COVERAGE.automated,
     /** Why a check could not be decided. Null when it was decided. */
     coverageReason: finding.coverageReason ?? null,
+    /**
+     * Which KIND of undecided this is: `environment` (we lacked a capability) or `judgement` (no
+     * environment could answer it from markup). Null when the finding was decided.
+     */
+    undecidedKind: finding.coverage === COVERAGE.incomplete ? finding.undecidedKind ?? UNDECIDED.judgement : null,
     /**
      * True when a project config suppressed this finding. Suppressed findings stay in the IR -
      * deleting them would make the report lie about what the page contains - but they never
