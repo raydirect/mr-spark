@@ -1,8 +1,14 @@
 # The real-page corpus
 
-`fixtures/real/` holds three ordinary pages. They are the only pages in this repository that were
+`fixtures/real/` holds five ordinary pages. They are the only pages in this repository that were
 written as pages *first* and measured second. `test/corpus.test.js` freezes what the tool said
 about them.
+
+The last two (`locksmith.html`, `newsletter-archive.html`) were written by hand for this folder with
+their CSS inside the file, which the first three do not have. They are ours, so they can be committed and
+quoted. They are **not** independent evidence: the person who wrote the analyzer wrote them. What they
+buy is coverage of shapes the other three do not have — styled markup, a labelled `div`, and nested `div`
+soup — frozen as numbers.
 
 ## Why this had to exist
 
@@ -18,15 +24,17 @@ that the tool can count its own inputs. Three published claims were resting on t
 
 The corpus is those pages, as fixtures, with numbers attached.
 
-## The three pages
+## The five pages
 
 | Page | What it is | Score | Decided | Undecided |
 |---|---|---|---|---|
 | `ceramics.html` | a small-business page done well: landmarks, one `h1`, ordered headings, a real form, no scripts | **100** | 0 | 3 |
 | `tides.html` | a data page by an author who used `div`s for structure | **87** | 5 (`region`) | 3 |
 | `booking.html` | a booking form by an author who wanted it to work in one afternoon | **69** | 11 (`region` ×10, `label` ×1) | 4 |
+| `locksmith.html` | a trade page, CSS inline, landmarks and labelled controls done properly | **100** | 0 | 3 |
+| `newsletter-archive.html` | a club archive: `div`s for everything, one heading skip, one labelled `div` | **91** | 2 (`region`, `heading-order`) | 4 |
 
-All three at score spec **3.0.0**. The test fails if the spec version changes without the corpus
+All five at score spec **3.0.0**. The test fails if the spec version changes without the corpus
 being revisited, because a baseline nobody re-reads is a score nobody is measuring.
 
 ## What each page proved
@@ -50,12 +58,51 @@ rules that need a rendering context. The tool prints `≤100` for exactly this r
 is the fixture that keeps that behaviour honest: if the upper-bound glyph ever disappears from a
 report like this one, the corpus test will be the thing that noticed.
 
+**`locksmith.html` proves that the contrast gap is a capability gap, not an input-format gap.** Every
+colour the page uses is inside the file — `#6b7280` meta text on white, `#7a4a10` on `#fbf7f1`, white on
+the `#1f6feb` call button. A reader with a browser can check all three in a minute. The tool reports the
+same three undecided checks it reported for the unstyled `ceramics.html`, and the same score: 100. It
+does not read the `<style>` block, because contrast is not a fact about declared colours — it is a fact
+about computed ones, which needs layout, inheritance and the cascade. This is the fixture that stops
+anybody "fixing" the offline runner by pasting more CSS into a test page.
+
+Its own text is clean at the arithmetic — `#6b7280` meta on white is 4.83:1, the white-on-`#1f6feb` button
+is 4.63:1, the amber callout is 6.99:1 — so this 100 is not hiding a colour failure, and the page passes
+for the reason a person would check. What it does carry is one thing no rule here evaluates, browser or
+not: the input borders are `#d7dbe0` on white, **1.39:1**, under the 3:1 non-text floor of WCAG 1.4.11. A
+human sees that in a second. Every number in this document is silent about it.
+
+**`newsletter-archive.html` is the page that found a limit in the `region` rule.** It is a club archive
+whose author used `div`s for everything and never reached for `<main>`. It should have been the worst page
+in the corpus, and it scored **91** with one `region` finding. The reason is grouping: the six issue cards
+sit inside one wrapper `div`, so the whole page is one piece of orphaned content. The same six cards as
+sibling `div`s, with no wrapper, are seven findings on identical text — 82, not 91. `region` counts runs
+of unlandmarked content, not elements, which means a page can improve its score by nesting its `div` soup
+instead of fixing it. That is correct behaviour for a rule whose job is "give the author one instruction"
+(wrap it in a `main`) and wrong behaviour for a rule whose numbers get compared across pages. It is now
+pinned by a probe test rather than remembered, and written into `docs/LIMITS.md`.
+
+This page also carries the contrast failure the corpus was originally specified to find — and it shows
+why that specification was the wrong ask. The issue dates are `#a8a196` on `#f6f3ec`: **2.31:1**, under
+even the 3:1 large-text floor, in a file whose CSS is inline and readable. The score is 91. A test
+computes that ratio with `src/contrast.js` and asserts the tool says nothing about it, so the claim is
+arithmetic in `test/corpus.test.js` rather than a sentence in a document.
+
+The same page is where the labelled `div` lives, and it pins down where the `aria-*` line is. `aria-label`
+on a `div` with no role comes back *"not well supported"* — a claim about the accessibility tree, which
+markup does not settle, so we defer it. Reach for a different attribute and the same habit is decided:
+`aria-required` on a `div`, or `aria-checked` on a `span`, come back as decided `aria-allowed-attr`
+violations — and *one* such finding took a probe page from 100 to 80. Which attribute the author copied
+off a blog post decides whether the tool can call it at all. The four uploads had four decided `aria-prohibited-attr`
+findings; the files are gone, so we cannot say which attributes produced them, and that gap is recorded
+rather than explained.
+
 ## The undecided counts are part of the baseline
 
 Each page pins its number of *undecided* checks, not only its decided ones. That looks like
 bookkeeping and is not: it makes a change in **what the environment can answer** fail a test. The
-day a browser runner makes `color-contrast` decidable, all three numbers move, and every one of
-those moves has to be explained.
+day a browser runner makes `color-contrast` decidable, five numbers move instead of three, and
+every one of those moves has to be explained.
 
 ## Rules for adding a page
 
@@ -65,22 +112,28 @@ those moves has to be explained.
    baseline`).
 3. Never update a baseline without saying what moved it. The number is a regression guard, not a
    grade — but a guard that gets quietly rewritten guards nothing.
-4. Keep them small enough to read in one screen. A 46 KB marketing page is realistic and
-   unreadable, and an unreadable fixture cannot be argued with.
+4. Keep them small enough that a reviewer reads the whole file before arguing with it. A 46 KB
+   marketing page is realistic and unreadable. The `<style>` block counts against that budget:
+   `locksmith.html` at 188 lines is the longest page in here and it is at the limit.
 
 ## What this corpus still cannot tell us
 
-- It is **three pages by one author**, which is not a sample. It catches regressions; it does not
-  establish calibration.
+- It is **five pages by one author**, which is not a sample. It catches regressions; it does not
+  establish calibration. The four pages that would have been someone else's work could not be
+  shipped (see "What four uploaded demo pages taught us" below), so the corpus is still an echo and
+  says so.
 - It contains **no JavaScript-driven page**. Everything here is static markup, so nothing exercises
   the shipped-DOM problem — a component runtime that renders its real UI after load is invisible to
   every number on this page.
-- **`aria-prohibited-attr` does not appear in any of them.** The contradiction it caused is now
-  explained (`docs/UNDECIDED.md`) and pinned by a purpose-built probe in
-  `test/undecided.test.js`, but no *page* exercises it. A page carrying a labelled `div` belongs in
-  this folder.
-- Nothing here has **contrast that can be measured**, so the most common real-world failure class
-  is entirely absent from the numbers.
+- **`aria-prohibited-attr` is only half covered.** `newsletter-archive.html` carries a labelled
+  `div`, and it lands undecided because axe calls that combination "not well supported" rather than
+  a violation. Nothing in the corpus has a page where the same habit *is* decided — that shape
+  belongs to the neighbouring rule `aria-allowed-attr`, and it is pinned by a probe in this file
+  rather than by a fixture, because we could not keep the page that showed it.
+- Nothing here has **contrast that can be measured** — and `locksmith.html` is the proof that the
+  fix is not more CSS in the file. Its colours are all inline and the rule is still undecided,
+  because the answer needs computed styles. The most common real-world failure class stays out of
+  every number in this document until the browser runner exists.
 
 Those four gaps are the honest boundary of what "we have a corpus" means today.
 
@@ -114,6 +167,16 @@ page is specified as:
 A page saved as "Webpage, Complete" does not qualify — the CSS has to end up in the document, pasted or
 inlined, because the measurement we want is the one the *default* runner can make. Old client work is the
 best source precisely because nobody optimised it for a checker.
+
+**That specification was wrong in its second half, and `locksmith.html` is the page that said so.** The
+first half stands: a corpus page has to be ours to keep, and the CSS has to be in the file for the page to
+be a normal single-file page at all. The second half does not. We wrote a page with every colour declared
+inside it, and `color-contrast` stayed undecided, unchanged, because the default runner does not parse
+stylesheets — it needs computed styles from a browser. So "paste the CSS in and the offline tool can grade
+contrast" is not a thing that can be arranged, and no future fixture will arrange it. The fix is the
+browser runner, not the input. What this folder still needs from outside is narrower than it was:
+**one page we are allowed to commit, written by somebody who has never seen this repository** — for
+calibration, not for coverage.
 
 The measured consequence of the pricing rows above is pinned by a test rather than remembered in prose:
 `corpus: pricing stays sub-linear at the scale a real listing page reaches` generates catalogues of 1,

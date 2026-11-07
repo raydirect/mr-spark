@@ -1,0 +1,188 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Locksmith, 6am-9pm — Hall &amp; Sons, Bridgeway</title>
+    <meta name="description" content="One van, one locksmith. Door unlocks, cylinder changes, and snap-safe locks fitted in Bridgeway and the four wards around it.">
+    <style>
+      :root {
+        --ink: #14181d;
+        --paper: #ffffff;
+        --meta: #6b7280;
+        --line: #d7dbe0;
+        --accent: #1f6feb;
+        --warn: #b45309;
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        background: var(--paper);
+        color: var(--ink);
+        font: 16px/1.55 system-ui, sans-serif;
+      }
+      .wrap { max-width: 44rem; margin: 0 auto; padding: 0 1.25rem; }
+      a { color: var(--accent); }
+      .topbar {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 1rem;
+        align-items: baseline;
+        justify-content: space-between;
+        padding: 1.1rem 0;
+        border-bottom: 1px solid var(--line);
+      }
+      .name { font-weight: 700; letter-spacing: -0.01em; text-decoration: none; color: var(--ink); }
+      .nav ul { display: flex; gap: 1.1rem; margin: 0; padding: 0; list-style: none; }
+      .nav a { font-size: 0.95rem; }
+      .hours {
+        margin: 1.1rem 0 0;
+        padding: 0.8rem 1rem;
+        border-left: 3px solid var(--warn);
+        background: #fbf7f1;
+        color: #7a4a10;
+        font-size: 0.95rem;
+      }
+      h1 { margin: 2rem 0 0.4rem; font-size: 2rem; line-height: 1.2; letter-spacing: -0.02em; }
+      .lede { margin: 0; color: var(--meta); font-size: 1.05rem; }
+      h2 { margin: 2.4rem 0 0.6rem; font-size: 1.25rem; letter-spacing: -0.01em; }
+      table { width: 100%; border-collapse: collapse; margin: 0; font-size: 0.98rem; }
+      caption { text-align: left; color: var(--meta); font-size: 0.9rem; padding-bottom: 0.4rem; }
+      th, td { padding: 0.55rem 0; border-bottom: 1px solid var(--line); text-align: left; }
+      td + td, th + th { text-align: right; }
+      .fine { color: var(--meta); font-size: 0.9rem; }
+      .call {
+        display: inline-block;
+        margin: 1.4rem 0 0;
+        padding: 0.7rem 1.1rem;
+        background: var(--accent);
+        color: #ffffff;
+        font-weight: 600;
+        text-decoration: none;
+        border-radius: 4px;
+      }
+      form { margin: 0.6rem 0 0; padding: 1.1rem; border: 1px solid var(--line); border-radius: 6px; }
+      .field { display: grid; gap: 0.2rem; margin-bottom: 0.9rem; }
+      label { font-size: 0.9rem; font-weight: 600; }
+      input, select, textarea {
+        font: inherit;
+        padding: 0.45rem 0.55rem;
+        border: 1px solid var(--line);
+        border-radius: 4px;
+        background: #ffffff;
+        color: var(--ink);
+      }
+      button { font: inherit; font-weight: 600; padding: 0.55rem 1rem; border: 0; border-radius: 4px; background: var(--ink); color: #ffffff; }
+      .foot { margin: 3rem 0 2rem; padding-top: 1.1rem; border-top: 1px solid var(--line); color: var(--meta); font-size: 0.9rem; }
+      .foot p { margin: 0.2rem 0; }
+    </style>
+  </head>
+  <body>
+    <header class="wrap topbar">
+      <a class="name" href="/">Hall &amp; Sons Locksmiths</a>
+      <nav class="nav" aria-label="Main">
+        <ul>
+          <li><a href="#work">Work and prices</a></li>
+          <li><a href="#area">Where we go</a></li>
+          <li><a href="#ask">Ask for a visit</a></li>
+        </ul>
+      </nav>
+    </header>
+
+    <main class="wrap">
+      <h1>Locked out, or locking up</h1>
+      <p class="lede">
+        My father opened this van in 1994. It is still one van and one locksmith, and we still
+        quote before we touch anything.
+      </p>
+
+      <p class="hours">
+        <strong>Out of hours:</strong> if the phone goes to voicemail after 9pm, we are on a job.
+        Leave the street and we call back, usually inside twenty minutes.
+      </p>
+
+      <h2 id="work">Work and prices</h2>
+      <table>
+        <caption>Prices for the jobs we do most, quoted on the phone before we set off</caption>
+        <thead>
+          <tr>
+            <th scope="col">Job</th>
+            <th scope="col">Typical</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <th scope="row">Car or door unlock, no damage</th>
+            <td>£68</td>
+          </tr>
+          <tr>
+            <th scope="row">Cylinder change, including a snap-safe cylinder</th>
+            <td>£145</td>
+          </tr>
+          <tr>
+            <th scope="row">UPVC door re-engage after a slam</th>
+            <td>£68</td>
+          </tr>
+          <tr>
+            <th scope="row">Three keys cut and locked in</th>
+            <td>£32 on top of any job</td>
+          </tr>
+        </tbody>
+      </table>
+      <p class="fine">
+        Call-out inside the four wards is in those figures. Twenty-five miles out it is not, and I
+        will tell you what it is before I leave the yard.
+      </p>
+
+      <h2 id="area">Where we go</h2>
+      <p>
+        Bridgeway, Mill Row, the two estates past the water, and anything the lane reaches without
+        a permit. We do not do alarm systems or cars with smart keys — a dealer is honest about
+        those and we would rather send you to one.
+      </p>
+
+      <h2 id="ask">Ask for a visit</h2>
+      <p>
+        This form goes to my phone. If you are standing outside your own door, ring instead —
+        <a href="tel:+441234567890">01234 567890</a>.
+      </p>
+      <a class="call" href="tel:+441234567890">Call 01234 567890</a>
+
+      <form action="/ask" method="post">
+        <div class="field">
+          <label for="who">Your name</label>
+          <input id="who" name="who" type="text" autocomplete="name" required>
+        </div>
+        <div class="field">
+          <label for="where">Street and postcode</label>
+          <input id="where" name="where" type="text" autocomplete="street-address" required>
+        </div>
+        <div class="field">
+          <label for="what">What has happened</label>
+          <select id="what" name="what">
+            <option value="locked-out">Locked out</option>
+            <option value="broken-cylinder">Cylinder broken or snapped</option>
+            <option value="moving-in">Moving in, want new locks</option>
+            <option value="other">Something else</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="phone">A number to ring back</label>
+          <input id="phone" name="phone" type="tel" autocomplete="tel" required>
+        </div>
+        <p>
+          <button type="submit">Send it</button>
+        </p>
+        <p class="fine">
+          No account, no newsletter, and the details are deleted once the job is paid.
+        </p>
+      </form>
+    </main>
+
+    <footer class="wrap foot">
+      <p>Hall &amp; Sons Locksmiths, 9 Foundry Yard, Bridgeway.</p>
+      <p><a href="tel:+441234567890">01234 567890</a> · <a href="mailto:van@hallandsons.example">van@hallandsons.example</a></p>
+      <p>No tracking, no scripts, and no review scheme.</p>
+    </footer>
+  </body>
+</html>

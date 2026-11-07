@@ -25,7 +25,7 @@ are the trust foundation; 3 is the first creative surface; 4–6 deepen by width
 | **0c** | score calibration spec 2.0.0 · hyperbolic curve · undecided excluded | ✅ merged |
 | **0d** | one token store · one view model · real dark theme · verified contrast | ✅ merged |
 | **0e** | full rule set (100 of 105) · fragments vs documents · upper-bound scores | ✅ merged |
-| **0f** | **ground truth** — per-root-cause scoring · suppression with reasons · real-page corpus · re-audit | 🟡 sub-linear pricing now pinned at 1/84/200-finding scale; the corpus still needs two pages **we own**, one with its CSS inline — a saved third-party template measures nothing about contrast and cannot be committed anyway (`docs/CORPUS.md`) |
+| **0f** | **ground truth** — per-root-cause scoring · suppression with reasons · real-page corpus · re-audit | 🟡 sub-linear pricing pinned at 1/84/200-finding scale · corpus is five pages now, the two newest ours with their CSS inline, which settled one thing: a stylesheet in the file does not make contrast decidable offline, only a browser does · open: one committed page from outside this repo (calibration), and the browser runner |
 | **1** | **spine** — frozen `scene`/`motion`/`settings` schemas · `lower` · `emit` · byte-identical output | 🟡 **nearly** — formats + validator + published `schema/` ([ADR 0002](adr/0002-one-grammar-three-projections.md)), `lower`/`emit` with the emitted page audited in CI ([ADR 0003](adr/0003-emit-refuses-rather-than-degrades.md)); open: `schema/` + IR spec at a stable URL |
 | **2** | **gate** — `baseline` · regression-only `--ci` · SARIF · action · structural finding identity | ⏳ |
 | **3** | **studio** — browser canvas, inspector, live verifier, export, URL/HTML import | ⏳ |
