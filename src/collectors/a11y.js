@@ -7,7 +7,9 @@
  * let the snippet and the extension reuse the same capture format later.
  */
 
-import { createIR, addFinding } from '../ir.js';
+import { createIR, addFinding, UNDECIDED } from '../ir.js';
+
+export { UNDECIDED };
 import { DISPLAY } from '../config/constants.js';
 
 /**
@@ -99,11 +101,50 @@ export async function collectAccessibility({ document, window, axe }) {
         help: partial.helpUrl ?? null,
         coverage: 'incomplete',
         coverageReason: firstUsefulLine(node.failureSummary ?? node.any?.[0]?.message),
+        undecidedKind: classifyUndecided(node, partial),
       });
     }
   }
 
   return findings;
+}
+
+/**
+ * Decide whether an undecided check is our blindness or a question markup cannot answer.
+ *
+ * The test is deliberately about the CAUSE, not about the rule id, so a new rule is classified by
+ * the same evidence every other rule is:
+ *
+ *  - the engine says a value "cannot be determined" because the capability is absent (no layout,
+ *    no canvas) -> `environment`. Computed contrast is the only large case today.
+ *  - the engine evaluated the node and reached "not well supported", "does not reference an
+ *    existing element", "verify", "not visible" -> `judgement`. These are real observations that
+ *    stop short of a verdict because the final step needs a browser's accessibility tree or a
+ *    person's eye. `aria-prohibited-attr` is the canonical example: whether a label is well
+ *    supported on an element *is* the accessibility tree, which markup does not determine.
+ *
+ * Anything that matches neither is `judgement`: the conservative default, because claiming a
+ * question needs a capability we might have had is the failure that made these counts untrustworthy.
+ */
+const ENVIRONMENT_CAUSES = /canvas|layout|getContext|offsetWidth|getBoundingClientRect/i;
+const JUDGEMENT_CAUSES = /not well supported|does not reference|verify|not visible|visibility|too small|colour|color contrast of/i;
+
+export function classifyUndecided(node, rule) {
+  const text = [
+    node?.failureSummary,
+    rule?.help,
+    rule?.id,
+    ...(node?.any ?? []).map((check) => check?.message),
+    ...(node?.all ?? []).map((check) => check?.message),
+  ]
+    .filter((part) => typeof part === 'string')
+    .join(' ');
+
+  // Contrast is decided by computation; when it is undecided the reason is either a missing canvas
+  // or an element whose background cannot be resolved without layout. Both are environmental.
+  if (rule?.id === 'color-contrast') return UNDECIDED.environment;
+  if (ENVIRONMENT_CAUSES.test(text) && !JUDGEMENT_CAUSES.test(text)) return UNDECIDED.environment;
+  return UNDECIDED.judgement;
 }
 
 /**

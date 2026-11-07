@@ -134,8 +134,8 @@ demo of them today would be a mock, and mocks are how projects lie.
 
 | Gap | Why it matters | Owner decision |
 |---|---|---|
-| **Score calibration needs field review** | The curve is now published and frozen as tests (spec 2.0.0), but no external practitioner has signed off | Practitioner review before any badge or ranking; every wrongly-scored real page becomes a fixture |
-| **Contrast is undecided without a canvas** in the browserless path | Our most common real finding is unavailable in the default runner | Keep honest; add the browser runner in Phase 1c/2 |
+| **Score calibration needs field review** | The curve is now published and frozen as tests (spec 3.0.0), but no external practitioner has signed off | Practitioner review before any badge or ranking; every wrongly-scored real page becomes a fixture |
+| **Contrast is undecided without a canvas** in the browserless path | Our most common real finding is unavailable in the default runner | Keep honest; add the browser runner in Phase 1c/2. Scoped by `UNDECIDED.md`: that runner clears `environment` findings — contrast and nothing else — so `judgement` findings stay permanently undecided and must never be sold as pending work |
 | **First-run install** — `npx` pulls the optional engines, `--omit=optional` does not | A failed first command is a lost user | Verify from a packed tarball in CI; make the error message actionable |
 | **Report page is not yet a URL service** | Rung 1 is a link | Local `--serve` now; hosting is a Phase 2 decision, never a gate |
 | **Rules are inherited, not ours** | Coverage and messaging are the upstream engine's | Own the *score* and the *rationale*; never fork the engine |

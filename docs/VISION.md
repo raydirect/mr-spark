@@ -293,6 +293,16 @@ account system — no rung of the ladder may require one, permanently.
 
 ## 7. Decisions needed before any code
 
+> **Settled 2026-11-07.** These seven were the gate on writing any code at all; every one has since
+> been answered, and the authoritative record is [REVOLUTION.md §14](REVOLUTION.md). The questions
+> are kept here unchanged because the reasoning behind them is quoted elsewhere in this file.
+> Disposition, in order: **1** adopted — the compiler framing is the thesis. **2** yes —
+> `SCORE-SPEC.md` is published and versioned, `schema/` lands with Phase 1. **3** superseded: the
+> pillar order is now the phase sequence in `REVOLUTION.md §7`, and Author/Studio sits at Phase 3
+> rather than last. **4** carried, unchanged — a WASM accelerator stays out of the critical path.
+> **5** adopted as written; the names appear in published docs. **6** yes, MCP is load-bearing.
+> **7** adopted — the README states what exists today and marks the rest as a roadmap.
+
 1. **Adopt the compiler framing?** This is the load-bearing choice: audit CLI (safe, small,
    already planned) vs. IR-centred compiler (bigger, but it is the only version where the five
    pillars are one product instead of six).

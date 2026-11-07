@@ -92,6 +92,12 @@ function findingItem(finding) {
             suppressed
               ? `<span class="tag suppressed-tag">${escapeHtml(copy('labels.suppressed'))}</span> `
               : ''
+          }${
+            !decided
+              ? `<span class="tag undecided-tag">${escapeHtml(
+                  finding.undecidedKind === 'environment' ? copy('labels.undecidedEnvironment') : copy('labels.undecidedJudgement')
+                )}</span> `
+              : ''
           }${escapeHtml(copy('labels.rule'))} <code>${escapeHtml(finding.ruleId)}</code>${
             finding.selector ? ` · <code>${escapeHtml(finding.selector)}</code>` : ''
           }

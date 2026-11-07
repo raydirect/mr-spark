@@ -133,6 +133,17 @@ export function findingGroups(ir) {
   };
 }
 
+/** Undecided findings counted by why they were undecided. */
+export function countUndecidedKinds(ir) {
+  const out = { environment: 0, judgement: 0 };
+  for (const finding of ir.findings) {
+    if (finding.coverage !== 'incomplete') continue;
+    const kind = finding.undecidedKind ?? 'judgement';
+    out[kind] = (out[kind] ?? 0) + 1;
+  }
+  return out;
+}
+
 /** The whole projection. Surfaces take this and add nothing but presentation. */
 export function buildView(ir, scores) {
   const summary = conformance(scores);
@@ -148,6 +159,12 @@ export function buildView(ir, scores) {
     overallTone: bandOf(summary.score).tone,
     overallUpperBound: isUpperBound(summary, ir),
     undecidedCount: ir.findings.filter((finding) => finding.coverage === 'incomplete').length,
+    /**
+     * Undecided findings split by cause. Kept apart because they ask the reader for different
+     * things: `environment` is our blindness ("run this where there is a canvas"), `judgement` is
+     * a pointer at something to go and look at ("check this label in a browser").
+     */
+    undecidedByKind: countUndecidedKinds(ir),
     suppressedCount: ir.findings.filter((finding) => finding.suppressed === true).length,
     rows,
     findings,
