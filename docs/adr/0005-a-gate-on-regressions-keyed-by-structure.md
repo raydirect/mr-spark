@@ -2,6 +2,10 @@
 
 **Date:** 2026-11-07
 **Deciders:** repo maintainer, in review with Arena
+**Amended by:** [ADR 0007](0007-a-baseline-describes-a-set-of-pages.md), which widens the file to a set of pages
+and sharpens the detection rule for "a rule the baseline never listed". The policy below stands; the *test* for
+whether a rule counts as never-listed no longer reads the page's own rule list, because a page that was clean
+records none and would then be exempt from ever going red.
 **Supersedes:** nothing. It implements the gate that `docs/PLAN.md` §3.2 and §4 required, and it is the
 reason `docs/SUPPRESSION.md`'s waivers can now stay out of the numbers: this decides what the *gate* is
 allowed to see, which is a different question from what the *score* is allowed to see.

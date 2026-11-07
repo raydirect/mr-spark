@@ -96,10 +96,13 @@ function buildRules(findings) {
  * recognise "same problem as last week" without an anchor heuristic of its own — and the reason the
  * baseline and the code-scanning view agree instead of reporting two different diffs of one commit.
  */
-function buildResults(findings, { artifact = 'unknown', baselineStates = new Map() } = {}) {
+function buildResults(findings, { artifact = 'unknown', baselineStates = new Map(), keyPrefix = '' } = {}) {
   const rows = [];
   findings.forEach((finding, inputIndex) => {
-    const { key, anchor } = identityOf(finding);
+    // The page goes into the fingerprint for a repo-wide run: the same `<div class="region">` on two
+    // pages is the same anchor digest and would otherwise dedupe into one alert on the wrong file.
+    const { key: local, anchor } = identityOf(finding);
+    const key = `${keyPrefix}${local}`;
     const undecided = finding.coverage === 'incomplete';
     const parts = [finding.message ?? finding.ruleId];
     // A viewer that shows only `message.text` must still be able to tell a violation from a check we could
@@ -146,8 +149,15 @@ function buildResults(findings, { artifact = 'unknown', baselineStates = new Map
  * result is stamped `new` / `unchanged` / `absent`, because a PR comment that says "3 findings" and one
  * that says "3 findings, 2 of them yours" are different products wearing the same format.
  */
-export function buildSarif({ ir, scores, hash, diff = null }) {
-  const findings = ir?.findings ?? [];
+/**
+ * A repo-wide run is **one SARIF run with one artifact per page**, not a run per page: code scanning
+ * reports per repository, and splitting the verdict across twelve runs would let a viewer show nine of
+ * them and hide the three that stop the build.
+ */
+export function buildSarif({ ir, scores, hash, diff = null, pages = null }) {
+  const list = pages && pages.length > 1 ? pages : [{ page: null, ir, scores, hash }];
+  const multi = list.length > 1;
+  const findings = list.flatMap((entry) => entry.ir?.findings ?? []);
   const rules = buildRules(findings);
   const indexByRule = new Map(rules.map((rule, index) => [rule.id, index]));
 
@@ -156,14 +166,34 @@ export function buildSarif({ ir, scores, hash, diff = null }) {
   // differ for a finding from a rule the baseline predates — genuinely new, deliberately not the page's
   // fault — and a consumer that cannot tell them apart would report "2 regressions" where we said 1.
   const states = new Map(Object.entries(diff?.states ?? {}));
-  const blocking = new Set((diff?.entries ?? []).filter((entry) => entry.blocking).map((entry) => entry.key));
+  const blocking = new Set(
+    (diff?.entries ?? [])
+      .filter((entry) => entry.blocking)
+      // `compare()` stamps each aggregate entry with the page it came from, and a repo-wide diff keys its
+      // states the same way — so the prefix here is what makes a "new" on page A not print as "new" on B.
+      .map((entry) => (multi && entry.page ? `${entry.page}\u0000${entry.key}` : entry.key))
+  );
 
-  const uri = artifactUri(ir);
-  const results = buildResults(findings, { artifact: uri, baselineStates: states }).map((result) => ({
-    ...result,
-    ruleIndex: indexByRule.get(result.ruleId),
-    ...(diff ? { properties: { ...result.properties, sparkBlocking: blocking.has(result.partialFingerprints.sparkKey) } } : {}),
-  }));
+  const uriFor = (entry) => artifactUri(entry.ir);
+  const results = list
+    .flatMap((entry) =>
+      buildResults(entry.ir?.findings ?? [], {
+        artifact: uriFor(entry),
+        baselineStates: states,
+        keyPrefix: multi ? `${entry.page}\u0000` : '',
+      })
+    )
+    .map((result) => ({
+      ...result,
+      ruleIndex: indexByRule.get(result.ruleId),
+      ...(diff ? { properties: { ...result.properties, sparkBlocking: blocking.has(result.partialFingerprints.sparkKey) } } : {}),
+    }));
+
+  const scoreFor = (entry) => {
+    const value = entry.scores?.accessible ?? entry.ir?.score ?? null;
+    return typeof value === 'number' && Number.isFinite(value) ? Math.round(value) : null;
+  };
+  const scores_ = list.map(scoreFor).filter((value) => value !== null);
 
   return {
     $schema: SARIF_SCHEMA,
@@ -178,30 +208,39 @@ export function buildSarif({ ir, scores, hash, diff = null }) {
             rules,
           },
         },
-        artifacts: [
-          {
-            location: { uri },
-            // SARIF wants a source location for the run; the file audited is the source, and there is no
-            // build step between the two. Naming it beats leaving a consumer to infer it.
-            sourceLocation: { uri },
-            roles: ['analysisTarget'],
-          },
-        ],
+        artifacts: list.map((entry) => ({
+          location: { uri: uriFor(entry) },
+          // SARIF wants a source location for the run; the file audited is the source, and there is no
+          // build step between the two. Naming it beats leaving a consumer to infer it.
+          sourceLocation: { uri: uriFor(entry) },
+          roles: ['analysisTarget'],
+          ...(multi ? { properties: { sparkPage: entry.page } } : {}),
+        })),
         results,
         columnKind: 'unicodeCodePointsPerLine',
         properties: {
-          sparkIr: hash ?? null,
-          sparkScore: scores?.accessible ?? null,
+          sparkIr: multi ? null : hash ?? null,
+          // The *worst* page, never the mean. A repo that averages 96 while shipping one page at 40 has a
+          // page at 40, and a property that hid it would be a number people make decisions on.
+          sparkScore: multi ? (scores_.length ? Math.min(...scores_) : null) : scores?.accessible ?? null,
           sparkScoreSpec: SCORE_SPEC_VERSION,
           sparkIrVersion: IR_VERSION,
+          ...(multi ? { sparkPages: list.map((entry) => entry.page) } : {}),
           sparkProvenance: {
             source: ir?.provenance?.source ?? null,
             kind: ir?.provenance?.kind ?? null,
           },
           ...(diff
             ? {
-                      sparkGate: {
+                sparkGate: {
                   ok: diff.ok,
+                  // The page facts, because the step summary is rendered from this payload and nowhere
+                  // else: a sentence about which page regressed has to come from the same arithmetic the
+                  // exit code came from, or the two can disagree on a PR.
+                  pages: diff.pages.length,
+                  newPages: diff.newPages.map((page) => page.page),
+                  gonePages: diff.gone.map((page) => page.page),
+                  ...(diff.promoted ? { staleFormat: true } : {}),
                   // The per-anchor numbers behind the counts, so a viewer can say "+2 at .card (was 1)"
                   // without counting results and getting the answer wrong for a grown key.
                   entries: diff.entries,

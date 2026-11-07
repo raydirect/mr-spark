@@ -48,6 +48,19 @@ const ir = (...findings) => ({
   provenance: { uri: 'file:///page.html', source: 'file', kind: 'document' },
 });
 
+/**
+ * A baseline as it would have been committed by an *earlier build*.
+ *
+ * "A rule this baseline predates" is a claim about who wrote the file, not about which findings a page had:
+ * only a different build can ship a rule the repo has never seen. Tests that want that reading ask for it
+ * here, and the tests that want the ordinary one use `snapshot`, whose engine stamp matches this build — which
+ * is what makes an unrecorded rule a regression instead of an exemption.
+ */
+function writtenBy(version, input) {
+  const file = snapshot(input);
+  return { ...file, engine: { ...file.engine, version } };
+}
+
 const withDir = (body) => async () => {
   const dir = mkdtempSync(join(tmpdir(), 'mrspark-gate-'));
   try {
@@ -130,7 +143,7 @@ test('the same finding at a worse impact is a regression even when nothing was a
 });
 
 test('a rule the baseline predates is reported, not charged to the page', () => {
-  const base = snapshot({ ir: ir(finding('label', '#a')), scores: {}, hash: 'h' });
+  const base = writtenBy('0.1.0', { ir: ir(finding('label', '#a')), scores: {}, hash: 'h' });
   const now = ir(finding('label', '#a'), finding('aria-hidden-focus', '.x', 'serious'));
 
   const lenient = compare(base, now);
@@ -141,6 +154,13 @@ test('a rule the baseline predates is reported, not charged to the page', () => 
   const strict = compare(base, now, { strict: true });
   assert.equal(strict.counts.blocking, 1);
   assert.equal(strict.ok, false, 'a repo that wants the hard line can ask for it');
+
+  // …and the exemption is *only* that. Same build, rule not recorded: the page grew a problem, which is the
+  // one thing a gate exists to catch. A page that happened to be clean cannot buy immunity for its future.
+  const same = compare(snapshot({ ir: ir(finding('label', '#a')), scores: {}, hash: 'h' }), now);
+  assert.equal(same.ok, false, 'a finding this build knows how to look for is the page fault, not ours');
+  assert.equal(same.counts.blocking, 1);
+  assert.equal(same.counts.adoptable, 0, '…and nothing is offered as adoptable, because nothing is ours');
 });
 
 test('a fragment compared against a page baseline is refused, not passed', () => {
@@ -176,7 +196,9 @@ test('a baseline longer than five new entries says how many it hid', () => {
 
 test('a hand-edited baseline is validated, and says why when it is wrong', () => {
   const entry = { key: 'label@000000000000', ruleId: 'label', anchor: '#a', anchorKind: 'id', impact: 'critical', count: 1 };
-  assert.doesNotThrow(() => parseBaseline({ baseline: BASELINE_VERSION, findings: [entry] }));
+  const file = (pages, extra = {}) => ({ baseline: BASELINE_VERSION, pages, ...extra });
+  const page = (findings, extra = {}) => ({ page: 'a.html', findings, ...extra });
+  assert.doesNotThrow(() => parseBaseline(file([page([entry])])));
 
   const reject = (raw, pattern) =>
     assert.throws(() => parseBaseline(raw, 'gate.json'), (error) => {
@@ -185,12 +207,59 @@ test('a hand-edited baseline is validated, and says why when it is wrong', () =>
       return true;
     });
 
-  reject({ baseline: 99, findings: [] }, /unsupported baseline version 99/);
-  reject({ baseline: BASELINE_VERSION, findings: {} }, /"findings" must be an array/);
-  reject({ baseline: BASELINE_VERSION, findings: [], extra: true }, /unknown key "extra"/);
-  reject({ baseline: BASELINE_VERSION, findings: [entry, entry] }, /duplicate entry "label@000000000000"/);
-  reject({ baseline: BASELINE_VERSION, findings: [{ key: 'label' , count: 1 }] }, /rule@digest/);
-  reject({ baseline: BASELINE_VERSION, findings: [{ key: 'label@000000000000', count: 0 }] }, /at least 1/);
+  reject({ baseline: 99, findings: [] }, /unsupported baseline version 99 — this build reads 1 or 2 and writes 2/);
+  // The one mistake a v2 file makes easiest is writing the v1 shape — so the message names the key that is
+  // missing rather than saying "unknown key findings", which is true but useless.
+  reject({ baseline: BASELINE_VERSION, findings: [entry] }, /"pages" must be a non-empty array/);
+  reject(file([]), /"pages" must be a non-empty array/);
+  reject(file(['a.html']), /every entry in "pages" must be an object/);
+  reject(file([{ findings: [entry] }]), /"page" must be a non-empty path/);
+  reject(file([page([entry]), page([])]), /duplicate page "a\.html"/);
+  reject(file([page([entry])], { extra: true }), /unknown key "extra"/);
+  reject(file([page([entry], { bogus: 1 })]), /unknown key "bogus"/);
+  reject(file([page({})]), /"findings" must be an array/);
+  reject(file([page([entry, entry])]), /a\.html: duplicate entry "label@000000000000"/);
+  reject(file([page([{ key: 'label', count: 1 }])]), /rule@digest/);
+  reject(file([page([{ key: 'label@000000000000', count: 0 }])]), /at least 1/);
+  reject(file([page([null])]), /must be an object/);
+});
+
+test('a v1 file is promoted, not rejected — and promotion cannot change a verdict', () => {
+  const legacy = JSON.parse(readFileSync(`${REPO}/test/fixtures/gate/legacy-v1.baseline.json`, 'utf8'));
+  assert.equal(legacy.baseline, 1, 'the fixture is the old shape on purpose');
+  const parsed = parseBaseline(legacy, 'legacy-v1.baseline.json');
+  assert.equal(parsed.baseline, BASELINE_VERSION, 'what the rest of the code sees is the current shape');
+  assert.equal(parsed.promoted, true, '…and the fact it was promoted survives, because the gate says it out loud');
+  assert.deepEqual(parsed.pages.map((entry) => entry.page), ['good.html'], 'the one target becomes the one page');
+
+  // A v2 snapshot demoted to v1 by hand and promoted back: the same page, the same entries, the same
+  // arithmetic. Promotion is a read-time shape change and must never be a second opinion about the page.
+  const page = ir(finding('region', '.card'), finding('label', '#a'));
+  const v2 = snapshot({ ir: page, scores: {}, hash: 'h' });
+  const one = v2.pages[0];
+  const demoted = {
+    baseline: 1,
+    engine: v2.engine,
+    target: { source: one.source, kind: one.kind, file: one.page },
+    score: one.score,
+    ir: one.ir,
+    rules: one.rules,
+    anchors: one.anchors,
+    findings: one.findings,
+  };
+  const promoted = parseBaseline(demoted, 'v1.json');
+  assert.deepEqual(promoted.pages[0].findings, one.findings, 'the entries survive the trip unchanged');
+  const now = ir(finding('region', '.card'), finding('label', '#a'), finding('label', '#b'));
+  assert.deepEqual(compare(promoted, now).counts, compare(v2, now).counts, 'including the gate arithmetic');
+
+  // One page needs no warning — the file describes it correctly, and telling someone to re-run
+  // `spark baseline` for a byte-shuffle would be noise. A repo-wide run against it is a different story.
+  assert.doesNotMatch(renderGate(compare(promoted, now)).join('\n'), /version 1/);
+  const wider = compare(promoted, [
+    { page: one.page, ir: now },
+    { page: 'other.html', ir: ir(finding('label', '#z')) },
+  ]);
+  assert.match(renderGate(wider).join('\n'), /written as version 1/);
 });
 
 test('the config file can name the baseline, and still rejects what it does not know', () => {
@@ -212,7 +281,9 @@ test('`spark baseline` then `spark check --ci` is green on the day you install i
   assert.match(first.text(first.out), /floor, not the failure/);
   assert.match(first.text(first.out), new RegExp(BASELINE_FILENAME), 'the line names the file it wrote');
   const written = JSON.parse(readFileSync(baseline, 'utf8'));
-  assert.ok(written.findings.length > 0, 'this fixture has findings, so the file must carry them');
+  assert.equal(written.baseline, BASELINE_VERSION);
+  assert.deepEqual(written.pages.map((entry) => entry.page), ['page.html'], 'one file argument keys on its basename, as v1 did');
+  assert.ok(written.pages[0].findings.length > 0, 'this fixture has findings, so the file must carry them');
 
   const clean = capture();
   assert.equal(await main(['check', page, '--baseline', baseline, '--ci'], clean.streams), 0);
@@ -224,11 +295,14 @@ test('`spark baseline` then `spark check --ci` is green on the day you install i
   const dirty = capture();
   assert.equal(await main(['check', page, '--baseline', baseline, '--ci'], dirty.streams), 1);
   const gate = dirty.text(dirty.out);
-  // The stray input outside a landmark regresses `region`, which the baseline knows: that blocks. It also
-  // creates the page's first `label` finding, and `label` was not in the baseline at all: that is reported
-  // as ours to adopt, never charged to the page. Both halves have to be true for the gate to be honest.
+  // The stray input outside a landmark regresses `region`, which the baseline lists. It also creates the
+  // page's first `label` finding, and `label` was never recorded here — but this baseline was written by
+  // *this* build, so that is not a rule the repo never had a chance to satisfy, it is a field nobody
+  // labelled. Both block; only one of them is offered to us as an adoption.
+  assert.match(gate, /gate · 2 new/);
   assert.match(gate, /\+1 region at .+ \(moderate\)/);
-  assert.match(gate, /rules this baseline predates .label./);
+  assert.match(gate, /\+1 label at input \(critical\)/);
+  assert.doesNotMatch(gate, /rules this baseline predates/, 'nothing is exempt when the same build wrote the file');
   assert.match(gate, /already known/, 'the existing findings are named as the floor, not re-litigated');
   assert.match(gate, /accept them deliberately with `spark baseline`/);
 }));
@@ -308,7 +382,7 @@ test('`--strict` alone is a mistake we say out loud, and the config can own the 
 
     const written = capture();
     assert.equal(await main(['baseline', 'page.html'], written.streams), 0, 'the config path is where it wrote');
-    assert.ok(readFileSync(join(dir, 'gate/committed.json'), 'utf8').includes('"baseline": 1'));
+    assert.ok(readFileSync(join(dir, 'gate/committed.json'), 'utf8').includes(`"baseline": ${BASELINE_VERSION}`));
 
     const run2 = capture();
     assert.equal(await main(['check', 'page.html', '--ci'], run2.streams), 0);

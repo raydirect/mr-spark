@@ -49,7 +49,11 @@ export function summarize(payload) {
   const foot = [
     driver.version ? `MR-Spark ${driver.version}` : null,
     run?.properties?.sparkScoreSpec ? `score spec ${run.properties.sparkScoreSpec}` : null,
-    Number.isFinite(run?.properties?.sparkScore) ? `accessible ${run.properties.sparkScore}/100` : null,
+    // For a repo-wide run this is the *worst* page, and saying "accessible 87/100" without those words
+    // would let a reader take it for an average of the site.
+    Number.isFinite(run?.properties?.sparkScore)
+      ? `accessible ${run.properties.sparkScore}/100${run.properties.sparkPages?.length ? ' (worst page)' : ''}`
+      : null,
   ].filter(Boolean);
 
   if (!gate) {
@@ -73,6 +77,9 @@ export function summarize(payload) {
   lines.push('');
   lines.push('| | |');
   lines.push('|---|---|');
+  // A repo-wide run says how many pages the verdict covers, because "0 new" over 12 pages and "0 new"
+  // over 1 page are different claims — and the number that made the difference should be on the screen.
+  if (gate.pages > 1) lines.push(`| pages | ${gate.pages} |`);
   lines.push(`| new | ${gate.blocking} |`);
   lines.push(`| worse | ${gate.escalated} |`);
   lines.push(`| fixed | ${gate.resolved} |`);
@@ -80,10 +87,16 @@ export function summarize(payload) {
   // Not a table row: the sentence below says the same number *and* what to do about it, and a count
   // repeated twice on one screen is a count that can be contradicted.
   if (gate.adoptable) {
-    lines.push(`\n${gate.adoptable} finding(s) come from rules this baseline predates. Reported, not blocking — run \`spark baseline\` to adopt them.`);
+    // "New rules" and "new pages" are the two reasons something is reported without blocking, and the SARIF
+    // payload knows both totals only as one number — so the sentence names both causes rather than guessing
+    // at one. The per-page lines below say which page, and the Files tab has the findings.
+    lines.push(
+      `\n${gate.adoptable} finding(s) are reported but not blocking — from rules this baseline predates, or pages it never listed. Run \`spark baseline\` on the same set of pages to adopt them.`
+    );
   }
 
   const rows = listed(gate.entries);
+  const showPage = gate.pages > 1;
   if (rows.length) {
     lines.push('');
     for (const row of rows.slice(0, LIMIT)) {
@@ -92,7 +105,7 @@ export function summarize(payload) {
       if (row.escalated) parts.push(`${row.fromImpact ?? 'worse'} → ${row.impact}`);
       if (parts.length === 0) parts.push('changed');
       lines.push(
-        `- \`${row.ruleId}\` ${parts.join(', ')} at \`${row.anchor ?? '(document)'}\`` +
+        `- ${row.page && showPage ? `\`${row.page}\` · ` : ''}\`${row.ruleId}\` ${parts.join(', ')} at \`${row.anchor ?? '(document)'}\`` +
         (row.impact ? ` (${row.impact})` : '') +
         (row.from ? ` · baseline had ${row.from}` : '')
       );
@@ -102,6 +115,24 @@ export function summarize(payload) {
 
   // What the gate did not count, on the same screen as what it did. A green check that quietly excludes
   // things is the failure mode this project keeps refusing, so the exclusions are in the summary too.
+  // A page outside the baseline is the same kind of fact as a rule outside it: reported, not charged, and
+  // named — otherwise "green" reads as "these pages are fine" when it means "these pages were not gateable".
+  const pages = [];
+  if (gate.newPages?.length) {
+    pages.push(
+      `${gate.newPages.length} page(s) are not in the baseline (${gate.newPages.slice(0, 3).join(', ')}${gate.newPages.length > 3 ? `, +${gate.newPages.length - 3}` : ''}), so their findings are reported, not blocking`
+    );
+  }
+  if (gate.gonePages?.length) {
+    pages.push(
+      `${gate.gonePages.length} page(s) in the baseline were not audited (${gate.gonePages.slice(0, 3).join(', ')}) — nothing here counts them as fixed`
+    );
+  }
+  if (gate.staleFormat) {
+    pages.push('the baseline file is version 1 and was read as a one-page baseline; run `spark baseline` on the whole set to update it');
+  }
+  if (pages.length) lines.push(`\n${pages.join('. ')}.`);
+
   const notCounted = [];
   if (undecided) notCounted.push(`${undecided} could not be decided automatically`);
   if (waived) notCounted.push(`${waived} waived by configuration with a stated reason`);

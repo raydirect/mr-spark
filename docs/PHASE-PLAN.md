@@ -27,7 +27,12 @@ are the trust foundation; 3 is the first creative surface; 4–6 deepen by width
 | **0e** | full rule set (100 of 105) · fragments vs documents · upper-bound scores | ✅ merged |
 | **0f** | **ground truth** — per-root-cause scoring · suppression with reasons · real-page corpus · re-audit | 🟡 sub-linear pricing pinned at 1/84/200-finding scale · corpus is five pages now, the two newest ours with their CSS inline, which settled one thing: a stylesheet in the file does not make contrast decidable offline, only a browser does · open: one committed page from outside this repo (calibration), and the browser runner |
 | **1** | **spine** — frozen `scene`/`motion`/`settings` schemas · `lower` · `emit` · byte-identical output | 🟡 **nearly** — formats + validator + published `schema/` ([ADR 0002](adr/0002-one-grammar-three-projections.md)), `lower`/`emit` with the emitted page audited in CI ([ADR 0003](adr/0003-emit-refuses-rather-than-degrades.md)); open: `schema/` + IR spec at a stable URL |
-| **2** | **gate** — `baseline` · regression-only `--ci` · SARIF · action · structural finding identity | 🟡 **the mechanism, and it is on us** — `src/identity.js` keys a finding on rule + structural anchor + multiplicity instead of axe's positional selector ([ADR 0005](adr/0005-a-gate-on-regressions-keyed-by-structure.md)); `spark baseline` writes a committed `.spark-baseline.json`, `spark check --ci` blocks only new findings and escalations, `--format sarif` carries `baselineState` so code-scanning annotations come free, `.github/actions/spark-gate` is the reusable composite action (audits, writes the payload, refuses to install the CLI or invent a baseline), and `check.yml` runs that action on this repository's own two fixtures against baselines a test keeps byte-current. Open: the exit criteria that cannot be written into existence — ten real repos with a green gate, three merges stopped by a real regression — plus the `md` PR-comment reporter and a `v1` tag for the action to pin |
+| **2** | **gate** — `baseline` · regression-only `--ci` · SARIF · action · structural finding identity | 🟡 **the mechanism, and it is on us** — `src/identity.js` keys a finding on rule + structural anchor + multiplicity instead of axe's positional selector ([ADR 0005](adr/0005-a-gate-on-regressions-keyed-by-structure.md)); `spark baseline` writes a committed `.spark-baseline.json`, `spark check --ci` blocks only new findings and escalations, `--format sarif` carries `baselineState` so code-scanning annotations come free, `.github/actions/spark-gate` is the reusable composite action (audits, writes the payload, refuses to install the CLI or invent a baseline), and `check.yml` runs that action on this repository's own fixtures against baselines a test keeps byte-current.
+`baseline: 2` ([ADR 0007](adr/0007-a-baseline-describes-a-set-of-pages.md)) makes one file describe a set of
+pages — `spark baseline dist`, `spark check dist --ci` — with a page keyed by its path from the project root, no
+aggregate score anywhere, a v1 file promoted rather than rejected, and a run that overlaps its baseline on nothing
+exiting `2` instead of reporting a pass; `check.yml` now gates every page under `fixtures/` through the action.
+Open: the exit criteria that cannot be written into existence — ten real repos with a green gate, three merges stopped by a real regression — plus the `md` PR-comment reporter and a `v1` tag for the action to pin |
 | **3** | **studio** — browser canvas, inspector, live verifier, export, URL/HTML import | ⏳ |
 | **4** | **motion** — motion document, timeline, state graph, reduced-motion by construction | ⏳ |
 | **5** | **manifest** — one declaration → three faces · `MCP*` · `.spark-tools.lock` | ⏳ |
@@ -127,6 +132,7 @@ A phase is only done when **all** of these hold:
 | Regression-only gating | commit a baseline, introduce one violation, watch it block |
 | The ratchet | fix a finding, promote it, confirm it cannot come back |
 | SARIF | upload to a code-scanning surface |
+| One commit, one repo-wide verdict | `spark baseline fixtures --baseline /tmp/b.json && spark check fixtures --ci --baseline /tmp/b.json`, then add one violation to any page: exit 1, and the page's name is in the line |
 
 ### Testable at the end of 5
 
