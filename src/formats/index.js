@@ -25,7 +25,11 @@ export const EXTENSIONS = Object.freeze({
 });
 
 export { tokenRegistry } from './settings.js';
-export { parseEase, EASE_NAMES, KEYWORD_EASES, EASE_FAMILIES } from './eases.js';
+// A design tool importing the formats gets the ease table too, because "is this curve in the list" is a
+// question the author needs answered before they draw it, not after the build refuses them.
+// `EASE_PATTERN` and `SAMPLE_MAX_KEYFRAMES` join the table here because a design tool needs the same two
+// facts the compiler does: which names are legal, and how many samples a baked curve may cost.
+export { parseEase, EASE_NAMES, EASE_PATTERN, KEYWORD_EASES, EASE_FAMILIES, SAMPLE_MAX_KEYFRAMES } from './eases.js';
 
 /**
  * Validate one document.

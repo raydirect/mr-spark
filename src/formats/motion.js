@@ -193,7 +193,7 @@ export const defs = {
  * document that gets emitted — which is the whole failure mode of a schema-only validator.
  */
 /** Animation ids that some timeline item references. */
-function referencedIds(doc) {
+export function referencedIds(doc) {
   const ids = new Set();
   for (const tl of doc?.timelines ?? []) {
     for (const item of tl?.items ?? []) if (item?.ref) ids.add(item.ref);
@@ -201,7 +201,7 @@ function referencedIds(doc) {
   return ids;
 }
 
-function resolve(doc, motion, meta, field) {
+export function resolveField(doc, motion, meta, field) {
   const timeline = meta?.timeline;
   for (const candidate of [motion?.[field], timeline?.[field], timeline?.defaults?.[field], doc?.defaults?.[field]]) {
     if (candidate !== undefined) return candidate;
@@ -209,7 +209,7 @@ function resolve(doc, motion, meta, field) {
   return undefined;
 }
 
-function forEachMotion(doc, visit) {
+export function forEachMotion(doc, visit) {
   (doc.animations ?? []).forEach((anim, index) => visit(anim, `animations[${index}]`, { topLevel: true }));
   // `topLevel` is what lets a check ignore an animation whose timing — and therefore whose intent —
   // belongs to the timeline that references it.
@@ -288,7 +288,7 @@ export const checks = [
     run(doc) {
       const found = [];
       forEachMotion(doc, (motion, at, meta) => {
-        const intent = resolve(doc, motion, meta, 'intent');
+        const intent = resolveField(doc, motion, meta, 'intent');
         const startsHidden = motion.from && 'opacity' in motion.from && Number(motion.from.opacity) === 0;
         if (!startsHidden || intent !== 'entrance') return;
         // An item's trigger, or the timeline's. Nothing else can start a sequence.
@@ -309,7 +309,7 @@ export const checks = [
     run(doc) {
       const found = [];
       forEachMotion(doc, (motion, at, meta) => {
-        if (resolve(doc, motion, meta, 'intent') !== undefined) return;
+        if (resolveField(doc, motion, meta, 'intent') !== undefined) return;
         // A top-level animation that a timeline references takes its intent (and its fallback) from
         // that timeline, so the item is where the error belongs, not the declaration.
         if (meta?.topLevel && referencedIds(doc).has(motion.id)) return;
@@ -324,8 +324,8 @@ export const checks = [
     run(doc) {
       const found = [];
       forEachMotion(doc, (motion, at, meta) => {
-        if (resolve(doc, motion, meta, 'intent') === 'decorative') return;
-        if (resolve(doc, motion, meta, 'reducedMotion') !== undefined) return;
+        if (resolveField(doc, motion, meta, 'intent') === 'decorative') return;
+        if (resolveField(doc, motion, meta, 'reducedMotion') !== undefined) return;
         // A top-level animation that a timeline references takes its intent (and its fallback) from
         // that timeline, so the item is where the error belongs, not the declaration.
         if (meta?.topLevel && referencedIds(doc).has(motion.id)) return;
