@@ -21,6 +21,8 @@ proof a property of the pipeline instead of an audit after the fact.
 > - [docs/DOCUMENTS.md](docs/DOCUMENTS.md) — the three document formats and their rules
 > - [docs/LEGIBLE.md](docs/LEGIBLE.md) — discoverability, agent readiness, and what cannot be checked
 > - [docs/COVERAGE.md](docs/COVERAGE.md) — exactly what a run can and cannot see
+> - [docs/UNDECIDED.md](docs/UNDECIDED.md) — checks that need a capability vs. checks no environment can answer
+> - [docs/LIMITS.md](docs/LIMITS.md) — the ten things this will still not do when it is finished
 
 ---
 
@@ -249,8 +251,10 @@ cautionary tale of a dead animation ecosystem, is in
 ## Contribute to the thinking
 
 Right now the most useful contribution is disagreement — open an issue against the part of the
-plan you think is wrong. The open decisions are listed at the end of
-[VISION.md](docs/VISION.md#7-decisions-needed-before-any-code).
+plan you think is wrong. The five questions that held the plan up were answered on 2026-11-07 and
+are recorded, with the reasoning that made them, in
+[REVOLUTION.md §14](docs/REVOLUTION.md#14-decisions-taken-2026-11-07). What any of this still
+cannot do is in [docs/LIMITS.md](docs/LIMITS.md).
 
 ## License
 

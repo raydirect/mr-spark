@@ -247,6 +247,12 @@ repository disagrees with its own fixture.
 The document formats exist and the compiler can round-trip.
 
 - Freeze `scene`, `motion`, `settings` **schemas** (`schema/*.json`) with TypeScript types.
+- **Schemas are surface-neutral**, per [§14.1](#141-both-said-plainly): every field must be
+  authorable by keyboard, by screen reader and by a drag handle alike. A field that only a mouse
+  can produce does not enter the schema. This is a constraint on the freeze itself, not on Phase 3.
+- The motion schema ships with `defaults`, `timelines` and `stagger` already in it
+  (`DOCUMENTS.md §2`) — the position parameter cannot be retrofitted into a flat animation list
+  without changing what "one animation" means, which is a breaking change to a published format.
 - `spark lower <doc>` → IR — pure, deterministic, tested.
 - `spark emit <ir>` → HTML/CSS — a static page from a scene document, no interactivity.
 - Determinism: same document → byte-identical output, asserted in CI.
@@ -448,21 +454,110 @@ Inherits `VISION.md §5` unchanged. Two additions:
 
 ---
 
-## 14. Decisions still open (blocking)
+## 14. Decisions taken (2026-11-07)
 
-1. **First surface you personally want to open** — a canvas to drag boxes on, or a document you
-   type that produces a page. Determines whether Phase 3 starts with the canvas or with the
-   renderer. *Recommendation: renderer first, thin canvas second — every project that built the
-   editor first wrote its format from the editor's needs and could never open it up.*
-2. **Do scene documents allow arbitrary HTML/CSS escapes** in v1? *Recommendation: no. An escape
-   hatch makes the guarantees unprovable; it arrives in v2 as an explicitly-marked "unverified
-   region" that fails the gate unless allowlisted.*
-3. **Is the desktop shell in v1?** *Recommendation: no — packaging, Phase 6.*
-4. **Motion intent vocabulary** — is `entrance / exit / emphasis / feedback / decorative`
-   sufficient, or does it need a vestibular-severity axis separate from intent?
-5. **Does the Studio ever accept code-authored documents from third tools**, or only its own
-   output plus imported HTML? *Recommendation: yes for import, never for round-trip of
-   hand-edited exports.*
+Five blocking questions, five answers. They are written down with the interpretation attached,
+because an answer nobody recorded becomes a rumour within a month.
+
+| # | Question | Answer |
+|---|---|---|
+| 1 | First surface to open — canvas or document | **Both.** |
+| 2 | Arbitrary HTML/CSS escapes in v1 | **No escapes — but every refusal owes a workaround.** |
+| 3 | Desktop shell in v1 | **No.** |
+| 4 | Motion vocabulary | **Take the authoring model from GSAP; never take its runtime.** |
+| 5 | Third-party code-authored documents | **Read anything that validates; write only our own.** |
+
+### 14.1 "Both", said plainly
+
+The question was asked as either/or and the answer was *both*, which is only coherent if the two
+surfaces share one artifact. They do:
+
+- The **document is the source of truth.** It is the file that gets written, committed, diffed,
+  verified, and gates CI.
+- The **canvas is a projection over that same document.** Dragging a card 24px inward does not
+  record a position; it writes `"pad": "space.lg"` into the document and the canvas re-renders
+  from the result.
+- There is no canvas-private layout blob, no second artifact, no merge step between two ways of
+  describing the same page. A surface that holds state the document does not have is the one
+  architecture error this plan cannot survive.
+
+Consequence for Phase 1, and it bites now: **the schemas must be surface-neutral.** Every field in
+`scene-0.1.json` must be meaningfully editable by a keyboard-only author, a screen reader, and a
+drag handle. If a field can only be produced by dragging, it does not go in the schema. Phase 3
+builds the document first and puts the canvas on top of it, not the reverse.
+
+### 14.2 No escapes, and what "find a way" means as a rule
+
+The answer came with a qualifier that is now load-bearing: *there are always solutions that work*.
+So a refusal is never allowed to be the last word in this project. Three obligations follow:
+
+1. **Every "you cannot express that" ships with a sentence saying what to do instead.** `DOCUMENTS.md §6`
+   is the table this lives in; a row without an alternative is an unfinished row.
+2. **Gaps grow fields, not holes.** If authors need arbitrary CSS, the honest answer is usually a
+   narrower declared field (`transition`, `shadow`, a token). The schema grows; the vocabulary
+   stays closed. That is the only way both things can be true at once.
+3. **What genuinely cannot be expressed is declared and reported, never smuggled.** Third-party
+   embeds and un-lowerable HTML already work this way: the artifact carries `verified: false`, the
+   report lists it as unverified, and the score excludes it rather than pretending. An escape hatch
+   is forbidden because it would let a page *claim* a check it never passed — an `embed` is the
+   same escape, minus the lie.
+
+v2 may add an explicit "unverified region" for CSS we can't model. It will be allowlisted, printed
+in the report, and it will fail the gate by default. Nothing about that weakens today: it is the
+declared version of the same idea.
+
+### 14.3 No desktop shell in v1
+
+Decided for me, recorded here so it stays visible. Packaging only, Phase 6, and import goes
+through drag-and-drop rather than a filesystem API. The browser tab remains the product. If a
+future file-handling need appears, it is solved by the File System Access API behind a capability
+check — not by shipping an installer.
+
+### 14.4 Motion: borrow the vocabulary, refuse the dependency
+
+This one changed the format, so it is written up properly in `DOCUMENTS.md §2`. Summary of what
+we take from the best-known animation library, and the one thing we can't:
+
+**Taken** — timelines with a position parameter (`at: "<"`, `at: "label"`), `defaults` inherited
+down a tree, named eases (`power2.out`, `back.out(1.7)`), `stagger` with `from: "center"`, and
+`repeat`/`yoyo` as *document fields*. The last one matters more than it looks: a loop the verifier
+cannot see in the document is a vestibular hazard it cannot price.
+
+**Refused** — the runtime itself. GSAP's Standard "No Charge" licence (effective 2025-04-30)
+defines "Competitive Products" as *software that enables users to create, edit, or manage
+animations through a visual interface or builder*, and prohibits both using GSAP Products in tools
+that let people build visual animations without code and reverse-engineering them toward that end.
+A motion editor that emits GSAP calls is exactly the case named. Separately, it is not an
+open-source licence, so an MIT repository cannot ship it or require it, and it may be amended at
+any time by posting a new version. The platform primitives — CSS transitions, WAAPI — are not
+merely the polite fallback; they are the only option that keeps our output owned by whoever
+generates it.
+
+Also refused, because they defeat verification: functions as values (`x: () => innerWidth`),
+`from()`-only tweens whose endpoint is whatever the DOM happens to be, and implicit conflict
+resolution (`overwrite: "auto"`), which becomes a *finding* in our format rather than a runtime
+behaviour.
+
+The intent axis keeps both fields: `intent` stays required, and severity is **computed by the
+compiler** from travel, scale, rotation, area, duration and looping — an author may declare a
+floor, which the compiler raises to and never lowers. `reducedMotion` stays mandatory per
+animation.
+
+### 14.5 Read anything valid, write only our own
+
+Verification is format-agnostic; authorship is not.
+
+- Any document that validates against a published schema can be opened, checked, scored, and
+  gated — including files authored by a third-party tool or by hand in an editor.
+- The Studio never round-trips a hand-authored file in place. It exports a **new** document, so
+  comments, key order, and formatting that carry meaning for somebody else survive untouched
+  because we never rewrote them.
+- HTML from outside remains the import route for things that are not documents at all, with the
+  residue reported rather than hidden (§14.2).
+
+One-way in, one-way out, both honest. This is also why `lower()` and `emit()` stay separate
+commands: a tool that can only write what it can also read has to make its reader the standard,
+and ours is.
 
 ---
 

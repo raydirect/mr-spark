@@ -1,6 +1,6 @@
 # Score Spec
 
-**Version 2.0.0** · applies to `src/score.js` · published so anyone can reimplement it.
+**Version 3.0.0** · applies to `src/score.js` · published so anyone can reimplement it.
 
 A score nobody can recompute is a slogan. This document is the definition, the rationale, and
 the calibration table. If the code and this document disagree, the code is wrong.

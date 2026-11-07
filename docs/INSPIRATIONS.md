@@ -19,7 +19,7 @@ The richest family of influences, and the one with the clearest cautionary tale.
 | # | Archetype | B | A |
 |---|---|---|---|
 | 1 | Timeline-based motion authoring environment | Scrubbing a timeline as the primary mental model; keyframes with easing curves as visible objects | A proprietary document format that only one vendor's runtime can play |
-| 2 | Declarative animation library with a terse timeline API | Sequencing, staggering and labels as first-class vocabulary; animation code that reads like a sentence | No reduced-motion story beyond a global off-switch |
+| 2 | Declarative animation library with a terse timeline API | Sequencing, staggering and labels as first-class vocabulary; animation code that reads like a sentence | No reduced-motion story beyond a global off-switch; a "no charge" licence that bans its use inside visual animation builders, is not open source, and can be rewritten by its owner at any time |
 | 3 | Physics/spring-driven motion library | Interruptible, velocity-aware transitions; motion that feels native rather than timed | Springs as the only model — designers still need explicit durations for brand motion |
 | 4 | Vector animation interchange format | A compact, open, JSON-shaped scene document that many tools can read and write | Publishing a format without a reference implementation on *both* ends |
 | 5 | Scroll-driven animation approach | Scroll position as a legitimate timeline source | Scroll hijacking; overriding native scroll physics |
