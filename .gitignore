@@ -2,5 +2,9 @@ node_modules/
 *.log
 .DS_Store
 .spark-cache/
+# Where the gate action puts its SARIF payload by default. Generated per run, never committed — the file
+# that *is* committed is the baseline, and a payload sitting next to it in the index invites someone to
+# review the wrong one.
+.spark/
 spark-report.html
 dist/

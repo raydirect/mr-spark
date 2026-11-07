@@ -151,18 +151,18 @@ export function buildSarif({ ir, scores, hash, diff = null }) {
   const rules = buildRules(findings);
   const indexByRule = new Map(rules.map((rule, index) => [rule.id, index]));
 
-  const states = new Map();
-  if (diff) {
-    for (const entry of diff.blocking ?? []) states.set(entry.key, 'new');
-    for (const entry of diff.adoptable ?? []) states.set(entry.key, 'new');
-    for (const entry of diff.escalated ?? []) states.set(entry.key, 'updated');
-    for (const entry of diff.resolved ?? []) states.set(entry.key, 'absent');
-  }
+  // `baselineState` comes from `compare()`, not from a second read of the diff: the gate line, these
+  // results and the step summary all quote one arithmetic. `sparkBlocking` is separate because the two
+  // differ for a finding from a rule the baseline predates — genuinely new, deliberately not the page's
+  // fault — and a consumer that cannot tell them apart would report "2 regressions" where we said 1.
+  const states = new Map(Object.entries(diff?.states ?? {}));
+  const blocking = new Set((diff?.entries ?? []).filter((entry) => entry.blocking).map((entry) => entry.key));
 
   const uri = artifactUri(ir);
   const results = buildResults(findings, { artifact: uri, baselineStates: states }).map((result) => ({
     ...result,
     ruleIndex: indexByRule.get(result.ruleId),
+    ...(diff ? { properties: { ...result.properties, sparkBlocking: blocking.has(result.partialFingerprints.sparkKey) } } : {}),
   }));
 
   return {
@@ -200,8 +200,11 @@ export function buildSarif({ ir, scores, hash, diff = null }) {
           },
           ...(diff
             ? {
-                sparkGate: {
+                      sparkGate: {
                   ok: diff.ok,
+                  // The per-anchor numbers behind the counts, so a viewer can say "+2 at .card (was 1)"
+                  // without counting results and getting the answer wrong for a grown key.
+                  entries: diff.entries,
                   blocking: diff.counts.blocking,
                   escalated: diff.counts.escalated,
                   adoptable: diff.counts.adoptable,

