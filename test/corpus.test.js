@@ -92,6 +92,42 @@ test('corpus: one root cause cannot sink a page on its own', async () => {
   assert.ok(scores.accessible >= 80, 'one structural defect is not a failing page');
 });
 
+test('corpus: pricing stays sub-linear at the scale a real listing page reaches', async () => {
+  // The 2.0.0 property, measured where `tides.html` cannot reach: five findings is one story, eighty-five
+  // is another, and a marketplace grid of unlandmarked sellers is the case that decides whether the tool
+  // reads as "needs work" or as "catastrophic".
+  //
+  // Generated in the test rather than committed as a page on purpose: a corpus fixture built from rule ids
+  // is the closed loop docs/CORPUS.md rule 1 exists to keep out, so this is labelled what it is — a
+  // probe. The real 84-region page it stands in for could not be shipped (docs/CORPUS.md, "What four
+  // uploaded demo pages taught us"), and its measurement outlived it.
+  const build = (sellers) =>
+    `<!doctype html><html lang="en"><head><title>Catalogue</title></head><body><h1>Catalogue</h1>` +
+    Array.from({ length: sellers }, (_, i) => `<div><h2>Seller ${i + 1}</h2><p>Listing ${i + 1}.</p></div>`).join('') +
+    `</body></html>`;
+  const price = async (sellers) => {
+    const { ir } = await analyze({ html: build(sellers), uri: `file:///synthetic-catalogue-${sellers}.html`, engines });
+    const decided = ir.findings.filter((f) => f.coverage !== 'incomplete');
+    return { damage: damageOf(decided), score: scorePillar(ir, 'accessible'), findings: decided.length };
+  };
+
+  const one = await price(1);
+  const grid = await price(84);
+  assert.ok(grid.findings > 80, `the generator should produce a real grid, got ${grid.findings} findings`);
+  assert.ok(grid.damage > one.damage, 'repetition is priced, not forgiven — a root cause is cheap, not free');
+  assert.ok(
+    grid.damage < one.damage * grid.findings,
+    `${grid.findings} findings cost ${grid.damage.toFixed(2)}, which must stay far under linear (${(one.damage * grid.findings).toFixed(1)})`,
+  );
+  assert.ok(grid.score >= 65, `an unlandmarked grid is "needs work" (${grid.score}), not a broken page`);
+
+  // And it saturates rather than running off the end of the scale — the property that keeps a page with
+  // two hundred widgets in the same conversation as a page with twenty.
+  const huge = await price(200);
+  assert.ok(huge.damage > grid.damage && huge.damage < grid.damage * 2, `200 findings cost ${huge.damage.toFixed(2)} after 84 cost ${grid.damage.toFixed(2)}`);
+  assert.ok(huge.score >= 60, `${huge.score} for 200 findings: the band holds as the page grows`);
+});
+
 test('corpus: every page in fixtures/real has a baseline', async () => {
   // A page added without an expectation would be measured by nobody. This is the check that keeps
   // the corpus from becoming a folder of HTML.
